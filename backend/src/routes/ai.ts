@@ -5,10 +5,22 @@ import { GoogleGenAI } from '@google/genai';
 const router = Router();
 const prisma = new PrismaClient();
 
-// Initialize Gemini API
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+// Initialize Gemini API conditionally
+let ai: GoogleGenAI | null = null;
+
+if (process.env.GEMINI_API_KEY) {
+  ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+}
+
+console.log("Gemini configured:", !!process.env.GEMINI_API_KEY);
 
 router.post('/chat', async (req, res) => {
+  if (!ai) {
+    return res.status(503).json({
+      error: "Gemini API not configured"
+    });
+  }
+
   try {
     const { userId, prompt, contextRoadId } = req.body;
     
@@ -35,7 +47,7 @@ router.post('/chat', async (req, res) => {
     const systemInstruction = `You are the CrashZero AI Assistant. Your goal is to help citizens understand road safety, budgets, and file complaints. Be helpful, concise, and refer to the context if provided.
     ${contextData}`;
 
-    const response = await ai.models.generateContent({
+    const response = await ai!.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: {

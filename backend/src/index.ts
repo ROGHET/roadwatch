@@ -7,6 +7,7 @@ import roadsRouter from './routes/roads';
 import aiRouter from './routes/ai';
 
 dotenv.config();
+console.log("API KEY FOUND:", !!process.env.GEMINI_API_KEY);
 
 const app = express();
 const port = process.env.PORT || 3000;
