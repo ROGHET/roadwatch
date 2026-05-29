@@ -1,12 +1,10 @@
 generator client {
   provider = "prisma-client-js"
-  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
   provider   = "postgresql"
   url        = env("DATABASE_URL")
-  extensions = [postgis]
 }
 
 model User {
@@ -32,7 +30,7 @@ model Authority {
   name         String
   type         String // e.g. "NHAI", "PWD", "MUNICIPAL"
   contactEmail String
-  jurisdiction Unsupported("geometry(Polygon, 4326)")? // PostGIS Polygon for jurisdictional area
+  jurisdiction Json? // GeoJSON Polygon for jurisdictional area
 
   roads      Road[]
   complaints Complaint[]
@@ -43,8 +41,15 @@ model Road {
   name        String
   type        String // e.g. "Highway", "Arterial", "Local"
   status      String   @default("Active")
-  authorityId String
-  geometry    Unsupported("geometry(LineString, 4326)") // PostGIS LineString for road path
+  authorityId      String
+  geometry         Json // GeoJSON LineString for road path
+  budgetSanctioned Float? // In Crores (e.g., 4.2)
+  budgetSpent      Float? // In Crores (e.g., 1.8)
+  contractor       String?
+  startLat         Float?
+  startLng         Float?
+  endLat           Float?
+  endLng           Float?
 
   authority  Authority   @relation(fields: [authorityId], references: [id])
   complaints Complaint[]
@@ -59,7 +64,8 @@ model Complaint {
   severity    String
   description String
   status      ComplaintStatus @default(PENDING)
-  location    Unsupported("geometry(Point, 4326)") // PostGIS Point for exact issue location
+  latitude    Float
+  longitude   Float
   photoUrl    String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

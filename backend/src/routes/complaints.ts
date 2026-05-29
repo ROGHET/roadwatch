@@ -10,24 +10,20 @@ router.post('/', async (req, res) => {
     const { userId, issueType, severity, description, lat, lng, photoUrl } = req.body;
 
     // Create the complaint
-    const complaint = await prisma.$queryRawUnsafe<any[]>(`
-      INSERT INTO "Complaint" ("id", "userId", "issueType", "severity", "description", "status", "location", "photoUrl", "createdAt", "updatedAt")
-      VALUES (
-        gen_random_uuid(), 
-        $1, 
-        $2, 
-        $3, 
-        $4, 
-        'PENDING', 
-        ST_SetSRID(ST_MakePoint($5, $6), 4326), 
-        $7,
-        NOW(),
-        NOW()
-      )
-      RETURNING id;
-    `, userId, issueType, severity, description, lng, lat, photoUrl);
+    const complaint = await prisma.complaint.create({
+      data: {
+        userId,
+        issueType,
+        severity,
+        description,
+        latitude: lat,
+        longitude: lng,
+        photoUrl,
+        status: 'PENDING'
+      }
+    });
 
-    const complaintId = complaint[0].id;
+    const complaintId = complaint.id;
 
     // Trigger async routing
     await autoRouteComplaint(complaintId, lat, lng);
