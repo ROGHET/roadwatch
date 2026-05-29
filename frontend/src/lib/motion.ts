@@ -1,5 +1,9 @@
 import type { Transition, Variants } from 'framer-motion'
 import { animationDuration } from '../styles/designTokens'
+import { stitchMotion } from '../styles/stitchTokens'
+
+export const stitchSpring = stitchMotion.spring
+export const stitchSheetSpring = stitchMotion.sheet
 
 const easeStandard = [0.2, 0, 0, 1] as const
 

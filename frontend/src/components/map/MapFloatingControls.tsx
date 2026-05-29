@@ -1,12 +1,14 @@
 import { Filter, Loader2, LocateFixed, Plus, Search, X } from 'lucide-react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { useId, type FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '../common/Button'
 import type { MapLayerFilter } from '../../lib/map/constants'
 import type { GeolocationStatus } from '../../hooks/useGeolocation'
 import { fadeInUp, scaleIn } from '../../lib/motion'
 import { routes } from '../../lib/routes'
+import { useMapStore } from '../../stores/mapStore'
 
 const filterOptions: { value: MapLayerFilter; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -54,6 +56,8 @@ export function MapFloatingControls({
   locateMessage,
   className,
 }: MapFloatingControlsProps) {
+  const navigate = useNavigate()
+  const persistForNavigation = useMapStore((state) => state.persistForNavigation)
   const prefersReducedMotion = useReducedMotion()
   const searchId = useId()
   const showResults = searchQuery.trim().length > 0 && mode === 'expanded'
@@ -78,7 +82,7 @@ export function MapFloatingControls({
       )}
     >
       <motion.form
-        className="pointer-events-auto rw-map-glass mx-auto flex w-full max-w-xl items-center gap-2 rounded-full px-3 py-2 shadow-lg"
+        className="pointer-events-auto rw-map-glass mx-auto flex w-full max-w-[520px] items-center gap-3 rounded-full px-[var(--st-gutter)] py-[var(--st-stack-sm)] shadow-[var(--st-shadow-glass)]"
         onSubmit={handleSearchSubmit}
         variants={prefersReducedMotion ? undefined : fadeInUp}
         initial={prefersReducedMotion ? false : 'hidden'}
@@ -86,7 +90,8 @@ export function MapFloatingControls({
         role="search"
         aria-label="Search roads and complaints"
       >
-        <Search className="size-5 shrink-0 text-[var(--rw-text-tertiary)]" aria-hidden="true" />
+        <Search className="size-5 shrink-0 text-[var(--st-primary)]" aria-hidden="true" />
+        <span className="hidden font-serif text-lg text-[var(--st-primary)] sm:inline">RoadWatch</span>
         <label htmlFor={searchId} className="sr-only">
           Search roads and complaints
         </label>
@@ -103,7 +108,7 @@ export function MapFloatingControls({
           <button
             type="button"
             onClick={() => onSearchQueryChange('')}
-            className="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-[var(--rw-text-secondary)] transition-colors hover:bg-[var(--rw-surface-muted)] hover:text-[var(--rw-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rw-ring)]"
+            className="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-[var(--rw-text-secondary)] transition-[background-color,color,transform] duration-200 hover:bg-[var(--rw-surface-muted)] hover:text-[var(--rw-text-primary)] active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rw-ring)]"
             aria-label="Clear search"
           >
             <X className="size-4" aria-hidden="true" />
@@ -113,7 +118,7 @@ export function MapFloatingControls({
 
       {showResults ? (
         <motion.ul
-          className="pointer-events-auto rw-map-glass mx-auto max-h-52 w-full max-w-xl overflow-y-auto rounded-2xl p-2 shadow-lg"
+          className="pointer-events-auto rw-map-glass mx-auto max-h-52 w-full max-w-xl overflow-y-auto rounded-[1.25rem] p-2 shadow-[0_20px_60px_-24px_rgb(0_0_0/0.45)] backdrop-blur-2xl"
           role="listbox"
           aria-label="Search results"
           variants={prefersReducedMotion ? undefined : fadeInUp}
@@ -130,7 +135,7 @@ export function MapFloatingControls({
                 <button
                   type="button"
                   onClick={() => onSearchResultSelect(result)}
-                  className="flex w-full flex-col gap-0.5 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-[var(--rw-surface-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rw-ring)]"
+                  className="flex w-full flex-col gap-0.5 rounded-xl px-3 py-2.5 text-left transition-[background-color,transform] duration-200 hover:bg-[var(--rw-surface-muted)] active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rw-ring)]"
                 >
                   <span className="text-sm font-medium text-[var(--rw-text-primary)]">
                     {result.label}
@@ -150,13 +155,15 @@ export function MapFloatingControls({
           <motion.button
             type="button"
             onClick={() => onFilterOpenChange(!filterOpen)}
-            className="rw-map-glass inline-flex size-11 items-center justify-center rounded-full shadow-lg transition-colors hover:bg-[var(--rw-surface-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rw-ring)]"
+            className="rw-map-glass inline-flex size-11 items-center justify-center rounded-full shadow-[0_18px_50px_-22px_rgb(0_0_0/0.45)] transition-[background-color,transform] duration-200 hover:bg-[var(--rw-surface-muted)] active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rw-ring)]"
             aria-expanded={filterOpen}
             aria-controls="map-layer-filters"
             aria-label="Map layer filters"
             variants={prefersReducedMotion ? undefined : scaleIn}
             initial={prefersReducedMotion ? false : 'hidden'}
             animate={prefersReducedMotion ? undefined : 'visible'}
+            whileHover={prefersReducedMotion ? undefined : { y: -1, scale: 1.02 }}
+            whileTap={prefersReducedMotion ? undefined : { scale: 0.96 }}
           >
             <Filter className="size-5 text-[var(--rw-text-primary)]" aria-hidden="true" />
           </motion.button>
@@ -164,7 +171,7 @@ export function MapFloatingControls({
           {filterOpen ? (
             <motion.div
               id="map-layer-filters"
-              className="rw-map-glass absolute left-0 top-full z-10 mt-2 min-w-44 rounded-2xl p-2 shadow-lg"
+              className="rw-map-glass absolute left-0 top-full z-10 mt-2 min-w-44 rounded-[1.25rem] p-2 shadow-[0_18px_50px_-22px_rgb(0_0_0/0.45)] backdrop-blur-2xl"
               role="group"
               aria-label="Layer filters"
               variants={prefersReducedMotion ? undefined : fadeInUp}
@@ -180,10 +187,10 @@ export function MapFloatingControls({
                     onFilterOpenChange(false)
                   }}
                   className={twMerge(
-                    'flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rw-ring)]',
+                    'flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm transition-[background-color,transform] duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rw-ring)]',
                     filter === option.value
                       ? 'bg-[var(--rw-primary)] font-medium text-[var(--rw-primary-foreground)]'
-                      : 'text-[var(--rw-text-primary)] hover:bg-[var(--rw-surface-muted)]',
+                      : 'text-[var(--rw-text-primary)] hover:bg-[var(--rw-surface-muted)] active:scale-[0.99]',
                   )}
                   aria-pressed={filter === option.value}
                 >
@@ -199,7 +206,7 @@ export function MapFloatingControls({
             type="button"
             onClick={onLocate}
             disabled={locateStatus === 'loading'}
-            className="rw-map-glass inline-flex size-11 items-center justify-center rounded-full shadow-lg transition-colors hover:bg-[var(--rw-surface-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rw-ring)] disabled:cursor-wait disabled:opacity-70"
+            className="rw-map-glass inline-flex size-11 items-center justify-center rounded-full shadow-[0_18px_50px_-22px_rgb(0_0_0/0.45)] transition-[background-color,transform] duration-200 hover:bg-[var(--rw-surface-muted)] active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rw-ring)] disabled:cursor-wait disabled:opacity-70"
             aria-label={
               locateStatus === 'loading' ? 'Locating your position' : 'Locate me on the map'
             }
@@ -207,6 +214,8 @@ export function MapFloatingControls({
             variants={prefersReducedMotion ? undefined : scaleIn}
             initial={prefersReducedMotion ? false : 'hidden'}
             animate={prefersReducedMotion ? undefined : 'visible'}
+            whileHover={prefersReducedMotion ? undefined : { y: -1, scale: 1.02 }}
+            whileTap={prefersReducedMotion ? undefined : { scale: 0.96 }}
           >
             {locateStatus === 'loading' ? (
               <Loader2 className="size-5 animate-spin text-[var(--rw-primary)]" aria-hidden="true" />
@@ -217,9 +226,12 @@ export function MapFloatingControls({
 
           <Button
             type="button"
-            to={routes.complaint}
-            className="rounded-full px-4 shadow-lg"
+            className="rounded-full bg-[var(--st-primary-container)] px-4 text-[var(--st-on-primary-container)] shadow-[var(--st-shadow-fab)] hover:brightness-110"
             aria-label="Report a road issue"
+            onClick={() => {
+              persistForNavigation()
+              navigate(routes.complaint)
+            }}
           >
             <Plus className="size-4" aria-hidden="true" />
             <span className="hidden sm:inline">Report Issue</span>
@@ -231,7 +243,7 @@ export function MapFloatingControls({
       {locateMessage ? (
         <p
           className={twMerge(
-            'pointer-events-auto rw-map-glass mx-auto max-w-xl rounded-xl px-3 py-2 text-center text-xs shadow-md',
+            'pointer-events-auto rw-map-glass mx-auto max-w-xl rounded-xl px-3 py-2 text-center text-xs shadow-[0_18px_50px_-22px_rgb(0_0_0/0.35)] backdrop-blur-2xl',
             locateStatus === 'denied'
               ? 'text-[var(--rw-danger)]'
               : 'text-[var(--rw-text-secondary)]',

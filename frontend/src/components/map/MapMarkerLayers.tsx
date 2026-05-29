@@ -1,3 +1,5 @@
+import { useMemo, useRef } from 'react'
+import L from 'leaflet'
 import { Marker } from 'react-leaflet'
 import MarkerClusterGroup from 'react-leaflet-cluster'
 import { mapComplaintMarkers, mapRoadMarkers } from '../../data/mapMarkers'
@@ -6,7 +8,15 @@ import type { MapLayerFilter } from '../../lib/map/constants'
 import type { GeolocationPosition } from '../../hooks/useGeolocation'
 import type { MapComplaintMarker } from '../../lib/map/types'
 import type { MockRoad } from '../../data/roads'
+import { MapClusterSpiderfyGuard } from './MapClusterSpiderfyGuard'
 import { UserLocationLayer } from './UserLocationLayer'
+
+const clusterGroupProps = {
+  chunkedLoading: true,
+  showCoverageOnHover: false,
+  spiderfyOnMaxZoom: true,
+  bubblingMouseEvents: false,
+} as const
 
 export type MapMarkerLayersProps = {
   filter: MapLayerFilter
@@ -21,50 +31,68 @@ export function MapMarkerLayers({
   onSelectRoad,
   onSelectComplaint,
 }: MapMarkerLayersProps) {
+  const onSelectRoadRef = useRef(onSelectRoad)
+  const onSelectComplaintRef = useRef(onSelectComplaint)
+  onSelectRoadRef.current = onSelectRoad
+  onSelectComplaintRef.current = onSelectComplaint
+
   const showRoads = filter === 'all' || filter === 'roads'
   const showComplaints = filter === 'all' || filter === 'complaints'
 
+  const roadMarkers = useMemo(
+    () =>
+      mapRoadMarkers.map((road) => (
+        <Marker
+          key={road.id}
+          position={[road.lat, road.lng]}
+          icon={createRoadMarkerIcon(road.status)}
+          bubblingMouseEvents={false}
+          eventHandlers={{
+            click: (event) => {
+              L.DomEvent.stop(event.originalEvent)
+              L.DomEvent.stopPropagation(event.originalEvent)
+              onSelectRoadRef.current(road)
+            },
+          }}
+        />
+      )),
+    [],
+  )
+
+  const complaintMarkers = useMemo(
+    () =>
+      mapComplaintMarkers.map((complaint) => (
+        <Marker
+          key={complaint.id}
+          position={[complaint.lat, complaint.lng]}
+          icon={createComplaintMarkerIcon(complaint.severity ?? 'medium')}
+          bubblingMouseEvents={false}
+          eventHandlers={{
+            click: (event) => {
+              L.DomEvent.stop(event.originalEvent)
+              L.DomEvent.stopPropagation(event.originalEvent)
+              onSelectComplaintRef.current(complaint)
+            },
+          }}
+        />
+      )),
+    [],
+  )
+
   return (
     <>
+      <MapClusterSpiderfyGuard />
       {userPosition ? <UserLocationLayer position={userPosition} /> : null}
 
       {showRoads ? (
-        <MarkerClusterGroup
-          chunkedLoading
-          showCoverageOnHover={false}
-          spiderfyOnMaxZoom
-          maxClusterRadius={56}
-        >
-          {mapRoadMarkers.map((road) => (
-            <Marker
-              key={road.id}
-              position={[road.lat, road.lng]}
-              icon={createRoadMarkerIcon(road.status)}
-              eventHandlers={{
-                click: () => onSelectRoad(road),
-              }}
-            />
-          ))}
+        <MarkerClusterGroup {...clusterGroupProps} maxClusterRadius={56}>
+          {roadMarkers}
         </MarkerClusterGroup>
       ) : null}
 
       {showComplaints ? (
-        <MarkerClusterGroup
-          chunkedLoading
-          showCoverageOnHover={false}
-          spiderfyOnMaxZoom
-          maxClusterRadius={48}
-        >
-          {mapComplaintMarkers.map((complaint) => (
-            <Marker
-              key={complaint.id}
-              position={[complaint.lat, complaint.lng]}
-              icon={createComplaintMarkerIcon(complaint.severity ?? 'medium')}
-              eventHandlers={{
-                click: () => onSelectComplaint(complaint),
-              }}
-            />
-          ))}
+        <MarkerClusterGroup {...clusterGroupProps} maxClusterRadius={48}>
+          {complaintMarkers}
         </MarkerClusterGroup>
       ) : null}
     </>

@@ -19,6 +19,7 @@ export function UserLocationLayer({ position }: UserLocationLayerProps) {
       <Circle
         center={[position.lat, position.lng]}
         radius={Math.max(position.accuracy, 25)}
+        bubblingMouseEvents={false}
         pathOptions={{
           color: USER_LOCATION_COLOR,
           fillColor: USER_LOCATION_COLOR,
@@ -31,6 +32,7 @@ export function UserLocationLayer({ position }: UserLocationLayerProps) {
         position={[position.lat, position.lng]}
         icon={icon}
         zIndexOffset={1000}
+        bubblingMouseEvents={false}
       />
     </>
   )

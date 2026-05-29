@@ -1,56 +1,99 @@
 import { motion, useReducedMotion } from 'framer-motion'
-import { Button } from '../../components/common/Button'
-import { PageContainer } from '../../components/common/PageContainer'
-import { FeatureGrid } from '../../components/home/FeatureGrid'
-import { HeroSection } from '../../components/home/HeroSection'
-import { MapExplorerSection } from '../../components/map/MapExplorerSection'
-import { homeFeatures, homePageCopy } from '../../data/home'
+import { useNavigate } from 'react-router-dom'
+import { HomeHealthCard } from '../../components/home/HomeHealthCard'
+import { HomeQuickActions } from '../../components/home/HomeQuickActions'
+import { HomeRecentIntelligence } from '../../components/home/HomeRecentIntelligence'
+import { MapPreviewCard } from '../../components/map/MapPreviewCard'
+import { StitchSectionHeader } from '../../components/stitch'
 import { fadeInUp } from '../../lib/motion'
 import { routes } from '../../lib/routes'
-import { useMapStore } from '../../stores/mapStore'
 
 export default function HomePage() {
   const prefersReducedMotion = useReducedMotion()
-  const requestExpandMap = useMapStore((state) => state.requestExpandMap)
+  const navigate = useNavigate()
 
   return (
-    <div className="flex flex-col gap-8">
-      <PageContainer className="gap-6">
-        <HeroSection
-          subtitle={homePageCopy.heroSubtitle}
-          title={homePageCopy.heroTitle}
-          description={homePageCopy.heroDescription}
-          actions={
-            <>
-              <Button type="button" to={routes.complaint}>
-                Report an Issue
-              </Button>
-              <Button type="button" variant="outline" to={routes.assistant}>
-                Ask RoadWatch AI
-              </Button>
-            </>
+    <div className="flex flex-col gap-[var(--st-stack-lg)] pb-28 pt-2 md:pb-8">
+      <motion.section
+        className="flex flex-col gap-[var(--st-stack-md)]"
+        variants={prefersReducedMotion ? undefined : fadeInUp}
+        initial={prefersReducedMotion ? false : 'hidden'}
+        animate={prefersReducedMotion ? undefined : 'visible'}
+      >
+        <h1 className="rw-type-display text-[var(--st-on-surface)]">Good morning, Citizen.</h1>
+        <HomeHealthCard />
+      </motion.section>
+
+      <motion.div
+        variants={prefersReducedMotion ? undefined : fadeInUp}
+        initial={prefersReducedMotion ? false : 'hidden'}
+        whileInView={prefersReducedMotion ? undefined : 'visible'}
+        viewport={{ once: true, margin: '-40px' }}
+      >
+        <HomeQuickActions />
+      </motion.div>
+
+      <motion.section
+        className="flex flex-col gap-[var(--st-stack-sm)]"
+        variants={prefersReducedMotion ? undefined : fadeInUp}
+        initial={prefersReducedMotion ? false : 'hidden'}
+        whileInView={prefersReducedMotion ? undefined : 'visible'}
+        viewport={{ once: true, margin: '-40px' }}
+      >
+        <StitchSectionHeader
+          eyebrow="Live Status • India"
+          title=""
+          action={
+            <button
+              type="button"
+              onClick={() => navigate(routes.map)}
+              className="rw-type-label-caps text-[var(--st-primary)] transition-colors hover:text-[var(--st-primary-container)]"
+            >
+              Open Map
+            </button>
           }
         />
+        <MapPreviewCard />
+      </motion.section>
 
-        <MapExplorerSection />
-      </PageContainer>
+      <motion.div
+        variants={prefersReducedMotion ? undefined : fadeInUp}
+        initial={prefersReducedMotion ? false : 'hidden'}
+        whileInView={prefersReducedMotion ? undefined : 'visible'}
+        viewport={{ once: true, margin: '-40px' }}
+      >
+        <HomeRecentIntelligence />
+      </motion.div>
 
-      <PageContainer className="gap-8">
-        <motion.section
-          variants={prefersReducedMotion ? undefined : fadeInUp}
-          initial={prefersReducedMotion ? false : 'hidden'}
-          whileInView={prefersReducedMotion ? undefined : 'visible'}
-          viewport={{ once: true, margin: '-40px' }}
-        >
-          <FeatureGrid
-            title={homePageCopy.featuresTitle}
-            description={homePageCopy.featuresDescription}
-            features={homeFeatures}
-            columns={2}
-            onExpandMap={requestExpandMap}
-          />
-        </motion.section>
-      </PageContainer>
+      <motion.section
+        className="hidden md:block"
+        variants={prefersReducedMotion ? undefined : fadeInUp}
+        initial={prefersReducedMotion ? false : 'hidden'}
+        whileInView={prefersReducedMotion ? undefined : 'visible'}
+        viewport={{ once: true, margin: '-40px' }}
+      >
+        <StitchSectionHeader
+          eyebrow="Platform"
+          title="Explore capabilities"
+          description="Road monitoring, complaints, analytics, and AI assistance."
+        />
+        <div className="mt-4 flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => navigate(routes.dashboard)}
+            className="rw-glass-button rounded-full px-5 py-2.5 text-sm text-[var(--st-on-surface)]"
+          >
+            Budget & Analytics
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate(routes.complaint)}
+            className="rw-glass-button rounded-full px-5 py-2.5 text-sm text-[var(--st-on-surface)]"
+          >
+            File Complaint
+          </button>
+        </div>
+      </motion.section>
     </div>
   )
 }

@@ -8,6 +8,7 @@ import {
   typography,
   zIndex,
 } from './designTokens'
+import { stitchColors, stitchRadius, stitchShadow, stitchSpacing } from './stitchTokens'
 
 /**
  * Semantic theme tokens for RoadWatch.
@@ -65,39 +66,39 @@ export type Theme = {
 }
 
 const darkColors: SemanticColors = {
-  background: colorPalette.neutral[1000],
-  backgroundSubtle: colorPalette.neutral[950],
-  surface: colorPalette.neutral[900],
-  surfaceRaised: colorPalette.neutral[800],
-  surfaceMuted: colorPalette.neutral[950],
-  border: 'rgb(148 163 184 / 0.14)',
-  borderStrong: 'rgb(148 163 184 / 0.24)',
-  ring: colorPalette.brand[500],
-  textPrimary: colorPalette.neutral[50],
-  textSecondary: colorPalette.neutral[300],
-  textTertiary: colorPalette.neutral[400],
-  textInverse: colorPalette.neutral[900],
-  textLink: colorPalette.brand[400],
-  textLinkHover: colorPalette.brand[300],
-  primary: colorPalette.brand[600],
-  primaryHover: colorPalette.brand[500],
-  primaryForeground: colorPalette.neutral[0],
-  accent: colorPalette.brand[500],
-  accentForeground: colorPalette.neutral[0],
-  success: colorPalette.success[500],
-  successSubtle: 'rgb(16 185 129 / 0.12)',
-  successForeground: colorPalette.success[100],
-  warning: colorPalette.warning[500],
-  warningSubtle: 'rgb(245 158 11 / 0.12)',
-  warningForeground: colorPalette.warning[100],
-  danger: colorPalette.danger[500],
-  dangerSubtle: 'rgb(239 68 68 / 0.12)',
-  dangerForeground: colorPalette.danger[100],
-  info: colorPalette.info[500],
-  infoSubtle: 'rgb(14 165 233 / 0.12)',
-  infoForeground: colorPalette.info[100],
-  overlay: 'rgb(5 7 13 / 0.72)',
-  scrim: 'rgb(5 7 13 / 0.48)',
+  background: stitchColors.background,
+  backgroundSubtle: stitchColors.surfaceContainerLowest,
+  surface: stitchColors.surfaceContainer,
+  surfaceRaised: stitchColors.surfaceContainerHigh,
+  surfaceMuted: stitchColors.surfaceContainerLow,
+  border: stitchColors.outlineWhite,
+  borderStrong: 'rgba(255, 255, 255, 0.22)',
+  ring: stitchColors.primary,
+  textPrimary: stitchColors.onSurface,
+  textSecondary: stitchColors.onSurfaceVariant,
+  textTertiary: stitchColors.outline,
+  textInverse: stitchColors.inverseOnSurface,
+  textLink: stitchColors.primary,
+  textLinkHover: stitchColors.surfaceTint,
+  primary: stitchColors.primaryContainer,
+  primaryHover: '#5a9aff',
+  primaryForeground: stitchColors.onPrimaryContainer,
+  accent: stitchColors.primary,
+  accentForeground: stitchColors.onPrimary,
+  success: stitchColors.tertiary,
+  successSubtle: 'rgb(0 228 117 / 0.12)',
+  successForeground: stitchColors.onTertiary,
+  warning: stitchColors.secondaryContainer,
+  warningSubtle: 'rgb(254 183 0 / 0.12)',
+  warningForeground: stitchColors.onSecondaryContainer,
+  danger: stitchColors.error,
+  dangerSubtle: 'rgb(255 82 82 / 0.12)',
+  dangerForeground: stitchColors.onErrorContainer,
+  info: stitchColors.primaryContainer,
+  infoSubtle: 'rgb(70 143 255 / 0.12)',
+  infoForeground: stitchColors.onPrimaryContainer,
+  overlay: 'rgb(0 0 0 / 0.72)',
+  scrim: 'rgb(0 0 0 / 0.48)',
 }
 
 const lightColors: SemanticColors = {
@@ -160,7 +161,7 @@ export const lightTheme: Theme = {
   ...sharedTheme,
 }
 
-/** Active default theme — dark-mode first. */
+/** Active default theme - dark-mode first. */
 export const theme = darkTheme
 
 export const themes = {
@@ -215,3 +216,41 @@ export function themeToCssVariables(colors: SemanticColors): Record<string, stri
 
 export const darkThemeCssVariables = themeToCssVariables(darkTheme.colors)
 export const lightThemeCssVariables = themeToCssVariables(lightTheme.colors)
+
+/** Direct Stitch token CSS variables for glass / typography utilities. */
+export function stitchToCssVariables(): Record<string, string> {
+  return {
+    '--st-background': stitchColors.background,
+    '--st-surface': stitchColors.surface,
+    '--st-surface-container': stitchColors.surfaceContainer,
+    '--st-surface-container-low': stitchColors.surfaceContainerLow,
+    '--st-surface-container-high': stitchColors.surfaceContainerHigh,
+    '--st-on-surface': stitchColors.onSurface,
+    '--st-on-surface-variant': stitchColors.onSurfaceVariant,
+    '--st-primary': stitchColors.primary,
+    '--st-on-primary': stitchColors.onPrimary,
+    '--st-primary-container': stitchColors.primaryContainer,
+    '--st-on-primary-container': stitchColors.onPrimaryContainer,
+    '--st-secondary': stitchColors.secondary,
+    '--st-secondary-container': stitchColors.secondaryContainer,
+    '--st-on-secondary-container': stitchColors.onSecondaryContainer,
+    '--st-tertiary': stitchColors.tertiary,
+    '--st-on-tertiary': stitchColors.onTertiary,
+    '--st-error': stitchColors.error,
+    '--st-outline': stitchColors.outline,
+    '--st-outline-white': stitchColors.outlineWhite,
+    '--st-glass-bg': stitchColors.glassBg,
+    '--st-shadow-glass': stitchShadow.glass,
+    '--st-shadow-fab': stitchShadow.fab,
+    '--st-shadow-nav': stitchShadow.nav,
+    '--st-radius-panel': stitchRadius.panel,
+    '--st-safe-margin': stitchSpacing.safeMargin,
+    '--st-floating-offset': stitchSpacing.floatingOffset,
+    '--st-stack-sm': stitchSpacing.stackSm,
+    '--st-stack-md': stitchSpacing.stackMd,
+    '--st-stack-lg': stitchSpacing.stackLg,
+    '--st-gutter': stitchSpacing.gutter,
+  }
+}
+
+export const stitchCssVariables = stitchToCssVariables()

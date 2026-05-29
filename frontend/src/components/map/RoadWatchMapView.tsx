@@ -9,6 +9,10 @@ import { mapComplaintMarkers, mapRoadMarkers } from '../../data/mapMarkers'
 import { useGeolocation } from '../../hooks/useGeolocation'
 import { fetchLocationIntelligence } from '../../lib/map/locationIntelligence'
 import {
+  INDIA_MAP_MAX_BOUNDS,
+  MAP_MAX_BOUNDS_VISCOSITY,
+  MAP_MAX_ZOOM,
+  MAP_MIN_ZOOM,
   PREVIEW_ZOOM,
   ROAD_FOCUS_ZOOM,
   USER_LOCATION_ZOOM,
@@ -26,6 +30,7 @@ import {
 } from './MapFloatingControls'
 import { MapInteractionController } from './MapInteractionController'
 import { MapMarkerLayers } from './MapMarkerLayers'
+import { MapRouteLayer } from './MapRouteLayer'
 import { MapResizeHandler } from './MapResizeHandler'
 import { MapThemeTileLayer } from './MapThemeTileLayer'
 import { MapViewportSync } from './MapViewportSync'
@@ -37,6 +42,7 @@ export type RoadWatchMapViewProps = {
 export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapViewProps) {
   const filter = useMapStore((state) => state.filter)
   const selection = useMapStore((state) => state.selection)
+  const routePreview = useMapStore((state) => state.routePreview)
   const center = useMapStore((state) => state.center)
   const hasUserViewport = useMapStore((state) => state.hasUserViewport)
   const setFilter = useMapStore((state) => state.setFilter)
@@ -132,13 +138,11 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
   const handleSelectRoad = (road: MockRoad) => {
     if (mode !== 'expanded') return
     setSelection({ kind: 'road', road })
-    focusOn(road.lat, road.lng, ROAD_FOCUS_ZOOM)
   }
 
   const handleSelectComplaint = (complaint: MapComplaintMarker) => {
     if (mode !== 'expanded') return
     setSelection({ kind: 'complaint', complaint })
-    focusOn(complaint.lat, complaint.lng, ROAD_FOCUS_ZOOM)
   }
 
   const handleMapClick = async (lat: number, lng: number) => {
@@ -148,13 +152,13 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
     try {
       const intelligence = await fetchLocationIntelligence(lat, lng)
       setSelection({ kind: 'location', lat, lng, intelligence })
-      focusOn(lat, lng, Math.max(ROAD_FOCUS_ZOOM, center.zoom))
     } finally {
       setIntelLoading(false)
     }
   }
 
   const handleSearchResultSelect = (result: MapSearchResult) => {
+    focusOn(result.lat, result.lng, ROAD_FOCUS_ZOOM)
     if (result.kind === 'road') {
       const road = mapRoadMarkers.find((record) => record.id === result.id)
       if (road) handleSelectRoad(road)
@@ -193,6 +197,11 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
         zoom={initialViewport.zoom}
         className="rw-map-tiles h-full w-full"
         zoomControl={false}
+        minZoom={MAP_MIN_ZOOM}
+        maxZoom={MAP_MAX_ZOOM}
+        maxBounds={INDIA_MAP_MAX_BOUNDS}
+        maxBoundsViscosity={MAP_MAX_BOUNDS_VISCOSITY}
+        worldCopyJump={false}
         attributionControl={mode === 'expanded'}
         scrollWheelZoom={false}
       >
@@ -214,6 +223,7 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
           onSelectRoad={handleSelectRoad}
           onSelectComplaint={handleSelectComplaint}
         />
+      <MapRouteLayer route={routePreview} />
       </MapContainer>
 
       {intelLoading ? (
@@ -240,7 +250,12 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
         locateMessage={errorMessage}
       />
 
-      <MapDetailOverlay mode={mode} selection={selection} onClose={clearSelection} />
+      <MapDetailOverlay
+        mode={mode}
+        selection={selection}
+        userLocation={userPosition}
+        onClose={clearSelection}
+      />
     </div>
   )
 }

@@ -4,6 +4,7 @@ import AssistantPage from '../pages/Assistant/AssistantPage'
 import ComplaintPage from '../pages/Complaint/ComplaintPage'
 import DashboardPage from '../pages/Dashboard/DashboardPage'
 import HomePage from '../pages/Home/HomePage'
+import MapPage from '../pages/Map/MapPage'
 import RoadDetailsPage from '../pages/RoadDetails/RoadDetailsPage'
 
 const router = createBrowserRouter([
@@ -13,6 +14,10 @@ const router = createBrowserRouter([
       {
         index: true,
         element: <HomePage />,
+      },
+      {
+        path: 'map',
+        element: <MapPage />,
       },
       {
         path: 'road/:roadId',

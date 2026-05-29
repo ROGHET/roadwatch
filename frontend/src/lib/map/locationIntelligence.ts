@@ -1,4 +1,6 @@
-/** Snapshot for map location intelligence (weather + air quality). */
+import { getAqiProvider, getTrafficProvider, getWeatherProvider } from './providers/registry'
+
+/** Snapshot for map location intelligence (weather + air quality + traffic). */
 export type LocationWeatherSnapshot = {
   locationName: string
   temperatureC: number
@@ -7,6 +9,11 @@ export type LocationWeatherSnapshot = {
   aqiLabel: string
   humidityPercent: number
   windSpeedKph: number
+  visibilityKm: number
+  rainProbabilityPercent: number
+  trafficCondition: 'light' | 'moderate' | 'heavy' | 'severe'
+  trafficDescription: string
+  observedAt: string
 }
 
 export type LocationIntelligenceRequest = {
@@ -14,28 +21,13 @@ export type LocationIntelligenceRequest = {
   lng: number
 }
 
-/** Contract for future weather / AQI API integrations. */
+/** Contract for map intelligence providers. */
 export interface LocationIntelligenceProvider {
   getSnapshot(request: LocationIntelligenceRequest): Promise<LocationWeatherSnapshot>
 }
 
-const conditionCatalog = [
-  'Clear',
-  'Partly cloudy',
-  'Overcast',
-  'Light rain',
-  'Haze',
-  'Mist',
-] as const
-
-const placeNames = [
-  'Corridor Sector',
-  'Junction Block',
-  'Service Lane',
-  'Ring Segment',
-  'NH Stretch',
-  'Urban Arterial',
-] as const
+const conditionCatalog = ['Clear', 'Partly cloudy', 'Overcast', 'Light rain', 'Haze', 'Mist'] as const
+const placeNames = ['Corridor Sector', 'Junction Block', 'Service Lane', 'Ring Segment', 'NH Stretch', 'Urban Arterial'] as const
 
 function hashCoordinates(lat: number, lng: number): number {
   const latKey = Math.round(lat * 100)
@@ -51,24 +43,55 @@ function aqiLabelFor(value: number): string {
   return 'Hazardous'
 }
 
+function buildMockSnapshot(lat: number, lng: number): LocationWeatherSnapshot {
+  const seed = hashCoordinates(lat, lng)
+  const aqi = 40 + (seed % 220)
+  const trafficCondition = ['light', 'moderate', 'heavy', 'severe'][seed % 4] as LocationWeatherSnapshot['trafficCondition']
+  const trafficDescriptionByCondition: Record<LocationWeatherSnapshot['trafficCondition'], string> = {
+    light: 'Free-flowing traffic with short signal delays.',
+    moderate: 'Typical urban congestion with intermittent slowdowns.',
+    heavy: 'Recurring bottlenecks near junctions and bus stops.',
+    severe: 'Stop-and-go movement with frequent queue spillback.',
+  }
+
+  return {
+    locationName: `${placeNames[seed % placeNames.length]} (${lat.toFixed(3)}, ${lng.toFixed(3)})`,
+    temperatureC: 22 + (seed % 14),
+    condition: conditionCatalog[seed % conditionCatalog.length],
+    aqi,
+    aqiLabel: aqiLabelFor(aqi),
+    humidityPercent: 35 + (seed % 55),
+    windSpeedKph: 4 + (seed % 28),
+    visibilityKm: Number((4 + (seed % 12) * 0.75).toFixed(1)),
+    rainProbabilityPercent: Math.min(100, 8 + (seed % 72)),
+    trafficCondition,
+    trafficDescription: trafficDescriptionByCondition[trafficCondition],
+    observedAt: new Date().toISOString(),
+  }
+}
+
 /** Deterministic mock provider for demo and interface validation. */
 export const mockLocationIntelligenceProvider: LocationIntelligenceProvider = {
   async getSnapshot({ lat, lng }) {
-    const seed = hashCoordinates(lat, lng)
-
-    const aqi = 40 + (seed % 220)
-    const temperatureC = 22 + (seed % 14)
-    const humidityPercent = 35 + (seed % 55)
-    const windSpeedKph = 4 + (seed % 28)
+    const [weather, airQuality, traffic] = await Promise.all([
+      getWeatherProvider().getWeather({ lat, lng }),
+      getAqiProvider().getAQI({ lat, lng }),
+      getTrafficProvider().getTraffic({ lat, lng }),
+    ])
 
     return {
-      locationName: `${placeNames[seed % placeNames.length]} (${lat.toFixed(3)}, ${lng.toFixed(3)})`,
-      temperatureC,
-      condition: conditionCatalog[seed % conditionCatalog.length],
-      aqi,
-      aqiLabel: aqiLabelFor(aqi),
-      humidityPercent,
-      windSpeedKph,
+      locationName: weather.locationName || airQuality.locationName || traffic.locationName,
+      temperatureC: weather.temperatureC,
+      condition: weather.condition,
+      aqi: airQuality.aqi,
+      aqiLabel: airQuality.aqiLabel,
+      humidityPercent: weather.humidityPercent,
+      windSpeedKph: weather.windSpeedKph,
+      visibilityKm: weather.visibilityKm,
+      rainProbabilityPercent: weather.rainProbabilityPercent,
+      trafficCondition: traffic.condition,
+      trafficDescription: traffic.description,
+      observedAt: traffic.observedAt || weather.observedAt || airQuality.observedAt,
     }
   },
 }
@@ -87,5 +110,9 @@ export async function fetchLocationIntelligence(
   lat: number,
   lng: number,
 ): Promise<LocationWeatherSnapshot> {
-  return getLocationIntelligenceProvider().getSnapshot({ lat, lng })
+  try {
+    return await getLocationIntelligenceProvider().getSnapshot({ lat, lng })
+  } catch {
+    return buildMockSnapshot(lat, lng)
+  }
 }

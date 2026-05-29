@@ -10,5 +10,5 @@ export function MapThemeTileLayer() {
   const theme = useMapTheme()
   const url = theme === 'dark' ? CARTO_DARK_TILE_URL : CARTO_LIGHT_TILE_URL
 
-  return <TileLayer key={theme} url={url} attribution={CARTO_TILE_ATTRIBUTION} />
+  return <TileLayer key={theme} url={url} attribution={CARTO_TILE_ATTRIBUTION} noWrap={false} />
 }

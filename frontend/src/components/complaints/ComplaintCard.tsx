@@ -1,4 +1,4 @@
-import { MapPin } from 'lucide-react'
+import { Clock3, MapPin, ShieldAlert } from 'lucide-react'
 import { type ReactNode } from 'react'
 import { Badge } from '../common/Badge'
 import {
@@ -25,6 +25,10 @@ export type ComplaintCardProps = {
   severity?: ComplaintSeverity
   status: ComplaintStatus
   reportedAt?: string
+  updatedAt?: string
+  resolutionStatus?: string
+  citizenReports?: number
+  maintenanceReports?: number
   footer?: ReactNode
   className?: string
 }
@@ -54,6 +58,10 @@ export function ComplaintCard({
   severity,
   status,
   reportedAt,
+  updatedAt,
+  resolutionStatus,
+  citizenReports,
+  maintenanceReports,
   footer,
   className,
 }: ComplaintCardProps) {
@@ -68,7 +76,7 @@ export function ComplaintCard({
       </CardHeader>
       <CardContent className="space-y-3">
         {roadName ? (
-          <p className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+          <p className="flex items-center gap-2 text-sm text-[var(--rw-text-secondary)]">
             <MapPin className="size-4 shrink-0" aria-hidden="true" />
             <span>{roadName}</span>
           </p>
@@ -82,10 +90,32 @@ export function ComplaintCard({
           {severity ? (
             <Badge variant={severityVariant[severity]}>{severityLabel[severity]} Severity</Badge>
           ) : null}
+          {resolutionStatus ? (
+            <Badge variant="secondary" className="capitalize">
+              {resolutionStatus}
+            </Badge>
+          ) : null}
         </div>
+        {citizenReports || maintenanceReports ? (
+          <p className="flex items-center gap-2 text-xs text-[var(--rw-text-tertiary)]">
+            <ShieldAlert className="size-3.5" aria-hidden="true" />
+            <span>
+              {citizenReports ? `${citizenReports} citizen reports` : 'Citizen reports logged'}
+              {maintenanceReports ? ` • ${maintenanceReports} maintenance notes` : ''}
+            </span>
+          </p>
+        ) : null}
         {reportedAt ? (
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <p className="text-xs text-[var(--rw-text-tertiary)]">
             Reported: <time>{reportedAt}</time>
+          </p>
+        ) : null}
+        {updatedAt ? (
+          <p className="flex items-center gap-1.5 text-xs text-[var(--rw-text-tertiary)]">
+            <Clock3 className="size-3.5" aria-hidden="true" />
+            <span>
+              Updated: <time>{updatedAt}</time>
+            </span>
           </p>
         ) : null}
       </CardContent>

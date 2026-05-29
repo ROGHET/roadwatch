@@ -49,13 +49,17 @@ export default function RoadDetailsPage() {
     contractor,
     authority,
     lastRepairDate,
+    maintenanceSchedule,
+    inspectionDue,
+    budgetProgram,
+    budgetHistory,
   } = road
 
   return (
     <PageContainer className="gap-8">
       <SectionHeader
         title="Road Details"
-        description={`Viewing ${roadName}${roadType ? ` — ${roadType}` : ''}. Record ID: ${roadId ?? road.id}.`}
+        description={`Viewing ${roadName}${roadType ? ` - ${roadType}` : ''}. Record ID: ${roadId ?? road.id}.`}
       />
 
       <RoadSummaryCard
@@ -68,6 +72,10 @@ export default function RoadDetailsPage() {
         contractor={contractor}
         authority={authority}
         lastRepairDate={lastRepairDate}
+        maintenanceSchedule={maintenanceSchedule}
+        inspectionDue={inspectionDue}
+        budgetProgram={budgetProgram}
+        budgetHistory={budgetHistory}
       />
 
       <Alert variant="info" title="Data source">

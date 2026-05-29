@@ -68,6 +68,10 @@ export function RoadExplorerSection({ title, description }: RoadExplorerSectionP
                 contractor={road.contractor}
                 authority={road.authority}
                 lastRepairDate={road.lastRepairDate}
+                maintenanceSchedule={road.maintenanceSchedule}
+                inspectionDue={road.inspectionDue}
+                budgetProgram={road.budgetProgram}
+                budgetHistory={road.budgetHistory}
                 className="h-full"
                 footer={
                   <Button type="button" variant="outline" size="sm" to={routes.road(road.id)}>

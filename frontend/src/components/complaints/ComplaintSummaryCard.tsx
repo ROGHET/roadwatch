@@ -22,6 +22,10 @@ export type ComplaintSummaryCardProps = {
   status: ComplaintStatus
   severity?: ComplaintSeverity
   reportedAt?: string
+  updatedAt?: string
+  resolutionStatus?: string
+  citizenReports?: number
+  maintenanceReports?: number
   footer?: ReactNode
   className?: string
 }
@@ -50,6 +54,10 @@ export function ComplaintSummaryCard({
   status,
   severity,
   reportedAt,
+  updatedAt,
+  resolutionStatus,
+  citizenReports,
+  maintenanceReports,
   footer,
   className,
 }: ComplaintSummaryCardProps) {
@@ -80,10 +88,26 @@ export function ComplaintSummaryCard({
           {severity ? (
             <Badge variant={severityVariant[severity]}>{severityLabel[severity]} Severity</Badge>
           ) : null}
+          {resolutionStatus ? (
+            <Badge variant="secondary" className="capitalize">
+              {resolutionStatus}
+            </Badge>
+          ) : null}
         </div>
+        {citizenReports || maintenanceReports ? (
+          <p className="text-xs text-[var(--rw-text-tertiary)]">
+            {citizenReports ? `${citizenReports} citizen reports` : 'Citizen reports logged'}
+            {maintenanceReports ? ` - ${maintenanceReports} maintenance notes` : ''}
+          </p>
+        ) : null}
         {reportedAt ? (
           <p className="text-xs text-[var(--rw-text-tertiary)]">
             Reported: <time>{reportedAt}</time>
+          </p>
+        ) : null}
+        {updatedAt ? (
+          <p className="text-xs text-[var(--rw-text-tertiary)]">
+            Updated: <time>{updatedAt}</time>
           </p>
         ) : null}
       </CardContent>

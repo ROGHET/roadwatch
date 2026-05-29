@@ -1,0 +1,100 @@
+import { Globe, Info, Moon, Settings, User } from 'lucide-react'
+import { useEffect, useId, useRef, useState } from 'react'
+import { twMerge } from 'tailwind-merge'
+
+export type ProfileMenuProps = {
+  className?: string
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+}
+
+const menuItems = [
+  { id: 'settings', label: 'Settings', icon: Settings },
+  { id: 'language', label: 'Language', icon: Globe },
+  { id: 'theme', label: 'Theme', icon: Moon },
+  { id: 'about', label: 'About', icon: Info },
+] as const
+
+export function ProfileMenu({ className, open: openProp, onOpenChange }: ProfileMenuProps) {
+  const menuId = useId()
+  const rootRef = useRef<HTMLDivElement>(null)
+  const [internalOpen, setInternalOpen] = useState(false)
+  const open = openProp ?? internalOpen
+
+  const setOpen = (value: boolean) => {
+    if (onOpenChange) onOpenChange(value)
+    else setInternalOpen(value)
+  }
+
+  useEffect(() => {
+    if (!open) return
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setOpen(false)
+      }
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false)
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [open])
+
+  const handleThemeToggle = () => {
+    const root = document.documentElement
+    const isLight = root.classList.contains('light')
+    root.classList.toggle('light', !isLight)
+    root.classList.toggle('dark', isLight)
+    setOpen(false)
+  }
+
+  return (
+    <div ref={rootRef} className={twMerge('relative', className)}>
+      <button
+        type="button"
+        className="inline-flex size-8 items-center justify-center overflow-hidden rounded-full border border-[var(--st-outline-white)] bg-[var(--st-surface-container-high)] text-[var(--st-on-surface-variant)] transition-colors hover:text-[var(--st-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rw-ring)]"
+        aria-label="Profile and settings"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls={menuId}
+        onClick={() => setOpen(!open)}
+      >
+        <User className="size-4" aria-hidden="true" />
+      </button>
+
+      {open ? (
+        <div
+          id={menuId}
+          role="menu"
+          className="absolute right-0 top-[calc(100%+0.5rem)] z-50 min-w-[11rem] overflow-hidden rounded-2xl rw-glass-panel rw-glass-edge py-1 shadow-[var(--st-shadow-glass)]"
+        >
+          {menuItems.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              type="button"
+              role="menuitem"
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-[var(--st-on-surface)] transition-colors hover:bg-white/5"
+              onClick={() => {
+                if (id === 'theme') {
+                  handleThemeToggle()
+                  return
+                }
+                setOpen(false)
+              }}
+            >
+              <Icon className="size-4 text-[var(--st-on-surface-variant)]" aria-hidden="true" />
+              {label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  )
+}
