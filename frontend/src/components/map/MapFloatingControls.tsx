@@ -233,7 +233,7 @@ export function MapFloatingControls({
 
           <Button
             type="button"
-            className="rounded-full bg-[var(--rw-danger)] px-4 text-[var(--rw-danger-foreground)] shadow-[var(--st-shadow-fab)] hover:brightness-110"
+            className="rounded-full bg-[var(--rw-danger)] px-4 text-white shadow-[var(--st-shadow-fab)] hover:brightness-110"
             aria-label="Report a road issue"
             onClick={() => {
               persistForNavigation()

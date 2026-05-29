@@ -9,6 +9,14 @@ import { useI18n } from '../../lib/i18n'
 import { fadeInUp } from '../../lib/motion'
 import { routes } from '../../lib/routes'
 
+function getGreeting() {
+  const hour = new Date().getHours()
+  if (hour >= 5 && hour < 12) return 'Good morning, Citizen.'
+  if (hour >= 12 && hour < 17) return 'Good afternoon, Citizen.'
+  if (hour >= 17 && hour < 22) return 'Good evening, Citizen.'
+  return 'Welcome back, Citizen.'
+}
+
 export default function HomePage() {
   const prefersReducedMotion = useReducedMotion()
   const navigate = useNavigate()
@@ -22,7 +30,7 @@ export default function HomePage() {
         initial={prefersReducedMotion ? false : 'hidden'}
         animate={prefersReducedMotion ? undefined : 'visible'}
       >
-        <h1 className="rw-type-display text-[var(--st-on-surface)]">Good morning, Citizen.</h1>
+        <h1 className="rw-type-display text-[var(--st-on-surface)]">{getGreeting()}</h1>
         <HomeHealthCard />
       </motion.section>
 
@@ -90,7 +98,7 @@ export default function HomePage() {
           <button
             type="button"
             onClick={() => navigate(routes.complaint)}
-            className="rounded-full bg-[var(--rw-danger)] px-5 py-2.5 text-sm font-medium text-[var(--rw-danger-foreground)] shadow-[var(--st-shadow-fab)] transition-[filter,transform] duration-200 hover:brightness-110 active:scale-95"
+            className="rounded-full bg-[var(--rw-danger)] px-5 py-2.5 text-sm font-medium text-white shadow-[var(--st-shadow-fab)] transition-[filter,transform] duration-200 hover:brightness-110 active:scale-95"
           >
             {t('fileComplaint')}
           </button>

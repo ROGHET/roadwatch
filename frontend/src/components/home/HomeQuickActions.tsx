@@ -16,9 +16,9 @@ export function HomeQuickActions() {
         label={t('quickReport')}
         icon={FileWarning}
         className="bg-[var(--rw-danger)] border-none hover:bg-[var(--rw-danger)] active:bg-[var(--rw-danger)]"
-        accentClassName="text-[var(--rw-danger-foreground)]"
-        iconBgClassName="bg-[var(--rw-danger-foreground)]/20"
-        labelClassName="text-[var(--rw-danger-foreground)]"
+        accentClassName="text-white"
+        iconBgClassName="bg-white/20"
+        labelClassName="text-white"
         onClick={() => {
           persistForNavigation()
           navigate(routes.complaint)

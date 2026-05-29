@@ -208,9 +208,7 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
         zoomControl={false}
         minZoom={MAP_MIN_ZOOM}
         maxZoom={MAP_MAX_ZOOM}
-        maxBounds={INDIA_MAP_MAX_BOUNDS}
-        maxBoundsViscosity={MAP_MAX_BOUNDS_VISCOSITY}
-        worldCopyJump={false}
+        worldCopyJump={true}
         attributionControl={mode === 'expanded'}
         scrollWheelZoom={false}
       >
