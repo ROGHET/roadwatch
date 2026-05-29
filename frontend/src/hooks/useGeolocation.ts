@@ -20,6 +20,8 @@ export type GeolocationStatus =
   | 'denied'
   | 'unavailable'
 
+export type GeolocationPolicyBlockReason = 'insecure-private-origin' | null
+
 const freshOptions: PositionOptions = {
   enableHighAccuracy: true,
   timeout: 12_000,
@@ -43,6 +45,18 @@ async function readGeolocationPermission(): Promise<PermissionState | null> {
   }
 }
 
+function getPolicyBlockReason(): GeolocationPolicyBlockReason {
+  if (window.isSecureContext) return null
+
+  const hostname = window.location.hostname
+  const isPrivateIp =
+    /^192\./.test(hostname) ||
+    /^10\./.test(hostname) ||
+    /^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname)
+
+  return isPrivateIp ? 'insecure-private-origin' : null
+}
+
 export function useGeolocation(trackHeading = false) {
   const cachedOnMount = readCachedLocation()
   const [position, setPosition] = useState<GeolocationPosition | null>(cachedOnMount)
@@ -50,6 +64,11 @@ export function useGeolocation(trackHeading = false) {
     cachedOnMount ? 'granted' : 'idle',
   )
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [permissionState, setPermissionState] = useState<PermissionState | 'unsupported' | null>(
+    null,
+  )
+  const [policyBlockReason, setPolicyBlockReason] =
+    useState<GeolocationPolicyBlockReason>(null)
   const watchIdRef = useRef<number | null>(null)
   const headingRef = useRef<number | null>(null)
   const refreshInFlightRef = useRef(false)
@@ -138,21 +157,32 @@ export function useGeolocation(trackHeading = false) {
   }> => {
     if (!navigator.geolocation) {
       setStatus('unavailable')
+      setPermissionState('unsupported')
       setErrorMessage('Geolocation is not supported on this device.')
       return { position: null, usedCache: false }
     }
 
+    const blockedByPolicy = getPolicyBlockReason()
+    setPolicyBlockReason(blockedByPolicy)
+    if (blockedByPolicy) {
+      setStatus('unavailable')
+      setErrorMessage('Location requires HTTPS or localhost on this browser.')
+      return { position: null, usedCache: false }
+    }
+
     const permission = await readGeolocationPermission()
+    setPermissionState(permission ?? 'unsupported')
     if (permission === 'denied') {
       setStatus('denied')
       setErrorMessage(
-        'Location access is blocked. Enable location permission in your browser settings and try again.',
+        'Location access is disabled in your browser.',
       )
+      clearCachedLocation()
       return { position: null, usedCache: false }
     }
 
     const cached = readCachedLocation()
-    if (cached) {
+    if (cached && permission !== 'denied') {
       setPosition(cached)
       setStatus('granted')
       setErrorMessage(null)
@@ -166,6 +196,36 @@ export function useGeolocation(trackHeading = false) {
     const refreshed = await refreshPosition()
     return { position: refreshed, usedCache: false }
   }, [refreshPosition])
+
+  useEffect(() => {
+    let mounted = true
+
+    async function syncPermissionState() {
+      const blockedByPolicy = getPolicyBlockReason()
+      if (!mounted) return
+      setPolicyBlockReason(blockedByPolicy)
+      if (blockedByPolicy) {
+        setStatus('unavailable')
+        setErrorMessage('Location requires HTTPS or localhost on this browser.')
+        return
+      }
+
+      const permission = await readGeolocationPermission()
+      if (!mounted) return
+      setPermissionState(permission ?? 'unsupported')
+      if (permission === 'denied') {
+        clearCachedLocation()
+        setPosition(null)
+        setStatus('denied')
+        setErrorMessage('Location access is disabled in your browser.')
+      }
+    }
+
+    void syncPermissionState()
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   const startWatching = useCallback(() => {
     if (!navigator.geolocation) return
@@ -210,13 +270,17 @@ export function useGeolocation(trackHeading = false) {
 
   useEffect(() => () => stopWatching(), [stopWatching])
 
+  const clearError = useCallback(() => setErrorMessage(null), [])
+
   return {
     position,
     status,
     errorMessage,
+    permissionState,
+    policyBlockReason,
     locate,
     startWatching,
     stopWatching,
-    clearError: () => setErrorMessage(null),
+    clearError,
   }
 }

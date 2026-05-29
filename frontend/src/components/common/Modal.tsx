@@ -57,7 +57,7 @@ export function Modal({
       ref={dialogRef}
       aria-labelledby={titleId}
       aria-describedby={description ? descriptionId : undefined}
-      className="fixed inset-0 z-50 m-0 h-dvh w-full max-h-none max-w-none border-none bg-transparent p-0 backdrop:bg-slate-900/60"
+      className="fixed inset-0 z-50 m-0 h-dvh w-full max-h-none max-w-none border-none bg-transparent p-0 backdrop:bg-black/60"
       onClick={(event) => {
         if (event.target === event.currentTarget) {
           onClose()
@@ -67,7 +67,7 @@ export function Modal({
       <div className="flex min-h-full items-center justify-center p-4 sm:p-6">
         <div
           className={twMerge(
-            'relative w-full max-w-lg rounded-lg border border-slate-200 bg-white p-6 text-slate-900 shadow-xl dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50',
+            'relative w-full max-w-lg rounded-lg border border-[var(--rw-border)] bg-[var(--rw-surface)] p-6 text-[var(--rw-text-primary)] shadow-xl',
             className,
           )}
           onClick={(event) => event.stopPropagation()}
@@ -80,7 +80,7 @@ export function Modal({
               {description ? (
                 <p
                   id={descriptionId}
-                  className="mt-2 text-sm text-slate-500 dark:text-slate-400"
+                  className="mt-2 text-sm text-[var(--rw-text-secondary)]"
                 >
                   {description}
                 </p>
@@ -90,7 +90,7 @@ export function Modal({
               <button
                 type="button"
                 onClick={onClose}
-                className="inline-flex size-9 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 dark:hover:bg-slate-800 dark:hover:text-slate-50 dark:focus-visible:outline-slate-100"
+                className="inline-flex size-9 shrink-0 items-center justify-center rounded-md text-[var(--rw-text-secondary)] transition-colors hover:bg-[var(--rw-surface-muted)] hover:text-[var(--rw-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rw-ring)]"
                 aria-label="Close dialog"
               >
                 <X className="size-5" aria-hidden="true" />

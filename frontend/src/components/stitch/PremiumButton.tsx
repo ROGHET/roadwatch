@@ -18,9 +18,9 @@ const premiumButtonVariants = cva(
           'rounded-full border border-[var(--st-outline-white)] bg-transparent text-[var(--st-on-surface)] hover:bg-white/10',
       },
       size: {
-        sm: 'h-9 px-4 text-xs',
-        md: 'h-11 px-5 text-sm',
-        lg: 'h-12 px-6 text-sm',
+        sm: 'h-[var(--rw-button-height-sm)] px-[var(--rw-button-padding-sm)] text-xs',
+        md: 'h-[var(--rw-button-height-md)] px-[var(--rw-button-padding-md)] text-sm',
+        lg: 'h-[var(--rw-button-height-lg)] px-[var(--rw-button-padding-lg)] text-sm',
         icon: 'size-11',
         fab: 'size-14',
       },

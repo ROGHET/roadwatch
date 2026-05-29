@@ -10,7 +10,7 @@ export const Label = forwardRef<HTMLLabelElement, LabelProps>(
     <label
       ref={ref}
       className={twMerge(
-        'text-sm font-medium leading-none text-slate-900 peer-disabled:cursor-not-allowed peer-disabled:opacity-70 dark:text-slate-50',
+        'text-sm font-medium leading-none text-[var(--rw-text-primary)] peer-disabled:cursor-not-allowed peer-disabled:opacity-70',
         className,
       )}
       {...props}
@@ -18,7 +18,7 @@ export const Label = forwardRef<HTMLLabelElement, LabelProps>(
       {children}
       {required ? (
         <>
-          <span className="text-red-600 dark:text-red-400" aria-hidden="true">
+          <span className="text-[var(--rw-danger)]" aria-hidden="true">
             {' '}
             *
           </span>

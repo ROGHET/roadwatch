@@ -60,7 +60,7 @@ export function Drawer({
     <div className="fixed inset-0 z-50">
       <button
         type="button"
-        className="fixed inset-0 bg-slate-900/60"
+        className="fixed inset-0 bg-black/60"
         aria-label="Close drawer"
         onClick={onClose}
       />
@@ -70,20 +70,20 @@ export function Drawer({
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
         className={twMerge(
-          'fixed flex flex-col border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-950',
+          'fixed flex flex-col border-[var(--rw-border)] bg-[var(--rw-surface)] text-[var(--rw-text-primary)] shadow-xl',
           sidePanelClassName[side],
           className,
         )}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-slate-200 p-4 dark:border-slate-800 sm:p-6">
+        <div className="flex items-start justify-between gap-4 border-b border-[var(--rw-border)] p-4 sm:p-6">
           <div className="min-w-0 flex-1">
-            <h2 id={titleId} className="text-lg font-semibold text-slate-900 dark:text-slate-50">
+            <h2 id={titleId} className="text-lg font-semibold text-[var(--rw-text-primary)]">
               {title}
             </h2>
             {description ? (
               <p
                 id={descriptionId}
-                className="mt-2 text-sm text-slate-500 dark:text-slate-400"
+                className="mt-2 text-sm text-[var(--rw-text-secondary)]"
               >
                 {description}
               </p>
@@ -93,7 +93,7 @@ export function Drawer({
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex size-9 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 dark:hover:bg-slate-800 dark:hover:text-slate-50 dark:focus-visible:outline-slate-100"
+              className="inline-flex size-9 shrink-0 items-center justify-center rounded-md text-[var(--rw-text-secondary)] transition-colors hover:bg-[var(--rw-surface-muted)] hover:text-[var(--rw-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rw-ring)]"
               aria-label="Close drawer"
             >
               <X className="size-5" aria-hidden="true" />

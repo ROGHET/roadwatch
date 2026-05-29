@@ -26,7 +26,7 @@ export const assistantSamplePrompt =
   'Who is responsible for maintaining Sardar Patel Road and what was the last sanctioned repair budget?'
 
 export const assistantPageCopy = {
-  title: 'RoadWatch AI',
+  title: 'CrashZero AI',
   description:
     'Ask road-related questions about maintenance, budgets, contractors, complaint history, and RTI requests.',
   emptyTitle: 'No messages yet',

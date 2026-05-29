@@ -5,12 +5,14 @@ import { HomeQuickActions } from '../../components/home/HomeQuickActions'
 import { HomeRecentIntelligence } from '../../components/home/HomeRecentIntelligence'
 import { MapPreviewCard } from '../../components/map/MapPreviewCard'
 import { StitchSectionHeader } from '../../components/stitch'
+import { useI18n } from '../../lib/i18n'
 import { fadeInUp } from '../../lib/motion'
 import { routes } from '../../lib/routes'
 
 export default function HomePage() {
   const prefersReducedMotion = useReducedMotion()
   const navigate = useNavigate()
+  const { t } = useI18n()
 
   return (
     <div className="flex flex-col gap-[var(--st-stack-lg)] pb-28 pt-2 md:pb-8">
@@ -49,7 +51,7 @@ export default function HomePage() {
               onClick={() => navigate(routes.map)}
               className="rw-type-label-caps text-[var(--st-primary)] transition-colors hover:text-[var(--st-primary-container)]"
             >
-              Open Map
+              {t('quickMap')}
             </button>
           }
         />
@@ -75,7 +77,7 @@ export default function HomePage() {
         <StitchSectionHeader
           eyebrow="Platform"
           title="Explore capabilities"
-          description="Road monitoring, complaints, analytics, and AI assistance."
+          description={t('homeDescription')}
         />
         <div className="mt-4 flex flex-wrap gap-3">
           <button
@@ -88,9 +90,9 @@ export default function HomePage() {
           <button
             type="button"
             onClick={() => navigate(routes.complaint)}
-            className="rw-glass-button rounded-full px-5 py-2.5 text-sm text-[var(--st-on-surface)]"
+            className="rounded-full bg-[var(--rw-danger)] px-5 py-2.5 text-sm font-medium text-[var(--rw-danger-foreground)] shadow-[var(--st-shadow-fab)] transition-[filter,transform] duration-200 hover:brightness-110 active:scale-95"
           >
-            File Complaint
+            {t('fileComplaint')}
           </button>
         </div>
       </motion.section>

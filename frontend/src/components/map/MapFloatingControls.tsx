@@ -9,6 +9,7 @@ import type { GeolocationStatus } from '../../hooks/useGeolocation'
 import { fadeInUp, scaleIn } from '../../lib/motion'
 import { routes } from '../../lib/routes'
 import { useMapStore } from '../../stores/mapStore'
+import { useI18n } from '../../lib/i18n'
 
 const filterOptions: { value: MapLayerFilter; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -38,6 +39,8 @@ export type MapFloatingControlsProps = {
   onLocate: () => void
   locateStatus: GeolocationStatus
   locateMessage?: string | null
+  locatePermissionState?: PermissionState | 'unsupported' | null
+  locatePolicyBlockReason?: 'insecure-private-origin' | null
   className?: string
 }
 
@@ -54,14 +57,18 @@ export function MapFloatingControls({
   onLocate,
   locateStatus,
   locateMessage,
+  locatePermissionState,
+  locatePolicyBlockReason,
   className,
 }: MapFloatingControlsProps) {
   const navigate = useNavigate()
+  const { t } = useI18n()
   const persistForNavigation = useMapStore((state) => state.persistForNavigation)
   const prefersReducedMotion = useReducedMotion()
   const searchId = useId()
   const showResults = searchQuery.trim().length > 0 && mode === 'expanded'
   const controlsEnabled = mode === 'expanded'
+  const locating = locateStatus === 'loading' || locateStatus === 'refreshing'
 
   const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -91,7 +98,7 @@ export function MapFloatingControls({
         aria-label="Search roads and complaints"
       >
         <Search className="size-5 shrink-0 text-[var(--st-primary)]" aria-hidden="true" />
-        <span className="hidden font-serif text-lg text-[var(--st-primary)] sm:inline">RoadWatch</span>
+        <span className="hidden font-serif text-lg text-[var(--st-primary)] sm:inline">{t('appName')}</span>
         <label htmlFor={searchId} className="sr-only">
           Search roads and complaints
         </label>
@@ -205,19 +212,19 @@ export function MapFloatingControls({
           <motion.button
             type="button"
             onClick={onLocate}
-            disabled={locateStatus === 'loading'}
+            disabled={locating}
             className="rw-map-glass inline-flex size-11 items-center justify-center rounded-full shadow-[0_18px_50px_-22px_rgb(0_0_0/0.45)] transition-[background-color,transform] duration-200 hover:bg-[var(--rw-surface-muted)] active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rw-ring)] disabled:cursor-wait disabled:opacity-70"
             aria-label={
-              locateStatus === 'loading' ? 'Locating your position' : 'Locate me on the map'
+              locating ? 'Locating your position' : 'Locate me on the map'
             }
-            aria-busy={locateStatus === 'loading'}
+            aria-busy={locating}
             variants={prefersReducedMotion ? undefined : scaleIn}
             initial={prefersReducedMotion ? false : 'hidden'}
             animate={prefersReducedMotion ? undefined : 'visible'}
             whileHover={prefersReducedMotion ? undefined : { y: -1, scale: 1.02 }}
             whileTap={prefersReducedMotion ? undefined : { scale: 0.96 }}
           >
-            {locateStatus === 'loading' ? (
+            {locating ? (
               <Loader2 className="size-5 animate-spin text-[var(--rw-primary)]" aria-hidden="true" />
             ) : (
               <LocateFixed className="size-5 text-[var(--rw-text-primary)]" aria-hidden="true" />
@@ -226,7 +233,7 @@ export function MapFloatingControls({
 
           <Button
             type="button"
-            className="rounded-full bg-[var(--st-primary-container)] px-4 text-[var(--st-on-primary-container)] shadow-[var(--st-shadow-fab)] hover:brightness-110"
+            className="rounded-full bg-[var(--rw-danger)] px-4 text-[var(--rw-danger-foreground)] shadow-[var(--st-shadow-fab)] hover:brightness-110"
             aria-label="Report a road issue"
             onClick={() => {
               persistForNavigation()
@@ -234,24 +241,53 @@ export function MapFloatingControls({
             }}
           >
             <Plus className="size-4" aria-hidden="true" />
-            <span className="hidden sm:inline">Report Issue</span>
-            <span className="sm:hidden">Report</span>
+            <span className="hidden sm:inline">{t('reportIssue')}</span>
+            <span className="sm:hidden">{t('quickReport')}</span>
           </Button>
         </div>
       </div>
 
-      {locateMessage ? (
-        <p
-          className={twMerge(
-            'pointer-events-auto rw-map-glass mx-auto max-w-xl rounded-xl px-3 py-2 text-center text-xs shadow-[0_18px_50px_-22px_rgb(0_0_0/0.35)] backdrop-blur-2xl',
-            locateStatus === 'denied'
-              ? 'text-[var(--rw-danger)]'
-              : 'text-[var(--rw-text-secondary)]',
-          )}
-          role="alert"
+      {(locateStatus === 'idle' || locateStatus === 'denied' || locateStatus === 'unavailable' || locateMessage) ? (
+        <motion.div
+          className="pointer-events-auto rw-map-glass mx-auto mt-auto mb-4 flex w-full max-w-sm flex-col gap-3 rounded-2xl p-4 shadow-[var(--st-shadow-glass)] sm:max-w-md sm:flex-row sm:items-center sm:justify-between"
+          variants={prefersReducedMotion ? undefined : fadeInUp}
+          initial={prefersReducedMotion ? false : 'hidden'}
+          animate={prefersReducedMotion ? undefined : 'visible'}
         >
-          {locateMessage}
-        </p>
+          <div className="text-center sm:text-left">
+            <p className="text-sm font-medium text-[var(--rw-text-primary)]">
+              {locatePolicyBlockReason === 'insecure-private-origin'
+                ? 'Location requires HTTPS or localhost on this browser.'
+                : locateStatus === 'denied' || locatePermissionState === 'denied'
+                  ? 'Location access is disabled in your browser.'
+                  : locateStatus === 'unavailable'
+                  ? locateMessage || 'Location is unavailable right now.'
+                  : locateMessage || 'Enable location for a better map experience.'}
+            </p>
+            <p className="mt-1 text-xs leading-5 text-[var(--rw-text-secondary)]">
+              Location access improves routing, nearby issues, and local intelligence.
+            </p>
+          </div>
+          {locateStatus !== 'loading' && locatePolicyBlockReason !== 'insecure-private-origin' ? (
+            locateStatus === 'denied' || locatePermissionState === 'denied' ? (
+              <Button
+                type="button"
+                className="shrink-0 rounded-full bg-[var(--st-primary-container)] px-4 text-[var(--st-on-primary-container)] shadow-[var(--st-shadow-fab)] hover:brightness-110"
+                onClick={() => window.open('https://support.google.com/chrome/answer/142065', '_blank', 'noopener,noreferrer')}
+              >
+                How to Enable
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                className="shrink-0 rounded-full bg-[var(--st-primary-container)] px-4 text-[var(--st-on-primary-container)] shadow-[var(--st-shadow-fab)] hover:brightness-110"
+                onClick={onLocate}
+              >
+                {locateStatus === 'unavailable' ? 'Try Again' : 'Enable Location'}
+              </Button>
+            )
+          ) : null}
+        </motion.div>
       ) : null}
     </div>
   )

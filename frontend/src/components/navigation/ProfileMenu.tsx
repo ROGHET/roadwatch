@@ -1,6 +1,9 @@
 import { Globe, Info, Moon, Settings, User } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { twMerge } from 'tailwind-merge'
+import { useThemeStore } from '../../providers/ThemeProvider'
+import { useI18n, type TranslationKey } from '../../lib/i18n'
 
 export type ProfileMenuProps = {
   className?: string
@@ -9,17 +12,22 @@ export type ProfileMenuProps = {
 }
 
 const menuItems = [
-  { id: 'settings', label: 'Settings', icon: Settings },
-  { id: 'language', label: 'Language', icon: Globe },
-  { id: 'theme', label: 'Theme', icon: Moon },
-  { id: 'about', label: 'About', icon: Info },
+  { id: 'settings', labelKey: 'settings', icon: Settings, path: '/settings' },
+  { id: 'language', labelKey: 'language', icon: Globe, path: '/language' },
+  { id: 'theme', labelKey: 'theme', icon: Moon },
+  { id: 'about', labelKey: 'about', icon: Info, path: '/about' },
 ] as const
 
 export function ProfileMenu({ className, open: openProp, onOpenChange }: ProfileMenuProps) {
   const menuId = useId()
   const rootRef = useRef<HTMLDivElement>(null)
+  const navigate = useNavigate()
   const [internalOpen, setInternalOpen] = useState(false)
   const open = openProp ?? internalOpen
+  
+  const theme = useThemeStore((state) => state.theme)
+  const setTheme = useThemeStore((state) => state.setTheme)
+  const { t } = useI18n()
 
   const setOpen = (value: boolean) => {
     if (onOpenChange) onOpenChange(value)
@@ -48,10 +56,7 @@ export function ProfileMenu({ className, open: openProp, onOpenChange }: Profile
   }, [open])
 
   const handleThemeToggle = () => {
-    const root = document.documentElement
-    const isLight = root.classList.contains('light')
-    root.classList.toggle('light', !isLight)
-    root.classList.toggle('dark', isLight)
+    setTheme(theme === 'dark' ? 'light' : 'dark')
     setOpen(false)
   }
 
@@ -75,7 +80,11 @@ export function ProfileMenu({ className, open: openProp, onOpenChange }: Profile
           role="menu"
           className="absolute right-0 top-[calc(100%+0.5rem)] z-50 min-w-[11rem] overflow-hidden rounded-2xl rw-glass-panel rw-glass-edge py-1 shadow-[var(--st-shadow-glass)]"
         >
-          {menuItems.map(({ id, label, icon: Icon }) => (
+          {menuItems.map((item) => {
+            const { id, labelKey, icon: Icon } = item
+            const path = 'path' in item ? item.path : undefined
+
+            return (
             <button
               key={id}
               type="button"
@@ -86,13 +95,17 @@ export function ProfileMenu({ className, open: openProp, onOpenChange }: Profile
                   handleThemeToggle()
                   return
                 }
+                if (path) {
+                  navigate(path)
+                }
                 setOpen(false)
               }}
             >
               <Icon className="size-4 text-[var(--st-on-surface-variant)]" aria-hidden="true" />
-              {label}
+              {t(labelKey as TranslationKey)}
             </button>
-          ))}
+            )
+          })}
         </div>
       ) : null}
     </div>

@@ -70,6 +70,8 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
     position: userPosition,
     status: locateStatus,
     errorMessage,
+    permissionState,
+    policyBlockReason,
     locate,
     startWatching,
     stopWatching,
@@ -119,12 +121,14 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
 
   useEffect(() => {
     if (mode === 'expanded') {
-      startWatching()
+      if (locateStatus === 'granted') {
+        startWatching()
+      }
       return () => stopWatching()
     }
     stopWatching()
     return undefined
-  }, [mode, startWatching, stopWatching])
+  }, [mode, locateStatus, startWatching, stopWatching])
 
   const focusOn = useCallback((lat: number, lng: number, zoom: number) => {
     setFlyTarget((current) => ({
@@ -169,7 +173,7 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
     setSearchQuery('')
   }
 
-  const handleLocate = async () => {
+  const handleLocate = useCallback(async () => {
     clearError()
     const { position: located, usedCache } = await locate()
     if (located) {
@@ -178,7 +182,12 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
     if (!located && !usedCache) {
       return
     }
-  }
+  }, [clearError, focusOn, locate])
+
+  useEffect(() => {
+    if (mode !== 'expanded' || locateStatus !== 'idle') return
+    void handleLocate()
+  }, [handleLocate, locateStatus, mode])
 
   const initialViewport = getInitialMapViewport(
     hasUserViewport,
@@ -188,14 +197,14 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
   return (
     <div
       className={[
-        'relative h-full w-full overflow-hidden bg-[var(--rw-background)]',
+        'absolute inset-0 overflow-hidden bg-[var(--rw-background)]',
         mode === 'preview' ? 'rw-map-preview' : 'rw-map-expanded',
       ].join(' ')}
     >
       <MapContainer
         center={[initialViewport.lat, initialViewport.lng]}
         zoom={initialViewport.zoom}
-        className="rw-map-tiles h-full w-full"
+        className="rw-map-tiles absolute inset-0 z-0"
         zoomControl={false}
         minZoom={MAP_MIN_ZOOM}
         maxZoom={MAP_MAX_ZOOM}
@@ -248,6 +257,8 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
         onLocate={handleLocate}
         locateStatus={locateStatus}
         locateMessage={errorMessage}
+        locatePermissionState={permissionState}
+        locatePolicyBlockReason={policyBlockReason}
       />
 
       <MapDetailOverlay

@@ -41,7 +41,7 @@ export function MapFullScreenExperience({ onClose }: MapFullScreenExperienceProp
   }
 
   return (
-    <div className="fixed inset-0 z-[400] flex flex-col bg-[var(--rw-background)]">
+    <div className="relative flex h-full min-h-0 w-full flex-1 flex-col bg-[var(--rw-background)]">
       <div className="flex items-center justify-between gap-3 rw-glass-nav border-b border-[var(--st-outline-white)] px-4 py-3 pt-[calc(var(--st-floating-offset)+3.5rem)] sm:pt-3">
         <div className="min-w-0">
           <p className="font-serif text-lg text-[var(--st-primary)]">{homePageCopy.mapTitle}</p>
@@ -78,12 +78,16 @@ export function MapFullScreenExperience({ onClose }: MapFullScreenExperienceProp
       </div>
 
       <motion.div
-        className="min-h-0 flex-1"
+        className="relative flex min-h-0 w-full flex-1 flex-col"
         initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
         animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
         transition={prefersReducedMotion ? { duration: 0 } : springSnappy}
       >
-        <RoadWatchMap key={`map-expanded-${mapSessionId}`} className="h-full w-full" mode="expanded" />
+        <RoadWatchMap
+          key={`map-expanded-${mapSessionId}`}
+          className="relative h-full min-h-0 w-full flex-1"
+          mode="expanded"
+        />
       </motion.div>
     </div>
   )

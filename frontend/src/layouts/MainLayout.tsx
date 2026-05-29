@@ -1,4 +1,4 @@
-import { Home, LayoutDashboard, Map, MessageSquareWarning, Search } from 'lucide-react'
+import { Bot, FileWarning, Home, Map, Search } from 'lucide-react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { useCallback, useEffect, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
@@ -7,12 +7,13 @@ import { CommandPalette } from '../components/command/CommandPalette'
 import { ProfileMenu } from '../components/navigation/ProfileMenu'
 import { fadeInDown, transitions } from '../lib/motion'
 import { routes } from '../lib/routes'
+import { useI18n, type TranslationKey } from '../lib/i18n'
 
 const navLinks = [
-  { to: routes.home, label: 'Home', icon: Home, end: true },
-  { to: routes.map, label: 'Map', icon: Map },
-  { to: routes.complaint, label: 'Complaint', icon: MessageSquareWarning },
-  { to: routes.dashboard, label: 'Dashboard', icon: LayoutDashboard },
+  { to: routes.home, labelKey: 'navHome', icon: Home, end: true },
+  { to: routes.map, labelKey: 'navMap', icon: Map },
+  { to: routes.complaint, labelKey: 'navComplaint', icon: FileWarning },
+  { to: routes.assistant, labelKey: 'navAI', icon: Bot },
 ] as const
 
 function FloatingNavLink({
@@ -33,8 +34,8 @@ function FloatingNavLink({
           className={[
             'inline-flex items-center justify-center rounded-full p-3 transition-all duration-200',
             isActive
-              ? 'bg-[var(--st-primary-container)] text-[var(--st-on-primary-container)] shadow-[var(--st-shadow-fab)] -translate-y-0.5'
-              : 'text-[var(--st-on-surface-variant)] hover:text-[var(--st-primary)]',
+                ? 'bg-[var(--st-primary-container)] text-[var(--st-on-primary-container)] shadow-[var(--st-shadow-fab)] -translate-y-0.5'
+                : 'text-[var(--st-on-surface-variant)] hover:text-[var(--st-primary)]',
           ].join(' ')}
         >
           <Icon className="size-5" aria-hidden="true" />
@@ -50,6 +51,7 @@ export default function MainLayout() {
   const isMapRoute = location.pathname === routes.map
   const [commandOpen, setCommandOpen] = useState(false)
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
+  const { t } = useI18n()
 
   const openCommandPalette = useCallback(() => setCommandOpen(true), [])
   const closeCommandPalette = useCallback(() => setCommandOpen(false), [])
@@ -72,11 +74,15 @@ export default function MainLayout() {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col bg-[var(--rw-background)]">
+    <div
+      className={[
+        'flex min-h-dvh flex-col bg-[var(--rw-background)]',
+        isMapRoute ? 'h-dvh overflow-hidden' : '',
+      ].join(' ')}
+    >
       <motion.header
         className={[
           'pointer-events-none fixed inset-x-0 top-[var(--st-floating-offset)] z-[300] px-[var(--st-safe-margin)]',
-          isMapRoute ? 'hidden sm:block' : '',
         ].join(' ')}
         variants={prefersReducedMotion ? undefined : fadeInDown}
         initial={prefersReducedMotion ? false : 'hidden'}
@@ -102,23 +108,15 @@ export default function MainLayout() {
             className="min-w-0 flex-1 truncate text-left font-serif text-xl tracking-tight text-[var(--st-primary)] outline-none transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rw-ring)]"
             aria-label="Open command palette"
           >
-            RoadWatch
+            {t('appName')}
           </button>
 
           <ul className="hidden items-center gap-1 lg:flex">
-            {navLinks.map(({ to, label, icon, ...rest }) => (
+            {navLinks.map(({ to, labelKey, icon, ...rest }) => (
               <li key={to}>
-                <FloatingNavLink to={to} label={label} icon={icon} {...rest} />
+                <FloatingNavLink to={to} label={t(labelKey as TranslationKey)} icon={icon} {...rest} />
               </li>
             ))}
-            <li>
-              <NavLink
-                to={routes.assistant}
-                className="rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--st-on-surface-variant)] transition-colors hover:text-[var(--st-primary)]"
-              >
-                AI
-              </NavLink>
-            </li>
           </ul>
 
           <ProfileMenu open={profileMenuOpen} onOpenChange={setProfileMenuOpen} />
@@ -126,24 +124,23 @@ export default function MainLayout() {
       </motion.header>
 
       <main
-        className={[
-          'mx-auto w-full max-w-6xl flex-1 px-[var(--st-safe-margin)] pb-28 pt-24 sm:pt-28',
-          isMapRoute ? 'max-w-none p-0' : '',
-        ].join(' ')}
+        className={
+          isMapRoute
+            ? 'flex min-h-0 w-full max-w-none flex-1 flex-col p-0'
+            : 'mx-auto flex w-full max-w-6xl flex-1 flex-col px-[var(--st-safe-margin)] pb-28 pt-24 sm:pt-28'
+        }
       >
         <AnimatedOutlet />
       </main>
 
-      {!isMapRoute ? (
-        <nav
-          className="rw-glass-nav fixed bottom-[var(--st-floating-offset)] left-[var(--st-safe-margin)] right-[var(--st-safe-margin)] z-[300] flex h-16 items-center justify-around rounded-full lg:hidden"
-          aria-label="Mobile navigation"
-        >
-          {navLinks.map(({ to, label, icon, ...rest }) => (
-            <FloatingNavLink key={to} to={to} label={label} icon={icon} {...rest} />
-          ))}
-        </nav>
-      ) : null}
+      <nav
+        className="rw-glass-nav fixed bottom-[var(--st-floating-offset)] left-[var(--st-safe-margin)] right-[var(--st-safe-margin)] z-[300] flex h-16 items-center justify-around rounded-full lg:hidden"
+        aria-label="Mobile navigation"
+      >
+        {navLinks.map(({ to, labelKey, icon, ...rest }) => (
+          <FloatingNavLink key={to} to={to} label={t(labelKey as TranslationKey)} icon={icon} {...rest} />
+        ))}
+      </nav>
 
       <footer
         className={[
@@ -152,7 +149,7 @@ export default function MainLayout() {
         ].join(' ')}
       >
         <div className="mx-auto max-w-6xl px-[var(--st-safe-margin)] py-4 text-center text-sm text-[var(--st-on-surface-variant)]">
-          RoadWatch | Road Safety Transparency Platform
+          {t('appName')} | Road Safety Transparency Platform
         </div>
       </footer>
 

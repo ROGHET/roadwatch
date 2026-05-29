@@ -14,7 +14,7 @@ export function AnimatedOutlet() {
         initial={prefersReducedMotion ? false : 'initial'}
         animate={prefersReducedMotion ? undefined : 'animate'}
         exit={prefersReducedMotion ? undefined : 'exit'}
-        className="min-w-0"
+        className="min-w-0 flex flex-col flex-1 h-full w-full relative"
       >
         <Outlet />
       </motion.div>

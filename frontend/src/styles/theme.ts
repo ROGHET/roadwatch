@@ -218,7 +218,42 @@ export const darkThemeCssVariables = themeToCssVariables(darkTheme.colors)
 export const lightThemeCssVariables = themeToCssVariables(lightTheme.colors)
 
 /** Direct Stitch token CSS variables for glass / typography utilities. */
-export function stitchToCssVariables(): Record<string, string> {
+export function stitchToCssVariables(mode: ThemeMode = 'dark'): Record<string, string> {
+  if (mode === 'light') {
+    return {
+      '--st-background': colorPalette.neutral[50],
+      '--st-surface': colorPalette.neutral[0],
+      '--st-surface-container': colorPalette.neutral[0],
+      '--st-surface-container-low': colorPalette.neutral[100],
+      '--st-surface-container-high': colorPalette.neutral[200],
+      '--st-on-surface': colorPalette.neutral[900],
+      '--st-on-surface-variant': colorPalette.neutral[700],
+      '--st-primary': colorPalette.brand[700],
+      '--st-on-primary': colorPalette.neutral[0],
+      '--st-primary-container': colorPalette.brand[600],
+      '--st-on-primary-container': colorPalette.neutral[0],
+      '--st-secondary': colorPalette.warning[700],
+      '--st-secondary-container': colorPalette.warning[100],
+      '--st-on-secondary-container': colorPalette.warning[700],
+      '--st-tertiary': colorPalette.success[700],
+      '--st-on-tertiary': colorPalette.neutral[0],
+      '--st-error': colorPalette.danger[700],
+      '--st-outline': colorPalette.neutral[500],
+      '--st-outline-white': 'rgb(15 23 42 / 0.14)',
+      '--st-glass-bg': 'rgb(255 255 255 / 0.86)',
+      '--st-shadow-glass': '0 24px 48px -24px rgb(15 23 42 / 0.28)',
+      '--st-shadow-fab': '0 8px 24px rgb(37 99 235 / 0.24)',
+      '--st-shadow-nav': '0 20px 48px -24px rgb(15 23 42 / 0.32)',
+      '--st-radius-panel': stitchRadius.panel,
+      '--st-safe-margin': stitchSpacing.safeMargin,
+      '--st-floating-offset': stitchSpacing.floatingOffset,
+      '--st-stack-sm': stitchSpacing.stackSm,
+      '--st-stack-md': stitchSpacing.stackMd,
+      '--st-stack-lg': stitchSpacing.stackLg,
+      '--st-gutter': stitchSpacing.gutter,
+    }
+  }
+
   return {
     '--st-background': stitchColors.background,
     '--st-surface': stitchColors.surface,
@@ -254,3 +289,4 @@ export function stitchToCssVariables(): Record<string, string> {
 }
 
 export const stitchCssVariables = stitchToCssVariables()
+export const lightStitchCssVariables = stitchToCssVariables('light')

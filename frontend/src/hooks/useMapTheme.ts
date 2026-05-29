@@ -1,26 +1,25 @@
 import { useEffect, useState } from 'react'
+import { useThemeStore } from '../providers/ThemeProvider'
 
 export type MapTheme = 'dark' | 'light'
 
-function readMapTheme(): MapTheme {
-  return document.documentElement.classList.contains('dark') ? 'dark' : 'light'
-}
-
 export function useMapTheme(): MapTheme {
-  const [theme, setTheme] = useState<MapTheme>(readMapTheme)
+  const theme = useThemeStore((state) => state.theme)
+  const [resolvedTheme, setResolvedTheme] = useState<MapTheme>('dark')
 
   useEffect(() => {
-    const observer = new MutationObserver(() => {
-      setTheme(readMapTheme())
-    })
+    const isDark =
+      theme === 'dark' ||
+      (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+    setResolvedTheme(isDark ? 'dark' : 'light')
+    
+    if (theme === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+      const handleChange = (e: MediaQueryListEvent) => setResolvedTheme(e.matches ? 'dark' : 'light')
+      mediaQuery.addEventListener('change', handleChange)
+      return () => mediaQuery.removeEventListener('change', handleChange)
+    }
+  }, [theme])
 
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class'],
-    })
-
-    return () => observer.disconnect()
-  }, [])
-
-  return theme
+  return resolvedTheme
 }

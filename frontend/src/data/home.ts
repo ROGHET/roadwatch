@@ -5,7 +5,7 @@ import { mockRoads } from './roads'
 
 export const homePageCopy = {
   heroSubtitle: 'Road Safety Transparency',
-  heroTitle: 'RoadWatch',
+  heroTitle: 'CrashZero',
   heroDescription:
     'AI-powered citizen transparency for roads, budgets, contractors, and safety alerts across India.',
   exploreTitle: 'Explore Roads',
@@ -35,7 +35,7 @@ export const homeFeatures: FeatureItem[] = [
   },
   {
     icon: Bot,
-    title: 'RoadWatch AI',
+    title: 'CrashZero AI',
     description: 'Ask questions about contractors, budgets, repairs, and complaint history.',
     href: routes.assistant,
   },

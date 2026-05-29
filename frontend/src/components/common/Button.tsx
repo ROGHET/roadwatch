@@ -20,9 +20,9 @@ const buttonVariants = cva(
           'bg-[var(--rw-danger)] text-white hover:opacity-90 shadow-sm',
       },
       size: {
-        sm: 'h-8 px-3 text-sm',
-        md: 'h-10 px-4 text-sm',
-        lg: 'h-11 px-6 text-base',
+        sm: 'h-[var(--rw-button-height-sm)] px-[var(--rw-button-padding-sm)] text-sm',
+        md: 'h-[var(--rw-button-height-md)] px-[var(--rw-button-padding-md)] text-sm',
+        lg: 'h-[var(--rw-button-height-lg)] px-[var(--rw-button-padding-lg)] text-base',
       },
     },
     defaultVariants: {

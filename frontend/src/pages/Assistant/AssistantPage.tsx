@@ -19,12 +19,15 @@ import {
   assistantSamplePrompt,
   assistantSuggestedQuestions,
 } from '../../data/assistant'
+import { useI18n } from '../../lib/i18n'
 
 export default function AssistantPage() {
+  const { t } = useI18n()
+
   return (
     <PageContainer size="default" className="gap-6">
       <SectionHeader
-        title={assistantPageCopy.title}
+        title={t('aiTitle')}
         description={assistantPageCopy.description}
       />
 
@@ -38,7 +41,7 @@ export default function AssistantPage() {
               <Bot className="size-5 text-[var(--rw-text-secondary)]" />
             </div>
             <div>
-              <CardTitle className="text-base">Assistant</CardTitle>
+              <CardTitle className="text-base">{t('aiAssistant')}</CardTitle>
               <CardDescription>
                 {assistantPageCopy.contextLabel}: {assistantDefaultContext.roadName}
               </CardDescription>
@@ -61,7 +64,7 @@ export default function AssistantPage() {
           </div>
           <Textarea
             id="assistant-prompt"
-            placeholder="Ask a question about this road..."
+            placeholder={t('aiPlaceholder')}
             rows={4}
             readOnly
             defaultValue={assistantSamplePrompt}
@@ -69,10 +72,10 @@ export default function AssistantPage() {
         </CardContent>
         <CardFooter className="flex flex-wrap gap-3">
           <Button type="button" disabled>
-            Send message
+            {t('sendMessage')}
           </Button>
           <Button type="button" variant="outline" disabled>
-            Generate RTI request
+            {t('generateRti')}
           </Button>
         </CardFooter>
       </Card>

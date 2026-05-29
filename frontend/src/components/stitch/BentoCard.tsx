@@ -7,6 +7,7 @@ export type BentoCardProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   icon: LucideIcon
   accentClassName?: string
   iconBgClassName?: string
+  labelClassName?: string
 }
 
 export const BentoCard = forwardRef<HTMLButtonElement, BentoCardProps>(
@@ -17,6 +18,7 @@ export const BentoCard = forwardRef<HTMLButtonElement, BentoCardProps>(
       className,
       accentClassName = 'text-[var(--st-primary)]',
       iconBgClassName = 'bg-[var(--st-primary)]/10',
+      labelClassName = 'text-[var(--st-on-surface)]',
       ...props
     },
     ref,
@@ -38,7 +40,7 @@ export const BentoCard = forwardRef<HTMLButtonElement, BentoCardProps>(
       >
         <Icon className={twMerge('size-5', accentClassName)} aria-hidden="true" />
       </div>
-      <span className="rw-type-label-caps text-[var(--st-on-surface)]">{label}</span>
+      <span className={twMerge('rw-type-label-caps', labelClassName)}>{label}</span>
     </button>
   ),
 )

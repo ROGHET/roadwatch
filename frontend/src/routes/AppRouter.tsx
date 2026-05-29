@@ -6,6 +6,9 @@ import DashboardPage from '../pages/Dashboard/DashboardPage'
 import HomePage from '../pages/Home/HomePage'
 import MapPage from '../pages/Map/MapPage'
 import RoadDetailsPage from '../pages/RoadDetails/RoadDetailsPage'
+import SettingsPage from '../pages/Settings/SettingsPage'
+import LanguagePage from '../pages/Language/LanguagePage'
+import AboutPage from '../pages/About/AboutPage'
 
 const router = createBrowserRouter([
   {
@@ -34,6 +37,18 @@ const router = createBrowserRouter([
       {
         path: 'assistant',
         element: <AssistantPage />,
+      },
+      {
+        path: 'settings',
+        element: <SettingsPage />,
+      },
+      {
+        path: 'language',
+        element: <LanguagePage />,
+      },
+      {
+        path: 'about',
+        element: <AboutPage />,
       },
     ],
   },
