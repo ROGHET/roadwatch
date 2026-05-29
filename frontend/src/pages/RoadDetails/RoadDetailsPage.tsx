@@ -1,5 +1,8 @@
 import { useParams } from 'react-router-dom'
+import { AlertCircle } from 'lucide-react'
 import { Alert } from '../../components/common/Alert'
+import { EmptyState } from '../../components/common/EmptyState'
+import { LoadingSpinner } from '../../components/common/LoadingSpinner'
 import { PageContainer } from '../../components/common/PageContainer'
 import { SectionHeader } from '../../components/common/SectionHeader'
 import { ChartContainer } from '../../components/charts/ChartContainer'
@@ -7,11 +10,32 @@ import { DashboardSection } from '../../components/dashboard/DashboardSection'
 import { ComplaintListSection } from '../../components/complaints/ComplaintListSection'
 import { RoadSummaryCard } from '../../components/road/RoadSummaryCard'
 import { complaintsByRoadId } from '../../data/complaints'
-import { mockRoads } from '../../data/roads'
+import { useRoad } from '../../hooks/useRoad'
 
 export default function RoadDetailsPage() {
   const { roadId } = useParams()
-  const road = mockRoads.find((record) => record.id === roadId) ?? mockRoads[0]
+  const { data: road, isPending, isError } = useRoad(roadId)
+
+  if (isPending) {
+    return (
+      <PageContainer>
+        <LoadingSpinner label="Loading road details" className="py-16" />
+      </PageContainer>
+    )
+  }
+
+  if (isError || !road) {
+    return (
+      <PageContainer>
+        <EmptyState
+          icon={AlertCircle}
+          title="Road not found"
+          description="This road record could not be loaded. Return home and select another corridor."
+        />
+      </PageContainer>
+    )
+  }
+
   const roadComplaints = complaintsByRoadId[road.id] ?? []
 
   const {

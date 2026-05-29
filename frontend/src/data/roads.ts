@@ -2,6 +2,8 @@ import type { RoadSummaryCardProps } from '../components/road/RoadSummaryCard'
 
 export type MockRoad = {
   id: string
+  lat: number
+  lng: number
 } & Omit<RoadSummaryCardProps, 'footer' | 'className'>
 
 export type RoadSelectOption = {
@@ -12,6 +14,8 @@ export type RoadSelectOption = {
 export const mockRoads: MockRoad[] = [
   {
     id: 'chennai-sardar-patel-road',
+    lat: 13.0067,
+    lng: 80.2206,
     roadName: 'Sardar Patel Road',
     roadType: 'State Highway (SH-109A)',
     score: 78,
@@ -24,6 +28,8 @@ export const mockRoads: MockRoad[] = [
   },
   {
     id: 'chennai-gst-road',
+    lat: 13.0287,
+    lng: 80.1742,
     roadName: 'GST Road (Grand Southern Trunk Road)',
     roadType: 'National Highway (NH-32)',
     score: 64,
@@ -36,6 +42,8 @@ export const mockRoads: MockRoad[] = [
   },
   {
     id: 'chennai-omr-service-lane',
+    lat: 12.9815,
+    lng: 80.2482,
     roadName: 'OMR Service Lane (Rajiv Gandhi Salai)',
     roadType: 'Major District Road (MDR)',
     score: 71,
@@ -48,6 +56,8 @@ export const mockRoads: MockRoad[] = [
   },
   {
     id: 'chennai-ecr-highway',
+    lat: 12.8996,
+    lng: 80.2459,
     roadName: 'East Coast Road (ECR)',
     roadType: 'State Highway (SH-49)',
     score: 55,
@@ -60,6 +70,8 @@ export const mockRoads: MockRoad[] = [
   },
   {
     id: 'chennai-anna-salai',
+    lat: 13.0604,
+    lng: 80.2647,
     roadName: 'Anna Salai (Mount Road)',
     roadType: 'Urban Arterial Road',
     score: 82,
@@ -72,6 +84,8 @@ export const mockRoads: MockRoad[] = [
   },
   {
     id: 'mumbai-western-express',
+    lat: 19.1176,
+    lng: 72.856,
     roadName: 'Western Express Highway',
     roadType: 'National Highway (NH-48)',
     score: 69,
@@ -84,6 +98,8 @@ export const mockRoads: MockRoad[] = [
   },
   {
     id: 'delhi-ring-road',
+    lat: 28.5677,
+    lng: 77.209,
     roadName: 'Ring Road (Mahatma Gandhi Marg)',
     roadType: 'National Highway (NH-44)',
     score: 48,
@@ -96,6 +112,8 @@ export const mockRoads: MockRoad[] = [
   },
   {
     id: 'bengaluru-hosur-road',
+    lat: 12.9102,
+    lng: 77.6166,
     roadName: 'Hosur Road (NH-48)',
     roadType: 'National Highway (NH-48)',
     score: 61,

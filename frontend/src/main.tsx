@@ -1,5 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { AppProviders } from './lib/providers'
 import { darkThemeCssVariables } from './styles/theme'
 import './index.css'
 import App from './App.tsx'
@@ -13,6 +14,8 @@ Object.entries(darkThemeCssVariables).forEach(([name, value]) => {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <AppProviders>
+      <App />
+    </AppProviders>
   </StrictMode>,
 )

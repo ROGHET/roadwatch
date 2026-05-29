@@ -32,10 +32,10 @@ export default function AssistantPage() {
         <CardHeader>
           <div className="flex items-center gap-3">
             <div
-              className="flex size-10 items-center justify-center rounded-md bg-slate-100 dark:bg-slate-800"
+              className="flex size-10 items-center justify-center rounded-lg border border-[var(--rw-border)] bg-[var(--rw-surface-muted)]"
               aria-hidden="true"
             >
-              <Bot className="size-5 text-slate-700 dark:text-slate-300" />
+              <Bot className="size-5 text-[var(--rw-text-secondary)]" />
             </div>
             <div>
               <CardTitle className="text-base">Assistant</CardTitle>

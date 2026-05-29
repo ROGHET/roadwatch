@@ -1,5 +1,6 @@
 import { cva, type VariantProps } from 'class-variance-authority'
 import { forwardRef, type ButtonHTMLAttributes } from 'react'
+import { Link, type LinkProps } from 'react-router-dom'
 import { twMerge } from 'tailwind-merge'
 
 const buttonVariants = cva(
@@ -32,17 +33,39 @@ const buttonVariants = cva(
 )
 
 export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> &
-  VariantProps<typeof buttonVariants>
+  VariantProps<typeof buttonVariants> & {
+    to?: LinkProps['to']
+  }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, type = 'button', ...props }, ref) => (
-    <button
-      ref={ref}
-      type={type}
-      className={twMerge(buttonVariants({ variant, size }), className)}
-      {...props}
-    />
-  ),
+  ({ className, variant, size, type = 'button', to, children, disabled, ...props }, ref) => {
+    const classes = twMerge(buttonVariants({ variant, size }), className)
+
+    if (to) {
+      return (
+        <Link
+          ref={ref as never}
+          to={to}
+          className={twMerge(classes, disabled && 'pointer-events-none opacity-50')}
+          aria-disabled={disabled || undefined}
+        >
+          {children}
+        </Link>
+      )
+    }
+
+    return (
+      <button
+        ref={ref}
+        type={type}
+        className={classes}
+        disabled={disabled}
+        {...props}
+      >
+        {children}
+      </button>
+    )
+  },
 )
 
 Button.displayName = 'Button'
