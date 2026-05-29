@@ -8,23 +8,29 @@ import { useI18n } from '../../lib/i18n'
 
 type Option<T> = { value: T; label: string }
 
-const fontOptions: Option<FontSize>[] = [
-  { value: 'small', label: 'Small Font' },
-  { value: 'medium', label: 'Medium Font' },
-  { value: 'large', label: 'Large Font' },
-]
+function getFontOptions(t: (key: any) => string): Option<FontSize>[] {
+  return [
+    { value: 'small', label: t('smallFont') },
+    { value: 'medium', label: t('mediumFont') },
+    { value: 'large', label: t('largeFont') },
+  ]
+}
 
-const buttonOptions: Option<ButtonSize>[] = [
-  { value: 'compact', label: 'Compact Buttons' },
-  { value: 'normal', label: 'Normal Buttons' },
-  { value: 'large', label: 'Large Buttons' },
-]
+function getButtonOptions(t: (key: any) => string): Option<ButtonSize>[] {
+  return [
+    { value: 'compact', label: t('compactButtons') },
+    { value: 'normal', label: t('normalButtons') },
+    { value: 'large', label: t('largeButtons') },
+  ]
+}
 
-const themeOptions: Option<ThemePreference>[] = [
-  { value: 'light', label: 'Light' },
-  { value: 'dark', label: 'Dark' },
-  { value: 'system', label: 'System Default' },
-]
+function getThemeOptions(t: (key: any) => string): Option<ThemePreference>[] {
+  return [
+    { value: 'light', label: t('lightTheme') },
+    { value: 'dark', label: t('darkTheme') },
+    { value: 'system', label: t('systemTheme') },
+  ]
+}
 
 function SettingsGroup<T extends string>({
   title,
@@ -89,21 +95,21 @@ export default function SettingsPage() {
         <div className="flex flex-col gap-8 mt-4">
           <SettingsGroup
             title={t('theme')}
-            options={themeOptions}
+            options={getThemeOptions(t)}
             currentValue={theme}
             onChange={setTheme}
           />
 
           <SettingsGroup
             title={t('accessibility')}
-            options={fontOptions}
+            options={getFontOptions(t)}
             currentValue={fontSize}
             onChange={setFontSize}
           />
 
           <SettingsGroup
             title={t('interface')}
-            options={buttonOptions}
+            options={getButtonOptions(t)}
             currentValue={buttonSize}
             onChange={setButtonSize}
           />

@@ -13,16 +13,18 @@ const teamLinks = [
   ['Nikhil Nair', 'https://www.linkedin.com/in/nikhil-nair-225401333/'],
 ] as const
 
-const capabilities = [
-  ['Monitor road quality', routes.dashboard],
-  ['Report road issues', routes.complaint],
-  ['Budget transparency', routes.dashboard],
-  ['Contractor accountability', routes.dashboard],
-  ['Complaint routing', routes.complaint],
-  ['Repair history', routes.road('mumbai-western-express')],
-  ['Road intelligence', routes.dashboard],
-  ['AI assistance', routes.assistant],
-] as const
+function getCapabilities(t: (key: any) => string) {
+  return [
+    [t('monitorRoadQuality'), routes.dashboard],
+    [t('reportRoadIssues'), routes.complaint],
+    [t('budgetTransparency'), routes.dashboard],
+    [t('contractorAccountability'), routes.dashboard],
+    [t('complaintRouting'), routes.complaint],
+    [t('repairHistory'), routes.road('mumbai-western-express')],
+    [t('roadIntelligence'), routes.dashboard],
+    [t('aiAssistance'), routes.assistant],
+  ] as const
+}
 
 export default function AboutPage() {
   const prefersReducedMotion = useReducedMotion()
@@ -40,14 +42,14 @@ export default function AboutPage() {
         <StitchSectionHeader
           eyebrow={t('about')}
           title={t('appName')}
-          description="AI-powered road transparency platform."
+          description={t('homeDescription')}
         />
         <div className="rw-glass-panel rw-glass-edge flex flex-col gap-4 rounded-2xl p-6 text-sm leading-relaxed text-[var(--st-on-surface-variant)] shadow-[var(--st-shadow-glass)]">
           <p>
-            <strong className="text-[var(--st-on-surface)]">Mission:</strong> To revolutionize road safety and transparency by empowering citizens with actionable intelligence, seamless reporting, and holding authorities accountable.
+            <strong className="text-[var(--st-on-surface)]">{t('missionTitle')}</strong> {t('missionText')}
           </p>
           <p>
-            <strong className="text-[var(--st-on-surface)]">Objectives:</strong> Enhance citizen engagement in public infrastructure, ensure clear visibility into budgets and contractor performance, and route complaints efficiently to the correct departments using AI.
+            <strong className="text-[var(--st-on-surface)]">{t('objectivesTitle')}</strong> {t('objectivesText')}
           </p>
         </div>
       </motion.section>
@@ -59,9 +61,9 @@ export default function AboutPage() {
         whileInView={prefersReducedMotion ? undefined : 'visible'}
         viewport={{ once: true, margin: '-40px' }}
       >
-        <StitchSectionHeader title="Core Capabilities" />
+        <StitchSectionHeader title={t('coreCapabilities')} />
         <ul className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {capabilities.map(([feature, href]) => (
+          {getCapabilities(t).map(([feature, href]) => (
             <li key={feature}>
               <button
                 type="button"
@@ -83,7 +85,7 @@ export default function AboutPage() {
         whileInView={prefersReducedMotion ? undefined : 'visible'}
         viewport={{ once: true, margin: '-40px' }}
       >
-        <StitchSectionHeader title="Built by" />
+        <StitchSectionHeader title={t('builtBy')} />
         <div className="mt-2 flex flex-wrap gap-3">
           {teamLinks.map(([name, href]) => (
             <a

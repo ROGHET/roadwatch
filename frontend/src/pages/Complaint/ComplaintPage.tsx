@@ -20,32 +20,35 @@ import {
   mockComplaintDetails,
 } from '../../data/complaints'
 import { roadSelectOptions } from '../../data/roads'
+import { useI18n } from '../../lib/i18n'
 
 const complaintFormSample = mockComplaintDetails[0]
 
 export default function ComplaintPage() {
+  const { t } = useI18n()
+
   return (
     <PageContainer size="narrow" className="gap-6">
       <SectionHeader
-        title="File a Complaint"
-        description="Report a road issue with details, location, and severity. Routing will be shown after submission."
+        title={t('fileAComplaint')}
+        description={t('complaintPageDesc')}
       />
 
-      <Alert variant="info" title="Demo form">
-        This is a UI skeleton. Form submission and routing are not connected yet.
+      <Alert variant="info" title={t('demoFormTitle')}>
+        {t('demoFormDesc')}
       </Alert>
 
       <Card>
         <CardHeader>
-          <CardTitle>Complaint details</CardTitle>
+          <CardTitle>{t('complaintDetails')}</CardTitle>
           <CardDescription>
-            Provide information to help authorities identify and resolve the issue.
+            {t('complaintDetailsDesc')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="space-y-2">
             <Label htmlFor="complaint-road" required>
-              Road
+              {t('road')}
             </Label>
             <Select
               id="complaint-road"
@@ -53,7 +56,7 @@ export default function ComplaintPage() {
               disabled
             >
               <option value="" disabled>
-                Select a road
+                {t('selectARoad')}
               </option>
               {roadSelectOptions.map((road) => (
                 <option key={road.value} value={road.value}>
@@ -65,7 +68,7 @@ export default function ComplaintPage() {
 
           <div className="space-y-2">
             <Label htmlFor="complaint-issue-type" required>
-              Issue type
+              {t('issueType')}
             </Label>
             <Select
               id="complaint-issue-type"
@@ -82,7 +85,7 @@ export default function ComplaintPage() {
 
           <div className="space-y-2">
             <Label htmlFor="complaint-severity" required>
-              Severity
+              {t('severity')}
             </Label>
             <Select
               id="complaint-severity"
@@ -99,11 +102,11 @@ export default function ComplaintPage() {
 
           <div className="space-y-2">
             <Label htmlFor="complaint-description" required>
-              Description
+              {t('description')}
             </Label>
             <Textarea
               id="complaint-description"
-              placeholder="Describe the issue, landmarks, and impact on safety..."
+              placeholder={t('descriptionPlaceholder')}
               rows={4}
               readOnly
               defaultValue={complaintFormSample.description}
@@ -112,7 +115,7 @@ export default function ComplaintPage() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="complaint-latitude">Latitude</Label>
+              <Label htmlFor="complaint-latitude">{t('latitude')}</Label>
               <Input
                 id="complaint-latitude"
                 type="text"
@@ -122,7 +125,7 @@ export default function ComplaintPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="complaint-longitude">Longitude</Label>
+              <Label htmlFor="complaint-longitude">{t('longitude')}</Label>
               <Input
                 id="complaint-longitude"
                 type="text"
@@ -134,16 +137,16 @@ export default function ComplaintPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="complaint-photo">Photo</Label>
+            <Label htmlFor="complaint-photo">{t('photo')}</Label>
             <Input id="complaint-photo" type="file" disabled />
           </div>
         </CardContent>
         <CardFooter className="flex flex-wrap gap-3">
           <Button type="button" disabled>
-            Submit complaint
+            {t('submitComplaint')}
           </Button>
           <Button type="button" variant="outline" disabled>
-            Save draft
+            {t('saveDraft')}
           </Button>
         </CardFooter>
       </Card>

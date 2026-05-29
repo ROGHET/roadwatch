@@ -162,7 +162,7 @@ export function MapFloatingControls({
           <motion.button
             type="button"
             onClick={() => onFilterOpenChange(!filterOpen)}
-            className="rw-map-glass inline-flex size-11 items-center justify-center rounded-full shadow-[0_18px_50px_-22px_rgb(0_0_0/0.45)] transition-[background-color,transform] duration-200 hover:bg-[var(--rw-surface-muted)] active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rw-ring)]"
+            className="rw-map-glass inline-flex h-[var(--rw-input-height)] w-[var(--rw-input-height)] items-center justify-center rounded-full shadow-[0_18px_50px_-22px_rgb(0_0_0/0.45)] transition-[background-color,transform] duration-200 hover:bg-[var(--rw-surface-muted)] active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rw-ring)]"
             aria-expanded={filterOpen}
             aria-controls="map-layer-filters"
             aria-label="Map layer filters"
@@ -213,7 +213,7 @@ export function MapFloatingControls({
             type="button"
             onClick={onLocate}
             disabled={locating}
-            className="rw-map-glass inline-flex size-11 items-center justify-center rounded-full shadow-[0_18px_50px_-22px_rgb(0_0_0/0.45)] transition-[background-color,transform] duration-200 hover:bg-[var(--rw-surface-muted)] active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rw-ring)] disabled:cursor-wait disabled:opacity-70"
+            className="rw-map-glass inline-flex h-[var(--rw-input-height)] w-[var(--rw-input-height)] items-center justify-center rounded-full shadow-[0_18px_50px_-22px_rgb(0_0_0/0.45)] transition-[background-color,transform] duration-200 hover:bg-[var(--rw-surface-muted)] active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rw-ring)] disabled:cursor-wait disabled:opacity-70"
             aria-label={
               locating ? 'Locating your position' : 'Locate me on the map'
             }

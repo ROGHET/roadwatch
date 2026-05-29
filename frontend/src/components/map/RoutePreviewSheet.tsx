@@ -3,6 +3,7 @@ import { ArrowRightLeft, Clock3, Route, X } from 'lucide-react'
 import { Button } from '../common/Button'
 import { fadeInUp, springSnappy } from '../../lib/motion'
 import type { RoutePreviewSnapshot } from '../../lib/map/providers/types'
+import { useI18n } from '../../lib/i18n'
 
 export type RoutePreviewSheetProps = {
   open: boolean
@@ -24,6 +25,7 @@ export function RoutePreviewSheet({
   onOpenInGoogleMaps,
 }: RoutePreviewSheetProps) {
   const prefersReducedMotion = useReducedMotion()
+  const { t } = useI18n()
   const destinationText = destination
     ? `${destination.lat.toFixed(3)}, ${destination.lng.toFixed(3)}`
     : destinationLabel
@@ -51,7 +53,7 @@ export function RoutePreviewSheet({
           <div className="flex items-start justify-between gap-3 border-b border-[var(--rw-border)] px-4 py-3">
             <div className="min-w-0">
               <p className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--rw-text-tertiary)]">
-                Route preview
+                {t('routePreviewTitle')}
               </p>
               <h3 className="mt-1 truncate text-base font-semibold text-[var(--rw-text-primary)]">
                 {destinationLabel}
@@ -70,15 +72,15 @@ export function RoutePreviewSheet({
           <div className="space-y-4 overflow-y-auto px-4 py-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-3">
-                <p className="text-xs text-[var(--rw-text-tertiary)]">Destination</p>
+                <p className="text-xs text-[var(--rw-text-tertiary)]">{t('destination')}</p>
                 <p className="mt-1 text-sm font-semibold text-[var(--rw-text-primary)]">
                   {destinationLabel}
                 </p>
               </div>
               <div className="rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-3">
-                <p className="text-xs text-[var(--rw-text-tertiary)]">Status</p>
+                <p className="text-xs text-[var(--rw-text-tertiary)]">{t('status')}</p>
                 <p className="mt-1 text-sm font-semibold text-[var(--rw-text-primary)]">
-                  {loading ? 'Calculating route' : route ? 'Ready to preview' : 'Waiting for route data'}
+                  {loading ? t('calculatingRoute') : route ? t('readyToPreview') : t('waitingForRouteData')}
                 </p>
               </div>
             </div>
@@ -88,7 +90,7 @@ export function RoutePreviewSheet({
                 <div className="rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-3">
                   <div className="flex items-center gap-2 text-xs text-[var(--rw-text-tertiary)]">
                     <Route className="size-3.5" aria-hidden="true" />
-                    Distance
+                    {t('distance')}
                   </div>
                   <p className="mt-2 text-lg font-semibold text-[var(--rw-text-primary)]">
                     {route.distanceKm.toFixed(1)} km
@@ -97,14 +99,14 @@ export function RoutePreviewSheet({
                 <div className="rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-3">
                   <div className="flex items-center gap-2 text-xs text-[var(--rw-text-tertiary)]">
                     <Clock3 className="size-3.5" aria-hidden="true" />
-                    ETA
+                    {t('eta')}
                   </div>
                   <p className="mt-2 text-lg font-semibold text-[var(--rw-text-primary)]">
                     {route.travelTimeMinutes} min
                   </p>
                 </div>
                 <div className="col-span-2 rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-3">
-                  <p className="text-xs text-[var(--rw-text-tertiary)]">Route type</p>
+                  <p className="text-xs text-[var(--rw-text-tertiary)]">{t('routeType')}</p>
                   <p className="mt-1 text-sm font-semibold text-[var(--rw-text-primary)]">
                     {route.source}
                   </p>
@@ -115,19 +117,19 @@ export function RoutePreviewSheet({
             <div className="rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-3">
               <div className="flex items-center gap-2 text-xs text-[var(--rw-text-tertiary)]">
                 <ArrowRightLeft className="size-3.5" aria-hidden="true" />
-                Route overview
+                {t('routeOverview')}
               </div>
               <p className="mt-2 text-sm leading-6 text-[var(--rw-text-secondary)]">
                 {loading
-                  ? 'Preparing a route preview with live provider adapters or mock fallback data.'
-                  : route?.overview ?? 'Route overview will appear here once a preview is requested.'}
+                  ? t('preparingRoutePreview')
+                  : route?.overview ?? t('routeOverviewWillAppearHere')}
               </p>
             </div>
 
             <div className="rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-3">
               <div className="flex items-center gap-2 text-xs text-[var(--rw-text-tertiary)]">
                 <Route className="size-3.5" aria-hidden="true" />
-                Route instructions
+                {t('routeInstructions')}
               </div>
               <ol className="mt-3 space-y-2 text-sm text-[var(--rw-text-secondary)]">
                 {route?.instructions?.length ? (
@@ -141,7 +143,7 @@ export function RoutePreviewSheet({
                   ))
                 ) : (
                   <li className="text-[var(--rw-text-tertiary)]">
-                    Turn-by-turn route steps will appear here once the provider is connected.
+                    {t('turnByTurnWillAppearHere')}
                   </li>
                 )}
               </ol>
@@ -149,13 +151,13 @@ export function RoutePreviewSheet({
 
             <div className="flex flex-wrap gap-2">
               <Button type="button" variant="outline" onClick={onOpenInGoogleMaps}>
-                Open in Google Maps
+                {t('openInGoogleMaps')}
               </Button>
               <Button type="button" variant="outline" onClick={handleCopyDestination} disabled={!destination}>
-                Copy Coordinates
+                {t('copyCoordinates')}
               </Button>
               <Button type="button" variant="ghost" onClick={onClose}>
-                Close preview
+                {t('closePreview')}
               </Button>
             </div>
           </div>

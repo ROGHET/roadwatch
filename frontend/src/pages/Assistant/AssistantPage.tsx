@@ -43,7 +43,7 @@ export default function AssistantPage() {
             <div>
               <CardTitle className="text-base">{t('aiAssistant')}</CardTitle>
               <CardDescription>
-                {assistantPageCopy.contextLabel}: {assistantDefaultContext.roadName}
+                {t('assistantContextLabel')} {assistantDefaultContext.roadName}
               </CardDescription>
             </div>
           </div>
@@ -51,8 +51,8 @@ export default function AssistantPage() {
         <CardContent className="space-y-4">
           <EmptyState
             icon={MessageSquare}
-            title={assistantPageCopy.emptyTitle}
-            description={assistantPageCopy.emptyDescription}
+            title={t('assistantEmptyTitle')}
+            description={t('assistantEmptyDescription')}
             className="py-8"
           />
           <div className="flex flex-wrap gap-2">

@@ -67,7 +67,7 @@ export function Modal({
       <div className="flex min-h-full items-center justify-center p-4 sm:p-6">
         <div
           className={twMerge(
-            'relative w-full max-w-lg rounded-lg border border-[var(--rw-border)] bg-[var(--rw-surface)] p-6 text-[var(--rw-text-primary)] shadow-xl',
+            'relative w-full max-w-lg rounded-lg border border-[var(--rw-border)] bg-[var(--rw-surface)] p-[var(--rw-dialog-padding)] text-[var(--rw-text-primary)] shadow-xl',
             className,
           )}
           onClick={(event) => event.stopPropagation()}
