@@ -3,19 +3,20 @@ import { forwardRef, type ButtonHTMLAttributes } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:pointer-events-none disabled:opacity-50 dark:focus-visible:outline-slate-100',
+  'inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-[background-color,border-color,color,transform,box-shadow] duration-200 ease-out focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rw-ring)] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100',
   {
     variants: {
       variant: {
         primary:
-          'bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200',
+          'bg-[var(--rw-primary)] text-[var(--rw-primary-foreground)] hover:bg-[var(--rw-primary-hover)] shadow-sm hover:shadow-md',
         secondary:
-          'bg-slate-100 text-slate-900 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-50 dark:hover:bg-slate-700',
+          'bg-[var(--rw-surface-raised)] text-[var(--rw-text-primary)] hover:bg-[var(--rw-surface-muted)] border border-[var(--rw-border)]',
         outline:
-          'border border-slate-300 bg-transparent text-slate-900 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-50 dark:hover:bg-slate-800',
+          'border border-[var(--rw-border)] bg-transparent text-[var(--rw-text-primary)] hover:border-[var(--rw-border-strong)] hover:bg-[var(--rw-surface-muted)]',
         ghost:
-          'bg-transparent text-slate-900 hover:bg-slate-100 dark:text-slate-50 dark:hover:bg-slate-800',
-        danger: 'bg-red-600 text-white hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-500',
+          'bg-transparent text-[var(--rw-text-primary)] hover:bg-[var(--rw-surface-muted)]',
+        danger:
+          'bg-[var(--rw-danger)] text-white hover:opacity-90 shadow-sm',
       },
       size: {
         sm: 'h-8 px-3 text-sm',

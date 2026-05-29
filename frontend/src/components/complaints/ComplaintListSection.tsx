@@ -1,4 +1,5 @@
 import { ClipboardList } from 'lucide-react'
+import { motion, useReducedMotion } from 'framer-motion'
 import { type ReactNode } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { EmptyState } from '../common/EmptyState'
@@ -7,6 +8,7 @@ import {
   ComplaintSummaryCard,
   type ComplaintSummaryCardProps,
 } from './ComplaintSummaryCard'
+import { fadeInUp, staggerContainer, staggerItem } from '../../lib/motion'
 
 export type ComplaintListItem = ComplaintSummaryCardProps & {
   id: string
@@ -33,8 +35,17 @@ export function ComplaintListSection({
   className,
   listClassName,
 }: ComplaintListSectionProps) {
+  const prefersReducedMotion = useReducedMotion()
+
   return (
-    <section className={twMerge('flex flex-col gap-4', className)} aria-label={title}>
+    <motion.section
+      className={twMerge('flex flex-col gap-4', className)}
+      aria-label={title}
+      variants={prefersReducedMotion ? undefined : fadeInUp}
+      initial={prefersReducedMotion ? false : 'hidden'}
+      whileInView={prefersReducedMotion ? undefined : 'visible'}
+      viewport={{ once: true, margin: '-48px' }}
+    >
       <SectionHeader title={title} description={description} action={action} />
 
       {items.length === 0 ? (
@@ -44,17 +55,20 @@ export function ComplaintListSection({
           description={emptyDescription}
         />
       ) : (
-        <ul
+        <motion.ul
           className={twMerge('grid gap-4 sm:grid-cols-2', listClassName)}
           role="list"
+          variants={prefersReducedMotion ? undefined : staggerContainer}
+          initial={prefersReducedMotion ? false : 'hidden'}
+          animate={prefersReducedMotion ? undefined : 'visible'}
         >
           {items.map(({ id, ...item }) => (
-            <li key={id} role="listitem">
+            <motion.li key={id} role="listitem" variants={prefersReducedMotion ? undefined : staggerItem}>
               <ComplaintSummaryCard {...item} className="h-full" />
-            </li>
+            </motion.li>
           ))}
-        </ul>
+        </motion.ul>
       )}
-    </section>
+    </motion.section>
   )
 }

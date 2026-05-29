@@ -1,6 +1,8 @@
+import { motion, useReducedMotion } from 'framer-motion'
 import { type ReactNode } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { PageContainer } from '../common/PageContainer'
+import { staggerContainer, staggerItem, transitions } from '../../lib/motion'
 
 export type HeroSectionProps = {
   title: string
@@ -17,35 +19,64 @@ export function HeroSection({
   actions,
   className,
 }: HeroSectionProps) {
+  const prefersReducedMotion = useReducedMotion()
+
   return (
-    <section
+    <motion.section
       className={twMerge(
-        'rounded-lg border border-slate-200 bg-slate-50 px-6 py-10 dark:border-slate-800 dark:bg-slate-900/50 sm:px-10 sm:py-12',
+        'relative overflow-hidden rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface)] px-6 py-10 shadow-[0_12px_24px_-8px_rgb(0_0_0_0.22)] sm:px-10 sm:py-12',
         className,
       )}
       aria-labelledby="hero-title"
+      variants={prefersReducedMotion ? undefined : staggerContainer}
+      initial={prefersReducedMotion ? false : 'hidden'}
+      animate={prefersReducedMotion ? undefined : 'visible'}
     >
-      <PageContainer className="gap-4">
+      <div
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgb(37_99_235_/_0.08),transparent_55%)]"
+        aria-hidden="true"
+      />
+      <PageContainer className="relative gap-4">
         {subtitle ? (
-          <p className="text-sm font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          <motion.p
+            variants={prefersReducedMotion ? undefined : staggerItem}
+            className="text-sm font-medium uppercase tracking-wider text-[var(--rw-text-tertiary)]"
+          >
             {subtitle}
-          </p>
+          </motion.p>
         ) : null}
-        <h1
+        <motion.h1
           id="hero-title"
-          className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl dark:text-slate-50"
+          variants={prefersReducedMotion ? undefined : staggerItem}
+          className="text-3xl font-bold tracking-tight text-[var(--rw-text-primary)] sm:text-4xl"
         >
           {title}
-        </h1>
+        </motion.h1>
         {description ? (
-          <p className="max-w-2xl text-base text-slate-600 sm:text-lg dark:text-slate-300">
+          <motion.p
+            variants={prefersReducedMotion ? undefined : staggerItem}
+            className="max-w-2xl text-base leading-relaxed text-[var(--rw-text-secondary)] sm:text-lg"
+          >
             {description}
-          </p>
+          </motion.p>
         ) : null}
         {actions ? (
-          <div className="flex flex-wrap items-center gap-3 pt-2">{actions}</div>
+          <motion.div
+            variants={prefersReducedMotion ? undefined : staggerItem}
+            className="flex flex-wrap items-center gap-3 pt-2"
+          >
+            {actions}
+          </motion.div>
         ) : null}
       </PageContainer>
-    </section>
+      <motion.div
+        className="pointer-events-none absolute bottom-0 left-0 h-px w-full bg-[var(--rw-border)]"
+        initial={prefersReducedMotion ? false : { scaleX: 0 }}
+        animate={prefersReducedMotion ? undefined : { scaleX: 1 }}
+        transition={transitions.moderate}
+        style={{ originX: 0 }}
+        aria-hidden="true"
+      />
+    </motion.section>
   )
 }

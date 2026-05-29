@@ -1,12 +1,17 @@
 import { forwardRef, type HTMLAttributes } from 'react'
 import { twMerge } from 'tailwind-merge'
 
-export const Card = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => (
+export type CardProps = HTMLAttributes<HTMLDivElement> & {
+  interactive?: boolean
+}
+
+export const Card = forwardRef<HTMLDivElement, CardProps>(
+  ({ className, interactive = false, ...props }, ref) => (
     <div
       ref={ref}
       className={twMerge(
-        'rounded-lg border border-slate-200 bg-white text-slate-950 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50',
+        'rounded-xl border border-[var(--rw-border)] bg-[var(--rw-surface)] text-[var(--rw-text-primary)] shadow-sm',
+        interactive && 'rw-interactive-card',
         className,
       )}
       {...props}
@@ -44,7 +49,7 @@ export const CardDescription = forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={twMerge('text-sm text-slate-500 dark:text-slate-400', className)}
+    className={twMerge('text-sm text-[var(--rw-text-secondary)]', className)}
     {...props}
   />
 ))

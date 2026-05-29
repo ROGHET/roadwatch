@@ -1,3 +1,4 @@
+import { motion, useReducedMotion } from 'framer-motion'
 import { type LucideIcon } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 import {
@@ -7,6 +8,7 @@ import {
   CardTitle,
 } from '../common/Card'
 import { SectionHeader } from '../common/SectionHeader'
+import { staggerContainer, staggerItem } from '../../lib/motion'
 
 export type FeatureItem = {
   icon: LucideIcon
@@ -34,34 +36,43 @@ export function FeatureGrid({
   columns = 3,
   className,
 }: FeatureGridProps) {
+  const prefersReducedMotion = useReducedMotion()
+
   return (
-    <section className={twMerge('flex flex-col gap-6', className)} aria-label={title ?? 'Features'}>
+    <section
+      className={twMerge('flex flex-col gap-6', className)}
+      aria-label={title ?? 'Features'}
+    >
       {title ? <SectionHeader title={title} description={description} /> : null}
-      <ul
+      <motion.ul
         className={twMerge('grid gap-4', columnClassName[columns])}
         role="list"
+        variants={prefersReducedMotion ? undefined : staggerContainer}
+        initial={prefersReducedMotion ? false : 'hidden'}
+        whileInView={prefersReducedMotion ? undefined : 'visible'}
+        viewport={{ once: true, margin: '-40px' }}
       >
         {features.map((feature) => {
           const Icon = feature.icon
 
           return (
-            <li key={feature.title} role="listitem">
-              <Card className="h-full">
+            <motion.li key={feature.title} role="listitem" variants={prefersReducedMotion ? undefined : staggerItem}>
+              <Card interactive className="h-full">
                 <CardHeader>
                   <div
-                    className="mb-3 flex size-10 items-center justify-center rounded-md bg-slate-100 dark:bg-slate-800"
+                    className="mb-3 flex size-10 items-center justify-center rounded-lg border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] transition-colors duration-200"
                     aria-hidden="true"
                   >
-                    <Icon className="size-5 text-slate-700 dark:text-slate-300" />
+                    <Icon className="size-5 text-[var(--rw-text-secondary)]" />
                   </div>
                   <CardTitle className="text-base">{feature.title}</CardTitle>
                   <CardDescription>{feature.description}</CardDescription>
                 </CardHeader>
               </Card>
-            </li>
+            </motion.li>
           )
         })}
-      </ul>
+      </motion.ul>
     </section>
   )
 }

@@ -1,5 +1,7 @@
+import { motion, useReducedMotion } from 'framer-motion'
 import { type ReactNode } from 'react'
 import { twMerge } from 'tailwind-merge'
+import { staggerContainer } from '../../lib/motion'
 
 export type StatGridProps = {
   children: ReactNode
@@ -15,12 +17,18 @@ const columnClassName: Record<NonNullable<StatGridProps['columns']>, string> = {
 }
 
 export function StatGrid({ children, columns = 2, className }: StatGridProps) {
+  const prefersReducedMotion = useReducedMotion()
+
   return (
-    <div
+    <motion.div
       className={twMerge('grid gap-4', columnClassName[columns], className)}
       role="list"
+      variants={prefersReducedMotion ? undefined : staggerContainer}
+      initial={prefersReducedMotion ? false : 'hidden'}
+      whileInView={prefersReducedMotion ? undefined : 'visible'}
+      viewport={{ once: true, margin: '-40px' }}
     >
       {children}
-    </div>
+    </motion.div>
   )
 }
