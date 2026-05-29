@@ -13,21 +13,19 @@ import { PageContainer } from '../../components/common/PageContainer'
 import { SectionHeader } from '../../components/common/SectionHeader'
 import { Textarea } from '../../components/common/Textarea'
 import { EmptyState } from '../../components/common/EmptyState'
-
-const suggestedQuestions = [
-  'Who maintains this road?',
-  'How much money was spent?',
-  'When was this repaired?',
-  'Show complaint history.',
-  'Generate RTI request.',
-]
+import {
+  assistantDefaultContext,
+  assistantPageCopy,
+  assistantSamplePrompt,
+  assistantSuggestedQuestions,
+} from '../../data/assistant'
 
 export default function AssistantPage() {
   return (
     <PageContainer size="default" className="gap-6">
       <SectionHeader
-        title="RoadWatch AI"
-        description="Ask road-related questions about maintenance, budgets, contractors, and complaints."
+        title={assistantPageCopy.title}
+        description={assistantPageCopy.description}
       />
 
       <Card>
@@ -42,7 +40,7 @@ export default function AssistantPage() {
             <div>
               <CardTitle className="text-base">Assistant</CardTitle>
               <CardDescription>
-                Context: Sardar Patel Road (placeholder)
+                {assistantPageCopy.contextLabel}: {assistantDefaultContext.roadName}
               </CardDescription>
             </div>
           </div>
@@ -50,12 +48,12 @@ export default function AssistantPage() {
         <CardContent className="space-y-4">
           <EmptyState
             icon={MessageSquare}
-            title="No messages yet"
-            description="Ask a question below or choose a suggested prompt to start."
+            title={assistantPageCopy.emptyTitle}
+            description={assistantPageCopy.emptyDescription}
             className="py-8"
           />
           <div className="flex flex-wrap gap-2">
-            {suggestedQuestions.map((question) => (
+            {assistantSuggestedQuestions.map((question) => (
               <Badge key={question} variant="outline" className="cursor-default px-3 py-1.5">
                 {question}
               </Badge>
@@ -66,7 +64,7 @@ export default function AssistantPage() {
             placeholder="Ask a question about this road..."
             rows={4}
             readOnly
-            defaultValue="Who is responsible for maintaining Sardar Patel Road?"
+            defaultValue={assistantSamplePrompt}
           />
         </CardContent>
         <CardFooter className="flex flex-wrap gap-3">

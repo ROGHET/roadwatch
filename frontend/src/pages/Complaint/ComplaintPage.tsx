@@ -14,6 +14,14 @@ import { PageContainer } from '../../components/common/PageContainer'
 import { SectionHeader } from '../../components/common/SectionHeader'
 import { Select } from '../../components/common/Select'
 import { Textarea } from '../../components/common/Textarea'
+import {
+  complaintIssueTypeOptions,
+  complaintSeverityOptions,
+  mockComplaintDetails,
+} from '../../data/complaints'
+import { roadSelectOptions } from '../../data/roads'
+
+const complaintFormSample = mockComplaintDetails[0]
 
 export default function ComplaintPage() {
   return (
@@ -39,13 +47,19 @@ export default function ComplaintPage() {
             <Label htmlFor="complaint-road" required>
               Road
             </Label>
-            <Select id="complaint-road" defaultValue="" disabled>
+            <Select
+              id="complaint-road"
+              defaultValue={complaintFormSample.roadId}
+              disabled
+            >
               <option value="" disabled>
                 Select a road
               </option>
-              <option value="sp-road">Sardar Patel Road</option>
-              <option value="gst-road">GST Road</option>
-              <option value="omr-lane">OMR Service Lane</option>
+              {roadSelectOptions.map((road) => (
+                <option key={road.value} value={road.value}>
+                  {road.label}
+                </option>
+              ))}
             </Select>
           </div>
 
@@ -53,11 +67,16 @@ export default function ComplaintPage() {
             <Label htmlFor="complaint-issue-type" required>
               Issue type
             </Label>
-            <Select id="complaint-issue-type" defaultValue="pothole" disabled>
-              <option value="pothole">Pothole</option>
-              <option value="waterlogging">Waterlogging</option>
-              <option value="lighting">Street lighting</option>
-              <option value="damage">Road damage</option>
+            <Select
+              id="complaint-issue-type"
+              defaultValue={complaintFormSample.issueType}
+              disabled
+            >
+              {complaintIssueTypeOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </Select>
           </div>
 
@@ -65,11 +84,16 @@ export default function ComplaintPage() {
             <Label htmlFor="complaint-severity" required>
               Severity
             </Label>
-            <Select id="complaint-severity" defaultValue="medium" disabled>
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-              <option value="critical">Critical</option>
+            <Select
+              id="complaint-severity"
+              defaultValue={complaintFormSample.severity}
+              disabled
+            >
+              {complaintSeverityOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </Select>
           </div>
 
@@ -82,7 +106,7 @@ export default function ComplaintPage() {
               placeholder="Describe the issue, landmarks, and impact on safety..."
               rows={4}
               readOnly
-              defaultValue="Large potholes forming near the junction, causing vehicles to swerve."
+              defaultValue={complaintFormSample.description}
             />
           </div>
 

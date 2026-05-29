@@ -6,68 +6,66 @@ import { ChartContainer } from '../../components/charts/ChartContainer'
 import { DashboardSection } from '../../components/dashboard/DashboardSection'
 import { ComplaintListSection } from '../../components/complaints/ComplaintListSection'
 import { RoadSummaryCard } from '../../components/road/RoadSummaryCard'
-
-const mockRoadComplaints = [
-  {
-    id: 'road-cmp-1',
-    referenceId: 'RW-2026-010',
-    title: 'Surface cracks widening',
-    roadName: 'Sardar Patel Road',
-    status: 'pending' as const,
-    severity: 'medium' as const,
-    reportedAt: '25 May 2026',
-  },
-  {
-    id: 'road-cmp-2',
-    referenceId: 'RW-2026-011',
-    title: 'Incomplete patch work',
-    roadName: 'Sardar Patel Road',
-    status: 'resolved' as const,
-    severity: 'low' as const,
-    reportedAt: '18 May 2026',
-  },
-]
+import { complaintsByRoadId } from '../../data/complaints'
+import { mockRoads } from '../../data/roads'
 
 export default function RoadDetailsPage() {
   const { roadId } = useParams()
+  const road = mockRoads.find((record) => record.id === roadId) ?? mockRoads[0]
+  const roadComplaints = complaintsByRoadId[road.id] ?? []
+
+  const {
+    id: _roadId,
+    roadName,
+    roadType,
+    score,
+    scoreTier,
+    status,
+    riskLevel,
+    contractor,
+    authority,
+    lastRepairDate,
+  } = road
 
   return (
     <PageContainer className="gap-8">
       <SectionHeader
         title="Road Details"
-        description={`Viewing road record ${roadId ?? '—'} (placeholder data).`}
+        description={`Viewing ${roadName}${roadType ? ` — ${roadType}` : ''}. Record ID: ${roadId ?? road.id}.`}
       />
 
       <RoadSummaryCard
-        roadName="Sardar Patel Road"
-        roadType="State Highway"
-        score={78}
-        scoreTier="good"
-        status="open"
-        riskLevel="medium"
-        contractor="Chennai Infra Works Pvt. Ltd."
-        authority="State Public Works Department"
-        lastRepairDate="12 March 2026"
+        roadName={roadName}
+        roadType={roadType}
+        score={score}
+        scoreTier={scoreTier}
+        status={status}
+        riskLevel={riskLevel}
+        contractor={contractor}
+        authority={authority}
+        lastRepairDate={lastRepairDate}
       />
 
       <Alert variant="info" title="Data source">
-        Records sourced from public works department open data (placeholder).
+        Records sourced from {authority} open data (placeholder).
       </Alert>
 
       <DashboardSection
         title="Budget Transparency"
-        description="Sanctioned versus spent amounts for this road."
+        description={`Sanctioned versus spent amounts for ${roadName}.`}
       >
         <ChartContainer
           title="Budget Overview"
-          description="Sanctioned vs spent visualization placeholder."
+          description={`Budget visualization placeholder for ${roadName}.`}
         />
       </DashboardSection>
 
       <ComplaintListSection
         title="Complaint History"
-        description="Recent issues reported on this road."
-        items={mockRoadComplaints}
+        description={`Issues reported on ${roadName}.`}
+        items={roadComplaints}
+        emptyTitle="No complaints for this road"
+        emptyDescription="No citizen reports have been filed for this corridor yet."
       />
     </PageContainer>
   )
