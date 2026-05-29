@@ -1,5 +1,5 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { Clock3, Cloud, Droplets, Route, TrafficCone, Wind, X } from 'lucide-react'
+import { Bot, Clock3, Cloud, Droplets, Route, TrafficCone, Wind, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../common/Button'
@@ -22,9 +22,10 @@ export type MapDetailOverlayProps = {
   selection: MapActiveSelection | null
   userLocation: { lat: number; lng: number } | null
   onClose: () => void
+  onZoomToHere?: (lat: number, lng: number) => void
 }
 
-export function MapDetailOverlay({ mode, selection, userLocation, onClose }: MapDetailOverlayProps) {
+export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoomToHere }: MapDetailOverlayProps) {
   const navigate = useNavigate()
   const prefersReducedMotion = useReducedMotion()
   const routeProvider = useMemo(() => getRouteProvider(), [])
@@ -110,6 +111,25 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose }: Map
   const handleMoreDetails = (roadId: string) => {
     persistForNavigation()
     navigate(routes.road(roadId))
+  }
+
+  const handleAskAI = () => {
+    persistForNavigation()
+    let aiState = {}
+    if (selection?.kind === 'road') {
+      aiState = { contextType: 'road', roadId: selection.road.id, roadName: selection.road.roadName, latitude: selection.road.lat, longitude: selection.road.lng }
+    } else if (selection?.kind === 'complaint') {
+      aiState = { contextType: 'complaint', complaintId: selection.complaint.id, roadId: selection.complaint.roadId, roadName: selection.complaint.roadName, latitude: selection.complaint.lat, longitude: selection.complaint.lng }
+    } else if (selection?.kind === 'location') {
+      aiState = { contextType: 'location', latitude: selection.lat, longitude: selection.lng }
+    }
+    navigate('/assistant', { state: aiState })
+  }
+
+  const handleZoomToHere = () => {
+    if (selection?.kind === 'location' && onZoomToHere) {
+      onZoomToHere(selection.lat, selection.lng)
+    }
   }
 
   const handleOpenGoogleMaps = () => {
@@ -273,8 +293,18 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose }: Map
                           )
                         }
                       >
-                        <Route className="size-4" aria-hidden="true" />
+                        <Route className="size-4 mr-2" aria-hidden="true" />
                         {t('previewRoute')}
+                      </Button>
+                      <Button type="button" variant="outline" onClick={() => navigate(routes.complaint)}>
+                        Report Issue
+                      </Button>
+                      <Button type="button" variant="outline" onClick={handleAskAI}>
+                        <Bot className="size-4 mr-2" aria-hidden="true" />
+                        Ask AI About This Location
+                      </Button>
+                      <Button type="button" variant="outline" onClick={handleZoomToHere}>
+                        Zoom To Here
                       </Button>
                       <Button type="button" variant="outline" onClick={handleOpenGoogleMaps}>
                         {t('openInGoogleMaps')}
@@ -332,6 +362,13 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose }: Map
                       <Button type="button" onClick={() => handleMoreDetails(selection.road.id)}>
                         {t('moreDetails')}
                       </Button>
+                      <Button type="button" variant="outline" onClick={() => navigate(routes.complaint)}>
+                        File Complaint
+                      </Button>
+                      <Button type="button" variant="outline" onClick={handleAskAI}>
+                        <Bot className="size-4 mr-2" aria-hidden="true" />
+                        Ask AI About This Road
+                      </Button>
                       <Button
                         type="button"
                         variant="outline"
@@ -342,7 +379,7 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose }: Map
                           )
                         }
                       >
-                        <Route className="size-4" aria-hidden="true" />
+                        <Route className="size-4 mr-2" aria-hidden="true" />
                         Preview Route
                       </Button>
                     </div>
@@ -366,6 +403,16 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose }: Map
                         <Button
                           type="button"
                           variant="outline"
+                          onClick={() => {
+                            persistForNavigation()
+                            navigate(routes.complaint) // Assuming this is how they "View Complaint" in mock mode
+                          }}
+                        >
+                          View Complaint
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
                           onClick={() =>
                             openRoutePreview(
                               { lat: selection.complaint.lat, lng: selection.complaint.lng },
@@ -373,8 +420,12 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose }: Map
                             )
                           }
                         >
-                          <Route className="size-4" aria-hidden="true" />
+                          <Route className="size-4 mr-2" aria-hidden="true" />
                           {t('previewRoute')}
+                        </Button>
+                        <Button type="button" variant="outline" onClick={handleAskAI}>
+                          <Bot className="size-4 mr-2" aria-hidden="true" />
+                          Ask AI About This Complaint
                         </Button>
                         <Button
                           type="button"

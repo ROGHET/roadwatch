@@ -14,9 +14,8 @@ export function MapFlyTo({ lat, lng, zoom, trigger }: MapFlyToProps) {
   useEffect(() => {
     if (trigger === 0) return
 
-    map.flyTo([lat, lng], zoom ?? map.getZoom(), {
-      duration: 0.85,
-      easeLinearity: 0.25,
+    map.flyTo([lat, lng], zoom ?? 18, {
+      duration: 1.5,
     })
   }, [lat, lng, map, trigger, zoom])
 

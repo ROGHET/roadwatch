@@ -264,6 +264,7 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
         selection={selection}
         userLocation={userPosition}
         onClose={clearSelection}
+        onZoomToHere={(lat, lng) => focusOn(lat, lng, 18)}
       />
     </div>
   )

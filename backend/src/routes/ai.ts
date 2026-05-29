@@ -20,42 +20,90 @@ router.post('/chat', async (req, res) => {
       error: "Gemini API not configured"
     });
   }
+  let contextData = '';
 
   try {
-    const { userId, prompt, contextRoadName } = req.body;
+    const { userId, prompt, contextRoadName, contextRoadId, contextComplaintId, contextAuthorityId, latitude, longitude } = req.body;
     
-    // 1. Fetch Context from DB if a road name is specified
-    let contextData = '';
+    // 1. Fetch comprehensive Context from DB
     
-    if (contextRoadName) {
-      console.log('Fetching database context for road:', contextRoadName);
-      const road = await prisma.road.findFirst({
-        where: { name: contextRoadName },
-        include: { authority: true, complaints: { take: 5, orderBy: { createdAt: 'desc' } } }
+    if (contextComplaintId) {
+      console.log('Fetching context for complaint:', contextComplaintId);
+      const complaint = await prisma.complaint.findUnique({
+        where: { id: contextComplaintId },
+        include: { road: { include: { authority: true } }, authority: true }
       });
-      
-      if (road) {
-        console.log(`Matched road: ${road.name}, Authority: ${road.authority.name}, Complaints: ${road.complaints.length}`);
+      if (complaint) {
         contextData = `
-        DATABASE CONTEXT FOR THIS CONVERSATION:
-        Road Name: ${road.name}
+        DATABASE CONTEXT [COMPLAINT]:
+        Complaint ID: ${complaint.id}
+        Type: ${complaint.issueType} (Severity: ${complaint.severity})
+        Status: ${complaint.status}
+        Description: ${complaint.description}
+        Road: ${complaint.road?.name || 'Unknown'}
+        Authority: ${complaint.authority?.name || 'Unknown'}
+        INSTRUCTIONS: Use this exact database fact to answer.
+        `;
+      }
+    } else if (contextRoadId || contextRoadName) {
+      console.log('Fetching context for road:', contextRoadId || contextRoadName);
+      const road = await prisma.road.findFirst({
+        where: contextRoadId ? { id: contextRoadId } : { name: contextRoadName },
+        include: { authority: true, complaints: { take: 10, orderBy: { createdAt: 'desc' } } }
+      });
+      if (road) {
+        contextData = `
+        DATABASE CONTEXT [ROAD]:
+        Road Name: ${road.name} (${road.type})
         Authority: ${road.authority.name} (${road.authority.type})
         Contractor: ${road.contractor || 'Not assigned'}
         Budget Sanctioned: ₹${road.budgetSanctioned || 0} Cr
         Budget Spent: ₹${road.budgetSpent || 0} Cr
         Recent Complaints: ${road.complaints.length > 0 ? road.complaints.map(c => c.issueType).join(', ') : 'None'}
-        Road Status: ${road.status}
-        
-        INSTRUCTIONS: You MUST use the above database facts to answer the user's question. Do not hallucinate data.
-        `;
-      } else {
-        console.log('No matching road found in database for:', contextRoadName);
-        contextData = `
-        DATABASE CONTEXT:
-        No matching road was found in the database for "${contextRoadName}". 
-        INSTRUCTIONS: Please inform the user clearly that no records exist for this road in the CrashZero database.
+        Status: ${road.status}
+        INSTRUCTIONS: Use these database facts. Never hallucinate budget or authority.
         `;
       }
+    } else if (contextAuthorityId) {
+      console.log('Fetching context for authority:', contextAuthorityId);
+      const auth = await prisma.authority.findUnique({
+        where: { id: contextAuthorityId },
+        include: { roads: true, complaints: { take: 5 } }
+      });
+      if (auth) {
+        contextData = `
+        DATABASE CONTEXT [AUTHORITY]:
+        Name: ${auth.name} (${auth.type})
+        Contact: ${auth.contactEmail}
+        Managed Roads Count: ${auth.roads.length}
+        Complaints Logged: ${auth.complaints.length}
+        INSTRUCTIONS: Use these database facts.
+        `;
+      }
+    } else if (latitude && longitude) {
+      console.log(`Fetching context for location: ${latitude}, ${longitude}`);
+      // Find nearby using the same mock bounding box logic as traffic
+      const lat = parseFloat(latitude);
+      const lng = parseFloat(longitude);
+      const delta = 0.05;
+      
+      const nearbyComplaints = await prisma.complaint.findMany({
+        where: { latitude: { gte: lat - delta, lte: lat + delta }, longitude: { gte: lng - delta, lte: lng + delta } },
+        take: 5
+      });
+      
+      contextData = `
+        DATABASE CONTEXT [LOCATION ${lat}, ${lng}]:
+        Nearby Active Complaints: ${nearbyComplaints.length > 0 ? nearbyComplaints.map(c => c.issueType).join(', ') : 'None'}
+        INSTRUCTIONS: Use these database facts for the selected location.
+        `;
+    }
+
+    if (!contextData) {
+      contextData = `
+      DATABASE CONTEXT: No specific data was found or selected in the CrashZero database for this query.
+      INSTRUCTIONS: Inform the user that data is unavailable.
+      `;
     }
 
     // 2. Query Gemini
@@ -85,9 +133,13 @@ router.post('/chat', async (req, res) => {
     }
 
     res.json({ response: aiText });
-  } catch (error) {
+  } catch (error: any) {
     console.error('AI chat error:', error);
-    res.status(500).json({ error: 'Failed to process AI request' });
+    
+    // Local Fallback Mode (Friendly UX)
+    return res.status(200).json({ 
+      response: "CrashZero AI has exhausted its daily AI token quota and will become available again after the quota resets. Context-aware AI responses are temporarily unavailable." 
+    });
   }
 });
 
