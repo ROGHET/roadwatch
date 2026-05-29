@@ -49,7 +49,7 @@ export default function MainLayout() {
 
       <footer className="border-t border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900">
         <div className="mx-auto max-w-6xl px-4 py-4 text-center text-sm text-slate-500 sm:px-6 dark:text-slate-400">
-          RoadWatch — Road Safety Transparency Platform
+          RoadWatch | Road Safety Transparency Platform
         </div>
       </footer>
     </div>
