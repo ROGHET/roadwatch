@@ -6,6 +6,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
+import { useI18n } from '../../lib/i18n'
 
 export type RiskLevel = 'low' | 'medium' | 'high' | 'critical'
 
@@ -15,34 +16,35 @@ export type RiskIndicatorProps = {
   className?: string
 }
 
-const riskConfig: Record<
+const getRiskConfig = (t: any): Record<
   RiskLevel,
   { label: string; icon: LucideIcon; className: string }
-> = {
+> => ({
   low: {
-    label: 'Low Risk',
+    label: t('lowRisk'),
     icon: Shield,
     className: 'text-emerald-700 dark:text-emerald-300',
   },
   medium: {
-    label: 'Medium Risk',
+    label: t('mediumRisk'),
     icon: ShieldAlert,
     className: 'text-amber-700 dark:text-amber-300',
   },
   high: {
-    label: 'High Risk',
+    label: t('highRisk'),
     icon: AlertTriangle,
     className: 'text-orange-700 dark:text-orange-300',
   },
   critical: {
-    label: 'Critical Risk',
+    label: t('criticalRisk'),
     icon: AlertOctagon,
     className: 'text-red-700 dark:text-red-300',
   },
-}
+})
 
 export function RiskIndicator({ level, label, className }: RiskIndicatorProps) {
-  const config = riskConfig[level]
+  const { t } = useI18n()
+  const config = getRiskConfig(t)[level]
   const Icon = config.icon
   const displayLabel = label ?? config.label
 

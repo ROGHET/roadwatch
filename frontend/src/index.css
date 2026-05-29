@@ -26,6 +26,16 @@
     text-rendering: optimizeLegibility;
     color-scheme: dark;
     font-size: var(--rw-root-font-size, 16px);
+
+    --rw-button-height-sm: 2rem;
+    --rw-button-height-md: 2.5rem;
+    --rw-button-height-lg: 2.75rem;
+    --rw-button-padding-sm: 0.75rem;
+    --rw-button-padding-md: 1rem;
+    --rw-button-padding-lg: 1.5rem;
+    --rw-input-height: 2.5rem;
+    --rw-input-padding: 0.75rem;
+    --rw-dialog-padding: 1.5rem;
   }
 
   html.light {
@@ -42,42 +52,6 @@
 
   html[data-font-size='large'] {
     font-size: 18px !important;
-  }
-
-  html[data-button-size='compact'] {
-    --rw-button-height-sm: 1.875rem;
-    --rw-button-height-md: 2.25rem;
-    --rw-button-height-lg: 2.5rem;
-    --rw-button-padding-sm: 0.625rem;
-    --rw-button-padding-md: 0.875rem;
-    --rw-button-padding-lg: 1.125rem;
-    --rw-input-height: 2.25rem;
-    --rw-input-padding: 0.5rem;
-    --rw-dialog-padding: 1rem;
-  }
-
-  html[data-button-size='normal'] {
-    --rw-button-height-sm: 2rem;
-    --rw-button-height-md: 2.5rem;
-    --rw-button-height-lg: 2.75rem;
-    --rw-button-padding-sm: 0.75rem;
-    --rw-button-padding-md: 1rem;
-    --rw-button-padding-lg: 1.5rem;
-    --rw-input-height: 2.5rem;
-    --rw-input-padding: 0.75rem;
-    --rw-dialog-padding: 1.5rem;
-  }
-
-  html[data-button-size='large'] {
-    --rw-button-height-sm: 2.25rem;
-    --rw-button-height-md: 2.875rem;
-    --rw-button-height-lg: 3.25rem;
-    --rw-button-padding-sm: 1rem;
-    --rw-button-padding-md: 1.25rem;
-    --rw-button-padding-lg: 1.75rem;
-    --rw-input-height: 3rem;
-    --rw-input-padding: 1rem;
-    --rw-dialog-padding: 2rem;
   }
 
   body {

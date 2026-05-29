@@ -9,12 +9,12 @@ import { useI18n } from '../../lib/i18n'
 import { fadeInUp } from '../../lib/motion'
 import { routes } from '../../lib/routes'
 
-function getGreeting() {
+function getGreeting(t: (key: any) => string) {
   const hour = new Date().getHours()
-  if (hour >= 5 && hour < 12) return 'Good morning, Citizen.'
-  if (hour >= 12 && hour < 17) return 'Good afternoon, Citizen.'
-  if (hour >= 17 && hour < 22) return 'Good evening, Citizen.'
-  return 'Welcome back, Citizen.'
+  if (hour >= 5 && hour < 12) return t('greetingMorning')
+  if (hour >= 12 && hour < 17) return t('greetingAfternoon')
+  if (hour >= 17 && hour < 22) return t('greetingEvening')
+  return t('greetingNight')
 }
 
 export default function HomePage() {
@@ -30,7 +30,7 @@ export default function HomePage() {
         initial={prefersReducedMotion ? false : 'hidden'}
         animate={prefersReducedMotion ? undefined : 'visible'}
       >
-        <h1 className="rw-type-display text-[var(--st-on-surface)]">{getGreeting()}</h1>
+        <h1 className="rw-type-display text-[var(--st-on-surface)]">{getGreeting(t)}</h1>
         <HomeHealthCard />
       </motion.section>
 
@@ -51,7 +51,7 @@ export default function HomePage() {
         viewport={{ once: true, margin: '-40px' }}
       >
         <StitchSectionHeader
-          eyebrow="Live Status • India"
+          eyebrow={t('liveStatus')}
           title=""
           action={
             <button
@@ -83,8 +83,8 @@ export default function HomePage() {
         viewport={{ once: true, margin: '-40px' }}
       >
         <StitchSectionHeader
-          eyebrow="Platform"
-          title="Explore capabilities"
+          eyebrow={t('platform')}
+          title={t('exploreCapabilities')}
           description={t('homeDescription')}
         />
         <div className="mt-4 flex flex-wrap gap-3">
@@ -93,7 +93,7 @@ export default function HomePage() {
             onClick={() => navigate(routes.dashboard)}
             className="rw-glass-button rounded-full px-5 py-2.5 text-sm text-[var(--st-on-surface)]"
           >
-            Budget & Analytics
+            {t('budgetAnalytics')}
           </button>
           <button
             type="button"

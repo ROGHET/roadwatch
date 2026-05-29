@@ -11,10 +11,10 @@ import { routes } from '../../lib/routes'
 import { useMapStore } from '../../stores/mapStore'
 import { useI18n } from '../../lib/i18n'
 
-const filterOptions: { value: MapLayerFilter; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'roads', label: 'Roads' },
-  { value: 'complaints', label: 'Complaints' },
+const getFilterOptions = (t: any): { value: MapLayerFilter; label: string }[] => [
+  { value: 'all', label: t('filterAll') },
+  { value: 'roads', label: t('filterRoads') },
+  { value: 'complaints', label: t('filterComplaints') },
 ]
 
 export type MapSearchResult = {
@@ -69,6 +69,7 @@ export function MapFloatingControls({
   const showResults = searchQuery.trim().length > 0 && mode === 'expanded'
   const controlsEnabled = mode === 'expanded'
   const locating = locateStatus === 'loading' || locateStatus === 'refreshing'
+  const filterOptions = getFilterOptions(t)
 
   const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -100,14 +101,14 @@ export function MapFloatingControls({
         <Search className="size-5 shrink-0 text-[var(--st-primary)]" aria-hidden="true" />
         <span className="hidden font-serif text-lg text-[var(--st-primary)] sm:inline">{t('appName')}</span>
         <label htmlFor={searchId} className="sr-only">
-          Search roads and complaints
+          {t('searchRoadsComplaints')}
         </label>
         <input
           id={searchId}
           type="search"
           value={searchQuery}
           onChange={(event) => onSearchQueryChange(event.target.value)}
-          placeholder="Search roads or complaints"
+          placeholder={t('searchRoadsComplaints')}
           className="min-w-0 flex-1 bg-transparent text-sm text-[var(--rw-text-primary)] outline-none placeholder:text-[var(--rw-text-tertiary)]"
           autoComplete="off"
         />
@@ -116,7 +117,7 @@ export function MapFloatingControls({
             type="button"
             onClick={() => onSearchQueryChange('')}
             className="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-[var(--rw-text-secondary)] transition-[background-color,color,transform] duration-200 hover:bg-[var(--rw-surface-muted)] hover:text-[var(--rw-text-primary)] active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rw-ring)]"
-            aria-label="Clear search"
+            aria-label={t('clearSearch')}
           >
             <X className="size-4" aria-hidden="true" />
           </button>
@@ -134,7 +135,7 @@ export function MapFloatingControls({
         >
           {searchResults.length === 0 ? (
             <li className="px-3 py-4 text-center text-sm text-[var(--rw-text-secondary)]">
-              No matching records found.
+              {t('noMatchingRecords')}
             </li>
           ) : (
             searchResults.map((result) => (
@@ -215,7 +216,7 @@ export function MapFloatingControls({
             disabled={locating}
             className="rw-map-glass inline-flex h-[var(--rw-input-height)] w-[var(--rw-input-height)] items-center justify-center rounded-full shadow-[0_18px_50px_-22px_rgb(0_0_0/0.45)] transition-[background-color,transform] duration-200 hover:bg-[var(--rw-surface-muted)] active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rw-ring)] disabled:cursor-wait disabled:opacity-70"
             aria-label={
-              locating ? 'Locating your position' : 'Locate me on the map'
+              locating ? t('locatingPosition') : t('locateMe')
             }
             aria-busy={locating}
             variants={prefersReducedMotion ? undefined : scaleIn}
@@ -257,15 +258,15 @@ export function MapFloatingControls({
           <div className="text-center sm:text-left">
             <p className="text-sm font-medium text-[var(--rw-text-primary)]">
               {locatePolicyBlockReason === 'insecure-private-origin'
-                ? 'Location requires HTTPS or localhost on this browser.'
+                ? t('locationRequiresHttps')
                 : locateStatus === 'denied' || locatePermissionState === 'denied'
-                  ? 'Location access is disabled in your browser.'
+                  ? t('locationAccessDisabled')
                   : locateStatus === 'unavailable'
-                  ? locateMessage || 'Location is unavailable right now.'
-                  : locateMessage || 'Enable location for a better map experience.'}
+                  ? locateMessage || t('locationUnavailable')
+                  : locateMessage || t('enableLocationForBetter')}
             </p>
             <p className="mt-1 text-xs leading-5 text-[var(--rw-text-secondary)]">
-              Location access improves routing, nearby issues, and local intelligence.
+              {t('locationAccessImproves')}
             </p>
           </div>
           {locateStatus !== 'loading' && locatePolicyBlockReason !== 'insecure-private-origin' ? (
@@ -275,7 +276,7 @@ export function MapFloatingControls({
                 className="shrink-0 rounded-full bg-[var(--st-primary-container)] px-4 text-[var(--st-on-primary-container)] shadow-[var(--st-shadow-fab)] hover:brightness-110"
                 onClick={() => window.open('https://support.google.com/chrome/answer/142065', '_blank', 'noopener,noreferrer')}
               >
-                How to Enable
+                {t('howToEnable')}
               </Button>
             ) : (
               <Button
@@ -283,7 +284,7 @@ export function MapFloatingControls({
                 className="shrink-0 rounded-full bg-[var(--st-primary-container)] px-4 text-[var(--st-on-primary-container)] shadow-[var(--st-shadow-fab)] hover:brightness-110"
                 onClick={onLocate}
               >
-                {locateStatus === 'unavailable' ? 'Try Again' : 'Enable Location'}
+                {locateStatus === 'unavailable' ? t('tryAgain') : t('enableLocation')}
               </Button>
             )
           ) : null}

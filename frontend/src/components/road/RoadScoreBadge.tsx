@@ -1,5 +1,6 @@
 import { Badge, type BadgeProps } from '../common/Badge'
 import { twMerge } from 'tailwind-merge'
+import { useI18n } from '../../lib/i18n'
 
 export type RoadScoreTier = 'excellent' | 'good' | 'fair' | 'poor'
 
@@ -16,14 +17,16 @@ const tierVariant: Record<RoadScoreTier, NonNullable<BadgeProps['variant']>> = {
   poor: 'danger',
 }
 
-const tierLabel: Record<RoadScoreTier, string> = {
-  excellent: 'Excellent',
-  good: 'Good',
-  fair: 'Fair',
-  poor: 'Poor',
-}
-
 export function RoadScoreBadge({ score, tier, className }: RoadScoreBadgeProps) {
+  const { t } = useI18n()
+  
+  const tierLabel: Record<RoadScoreTier, string> = {
+    excellent: t('excellent'),
+    good: t('good'),
+    fair: t('fair'),
+    poor: t('poor'),
+  }
+
   return (
     <Badge
       variant={tierVariant[tier]}

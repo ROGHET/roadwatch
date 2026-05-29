@@ -60,7 +60,7 @@ export default function ComplaintPage() {
               </option>
               {roadSelectOptions.map((road) => (
                 <option key={road.value} value={road.value}>
-                  {road.label}
+                  {t(road.value) || road.label}
                 </option>
               ))}
             </Select>
@@ -77,7 +77,7 @@ export default function ComplaintPage() {
             >
               {complaintIssueTypeOptions.map((option) => (
                 <option key={option.value} value={option.value}>
-                  {option.label}
+                  {t(option.label) || option.label}
                 </option>
               ))}
             </Select>
@@ -94,7 +94,7 @@ export default function ComplaintPage() {
             >
               {complaintSeverityOptions.map((option) => (
                 <option key={option.value} value={option.value}>
-                  {option.label}
+                  {t(option.label) || option.label}
                 </option>
               ))}
             </Select>

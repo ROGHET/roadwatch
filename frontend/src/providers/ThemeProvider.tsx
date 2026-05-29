@@ -29,7 +29,6 @@ export const useThemeStore = create<ThemeState>()(
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const theme = useThemeStore((state) => state.theme)
   const fontSize = useSettingsStore((state) => state.fontSize)
-  const buttonSize = useSettingsStore((state) => state.buttonSize)
   const language = useSettingsStore((state) => state.language)
 
   useEffect(() => {
@@ -68,10 +67,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const root = document.documentElement
     root.dataset.fontSize = fontSize
-    root.dataset.buttonSize = buttonSize
     root.lang = language
     document.title = language === 'hi' ? 'क्रैशज़ीरो' : 'CrashZero'
-  }, [buttonSize, fontSize, language])
+  }, [fontSize, language])
 
   return <>{children}</>
 }

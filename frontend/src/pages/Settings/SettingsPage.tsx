@@ -2,7 +2,7 @@ import { motion, useReducedMotion } from 'framer-motion'
 import { Check } from 'lucide-react'
 import { StitchSectionHeader } from '../../components/stitch'
 import { fadeInUp } from '../../lib/motion'
-import { useSettingsStore, type FontSize, type ButtonSize } from '../../stores/settingsStore'
+import { useSettingsStore, type FontSize, type Language } from '../../stores/settingsStore'
 import { useThemeStore, type ThemePreference } from '../../providers/ThemeProvider'
 import { useI18n } from '../../lib/i18n'
 
@@ -16,11 +16,10 @@ function getFontOptions(t: (key: any) => string): Option<FontSize>[] {
   ]
 }
 
-function getButtonOptions(t: (key: any) => string): Option<ButtonSize>[] {
+function getLanguageOptions(t: (key: any) => string): Option<Language>[] {
   return [
-    { value: 'compact', label: t('compactButtons') },
-    { value: 'normal', label: t('normalButtons') },
-    { value: 'large', label: t('largeButtons') },
+    { value: 'en', label: 'English' },
+    { value: 'hi', label: 'हिंदी (Hindi)' },
   ]
 }
 
@@ -71,8 +70,8 @@ export default function SettingsPage() {
   const fontSize = useSettingsStore((state) => state.fontSize)
   const setFontSize = useSettingsStore((state) => state.setFontSize)
   
-  const buttonSize = useSettingsStore((state) => state.buttonSize)
-  const setButtonSize = useSettingsStore((state) => state.setButtonSize)
+  const language = useSettingsStore((state) => state.language)
+  const setLanguage = useSettingsStore((state) => state.setLanguage)
   
   const theme = useThemeStore((state) => state.theme)
   const setTheme = useThemeStore((state) => state.setTheme)
@@ -108,10 +107,10 @@ export default function SettingsPage() {
           />
 
           <SettingsGroup
-            title={t('interface')}
-            options={getButtonOptions(t)}
-            currentValue={buttonSize}
-            onChange={setButtonSize}
+            title={t('language')}
+            options={getLanguageOptions(t)}
+            currentValue={language}
+            onChange={setLanguage}
           />
         </div>
       </motion.section>

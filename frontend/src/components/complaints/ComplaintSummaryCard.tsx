@@ -1,5 +1,6 @@
 import { FileText, MapPin } from 'lucide-react'
 import { type ReactNode } from 'react'
+import { useI18n } from '../../lib/i18n'
 import { Badge } from '../common/Badge'
 import {
   Card,
@@ -61,6 +62,8 @@ export function ComplaintSummaryCard({
   footer,
   className,
 }: ComplaintSummaryCardProps) {
+  const { t } = useI18n()
+  
   return (
     <Card interactive className={className}>
       <CardHeader>
@@ -86,28 +89,28 @@ export function ComplaintSummaryCard({
         ) : null}
         <div className="flex flex-wrap items-center gap-2">
           {severity ? (
-            <Badge variant={severityVariant[severity]}>{severityLabel[severity]} Severity</Badge>
+            <Badge variant={severityVariant[severity]}>{t(severity)} {t('severity')}</Badge>
           ) : null}
           {resolutionStatus ? (
             <Badge variant="secondary" className="capitalize">
-              {resolutionStatus}
+              {t(resolutionStatus) || resolutionStatus}
             </Badge>
           ) : null}
         </div>
         {citizenReports || maintenanceReports ? (
           <p className="text-xs text-[var(--rw-text-tertiary)]">
-            {citizenReports ? `${citizenReports} citizen reports` : 'Citizen reports logged'}
-            {maintenanceReports ? ` - ${maintenanceReports} maintenance notes` : ''}
+            {citizenReports ? `${citizenReports} ${t('citizenReports')}` : t('citizenReportsLogged')}
+            {maintenanceReports ? ` - ${maintenanceReports} ${t('maintenanceNotes')}` : ''}
           </p>
         ) : null}
         {reportedAt ? (
           <p className="text-xs text-[var(--rw-text-tertiary)]">
-            Reported: <time>{reportedAt}</time>
+            {t('reportedAt')}<time>{reportedAt}</time>
           </p>
         ) : null}
         {updatedAt ? (
           <p className="text-xs text-[var(--rw-text-tertiary)]">
-            Updated: <time>{updatedAt}</time>
+            {t('updatedAt')}<time>{updatedAt}</time>
           </p>
         ) : null}
       </CardContent>

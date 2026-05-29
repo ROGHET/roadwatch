@@ -15,10 +15,8 @@ export function HomeQuickActions() {
       <BentoCard
         label={t('quickReport')}
         icon={FileWarning}
-        className="bg-[var(--rw-danger)] border-none hover:bg-[var(--rw-danger)] active:bg-[var(--rw-danger)]"
-        accentClassName="text-white"
-        iconBgClassName="bg-white/20"
-        labelClassName="text-white"
+        accentClassName="text-[var(--rw-danger)]"
+        iconBgClassName="bg-[var(--rw-danger)]/10"
         onClick={() => {
           persistForNavigation()
           navigate(routes.complaint)

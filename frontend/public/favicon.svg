@@ -1,5 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <path d="M50 5 C25 5 10 25 10 45 C10 70 50 95 50 95 C50 95 90 70 90 45 C90 25 75 5 50 5 Z" fill="#ef4444" />
-  <circle cx="50" cy="40" r="22" fill="#ffffff" />
-  <path d="M52 25 L35 45 L48 45 L45 58 L65 38 L52 38 Z" fill="#ef4444" />
+  <style>
+    text {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 72px;
+      fill: #1d4ed8;
+      text-anchor: middle;
+      dominant-baseline: central;
+    }
+    @media (prefers-color-scheme: dark) {
+      text {
+        fill: #acc7ff;
+      }
+    }
+  </style>
+  <text x="50" y="50">CZ</text>
 </svg>

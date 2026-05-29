@@ -2,6 +2,7 @@ import { motion, useReducedMotion } from 'framer-motion'
 import { Map } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 import { fadeInUp, scaleIn } from '../../lib/motion'
+import { useI18n } from '../../lib/i18n'
 
 export type MapPlaceholderProps = {
   title?: string
@@ -11,12 +12,16 @@ export type MapPlaceholderProps = {
 }
 
 export function MapPlaceholder({
-  title = 'Interactive Map',
-  description = 'Road map visualization will render here',
+  title,
+  description,
   className,
   minHeightClassName = 'min-h-64 sm:min-h-80',
 }: MapPlaceholderProps) {
+  const { t } = useI18n()
   const prefersReducedMotion = useReducedMotion()
+
+  const displayTitle = title ?? t('interactiveMapTitle')
+  const displayDescription = description ?? t('mapDescription')
 
   return (
     <motion.div

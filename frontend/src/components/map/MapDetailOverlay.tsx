@@ -15,6 +15,7 @@ import { fadeInUp, springSnappy } from '../../lib/motion'
 import { routes } from '../../lib/routes'
 import { useMapStore } from '../../stores/mapStore'
 import { RoutePreviewSheet } from './RoutePreviewSheet'
+import { useI18n } from '../../lib/i18n'
 
 export type MapDetailOverlayProps = {
   mode: MapDisplayMode
@@ -36,6 +37,7 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose }: Map
   const clearRoutePreview = useMapStore((state) => state.clearRoutePreview)
   const persistForNavigation = useMapStore((state) => state.persistForNavigation)
   const [routeLoading, setRouteLoading] = useState(false)
+  const { t } = useI18n()
 
   useEffect(() => {
     clearRoutePreview()
@@ -67,7 +69,7 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose }: Map
       ...(origin
         ? {
             origin,
-            originLabel: userLocation ? 'Current user location' : 'Selected map location',
+            originLabel: userLocation ? t('currentUserLocation') : t('selectedMapLocation'),
           }
         : {}),
     }
@@ -83,7 +85,7 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose }: Map
       const preview = await routeProvider.getRoutePreview({
         origin,
         destination,
-        originLabel: target.originLabel ?? 'Selected map location',
+        originLabel: target.originLabel ?? t('selectedMapLocation'),
         destinationLabel,
       })
       setRoutePreview(preview)
@@ -93,7 +95,7 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose }: Map
         const fallbackPreview: RoutePreviewSnapshot = await mockRouteProvider.getRoutePreview({
           origin,
           destination,
-          originLabel: target.originLabel ?? 'Selected map location',
+          originLabel: target.originLabel ?? t('selectedMapLocation'),
           destinationLabel,
         })
         setRoutePreview(fallbackPreview)
@@ -156,10 +158,10 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose }: Map
               <div className="flex items-start justify-between gap-3 border-b border-[var(--rw-border)] px-4 py-3 lg:px-5">
                 <p className="text-xs font-medium uppercase tracking-wide text-[var(--rw-text-tertiary)]">
                   {selection.kind === 'road'
-                    ? 'Road summary'
+                    ? t('roadSummary')
                     : selection.kind === 'complaint'
-                      ? 'Complaint record'
-                      : 'Location intelligence'}
+                      ? t('complaintRecord')
+                      : t('locationIntelligenceTitle')}
                 </p>
                 <button
                   type="button"
@@ -185,7 +187,7 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose }: Map
 
                     <dl className="grid grid-cols-2 gap-3 text-sm">
                       <div className="rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-3">
-                        <dt className="text-xs text-[var(--rw-text-tertiary)]">Temperature</dt>
+                        <dt className="text-xs text-[var(--rw-text-tertiary)]">{t('temperature')}</dt>
                         <dd className="mt-1 font-semibold text-[var(--rw-text-primary)]">
                           {selection.intelligence.temperatureC} C
                         </dd>
@@ -193,14 +195,14 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose }: Map
                       <div className="rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-3">
                         <dt className="flex items-center gap-1 text-xs text-[var(--rw-text-tertiary)]">
                           <Cloud className="size-3.5" aria-hidden="true" />
-                          Condition
+                          {t('condition')}
                         </dt>
                         <dd className="mt-1 font-semibold text-[var(--rw-text-primary)]">
                           {selection.intelligence.condition}
                         </dd>
                       </div>
                       <div className="rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-3">
-                        <dt className="text-xs text-[var(--rw-text-tertiary)]">AQI</dt>
+                        <dt className="text-xs text-[var(--rw-text-tertiary)]">{t('aqi')}</dt>
                         <dd className="mt-1 font-semibold text-[var(--rw-text-primary)]">
                           {selection.intelligence.aqi}
                         </dd>
@@ -211,20 +213,20 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose }: Map
                       <div className="rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-3">
                         <dt className="flex items-center gap-1 text-xs text-[var(--rw-text-tertiary)]">
                           <Droplets className="size-3.5" aria-hidden="true" />
-                          Humidity
+                          {t('humidity')}
                         </dt>
                         <dd className="mt-1 font-semibold text-[var(--rw-text-primary)]">
                           {selection.intelligence.humidityPercent}%
                         </dd>
                       </div>
                       <div className="rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-3">
-                        <dt className="text-xs text-[var(--rw-text-tertiary)]">Visibility</dt>
+                        <dt className="text-xs text-[var(--rw-text-tertiary)]">{t('visibility')}</dt>
                         <dd className="mt-1 font-semibold text-[var(--rw-text-primary)]">
                           {selection.intelligence.visibilityKm} km
                         </dd>
                       </div>
                       <div className="rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-3">
-                        <dt className="text-xs text-[var(--rw-text-tertiary)]">Rain probability</dt>
+                        <dt className="text-xs text-[var(--rw-text-tertiary)]">{t('rainProbability')}</dt>
                         <dd className="mt-1 font-semibold text-[var(--rw-text-primary)]">
                           {selection.intelligence.rainProbabilityPercent}%
                         </dd>
@@ -232,7 +234,7 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose }: Map
                       <div className="col-span-2 rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-3">
                         <dt className="flex items-center gap-1 text-xs text-[var(--rw-text-tertiary)]">
                           <Wind className="size-3.5" aria-hidden="true" />
-                          Wind speed
+                          {t('windSpeed')}
                         </dt>
                         <dd className="mt-1 font-semibold text-[var(--rw-text-primary)]">
                           {selection.intelligence.windSpeedKph} km/h
@@ -241,7 +243,7 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose }: Map
                       <div className="col-span-2 rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-3">
                         <dt className="flex items-center gap-1 text-xs text-[var(--rw-text-tertiary)]">
                           <TrafficCone className="size-3.5" aria-hidden="true" />
-                          Traffic
+                          {t('traffic')}
                         </dt>
                         <dd className="mt-1 font-semibold capitalize text-[var(--rw-text-primary)]">
                           {selection.intelligence.trafficCondition}
@@ -253,7 +255,7 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose }: Map
                       <div className="col-span-2 rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-3">
                         <dt className="flex items-center gap-1 text-xs text-[var(--rw-text-tertiary)]">
                           <Clock3 className="size-3.5" aria-hidden="true" />
-                          Data timestamp
+                          {t('dataTimestamp')}
                         </dt>
                         <dd className="mt-1 font-semibold text-[var(--rw-text-primary)]">
                           {new Date(selection.intelligence.observedAt).toLocaleString()}
@@ -272,10 +274,10 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose }: Map
                         }
                       >
                         <Route className="size-4" aria-hidden="true" />
-                        Preview Route
+                        {t('previewRoute')}
                       </Button>
                       <Button type="button" variant="outline" onClick={handleOpenGoogleMaps}>
-                        Open in Google Maps
+                        {t('openInGoogleMaps')}
                       </Button>
                     </div>
                   </div>
@@ -299,26 +301,26 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose }: Map
 
                     <dl className="grid gap-2 text-sm">
                       <div className="flex justify-between gap-4 border-b border-[var(--rw-border)] py-2">
-                        <dt className="text-[var(--rw-text-secondary)]">Budget sanctioned</dt>
+                        <dt className="text-[var(--rw-text-secondary)]">{t('budgetSanctioned')}</dt>
                         <dd className="font-medium text-[var(--rw-text-primary)]">
-                          {getRoadBudget(selection.road.id).sanctioned}
+                          {getRoadBudget(selection.road.id).sanctioned === 'Not published' ? t('notPublished') : getRoadBudget(selection.road.id).sanctioned}
                         </dd>
                       </div>
                       <div className="flex justify-between gap-4 border-b border-[var(--rw-border)] py-2">
-                        <dt className="text-[var(--rw-text-secondary)]">Budget spent</dt>
+                        <dt className="text-[var(--rw-text-secondary)]">{t('budgetSpent')}</dt>
                         <dd className="font-medium text-[var(--rw-text-primary)]">
-                          {getRoadBudget(selection.road.id).spent}
+                          {getRoadBudget(selection.road.id).spent === 'Not published' ? t('notPublished') : getRoadBudget(selection.road.id).spent}
                         </dd>
                       </div>
                       <div className="flex justify-between gap-4 border-b border-[var(--rw-border)] py-2">
-                        <dt className="text-[var(--rw-text-secondary)]">Complaints</dt>
+                        <dt className="text-[var(--rw-text-secondary)]">{t('filterComplaints')}</dt>
                         <dd className="font-medium text-[var(--rw-text-primary)]">
                           {(complaintsByRoadId[selection.road.id] ?? []).length}
                         </dd>
                       </div>
                       {selection.road.contractor ? (
                         <div className="flex flex-col gap-1 py-2">
-                          <dt className="text-[var(--rw-text-secondary)]">Contractor</dt>
+                          <dt className="text-[var(--rw-text-secondary)]">{t('contractor')}</dt>
                           <dd className="font-medium text-[var(--rw-text-primary)]">
                             {selection.road.contractor}
                           </dd>
@@ -328,7 +330,7 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose }: Map
 
                     <div className="flex flex-wrap gap-2">
                       <Button type="button" onClick={() => handleMoreDetails(selection.road.id)}>
-                        More Details
+                        {t('moreDetails')}
                       </Button>
                       <Button
                         type="button"
@@ -372,7 +374,7 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose }: Map
                           }
                         >
                           <Route className="size-4" aria-hidden="true" />
-                          Preview Route
+                          {t('previewRoute')}
                         </Button>
                         <Button
                           type="button"

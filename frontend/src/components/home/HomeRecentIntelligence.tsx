@@ -1,6 +1,7 @@
 import { AlertTriangle, LightbulbOff, Sparkles } from 'lucide-react'
 import { mockComplaintSummaries } from '../../data/complaints'
 import { GlassPanel, StitchSectionHeader } from '../stitch'
+import { useI18n } from '../../lib/i18n'
 
 const toneBySeverity = {
   critical: {
@@ -31,10 +32,11 @@ const toneBySeverity = {
 
 export function HomeRecentIntelligence() {
   const items = mockComplaintSummaries.slice(0, 3)
+  const { t } = useI18n()
 
   return (
     <section className="flex flex-col gap-[var(--st-stack-sm)]">
-      <StitchSectionHeader eyebrow="Recent Intelligence" title="" />
+      <StitchSectionHeader eyebrow={t('recentIntelligence')} title="" />
       <div className="flex flex-col gap-3">
         {items.map((item) => {
           const tone = toneBySeverity[item.severity ?? 'medium']
@@ -53,7 +55,7 @@ export function HomeRecentIntelligence() {
                   {item.title}
                 </span>
                 <span className="rw-type-metadata mt-1 text-[var(--st-on-surface-variant)]">
-                  {item.roadName ?? 'Monitored corridor'} • {item.reportedAt}
+                  {item.roadName ?? t('monitoredCorridor')} • {item.reportedAt}
                 </span>
               </div>
             </GlassPanel>
