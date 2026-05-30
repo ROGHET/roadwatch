@@ -1,6 +1,7 @@
+import 'dotenv/config';
+
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 
 import complaintsRouter from './routes/complaints';
 import roadsRouter from './routes/roads';
@@ -8,7 +9,6 @@ import aiRouter from './routes/ai';
 import budgetRouter from './routes/budget';
 import intelligenceRouter from './routes/intelligence';
 
-dotenv.config();
 console.log("API KEY FOUND:", !!process.env.GEMINI_API_KEY);
 
 const app = express();
@@ -24,7 +24,10 @@ app.use('/api/budget', budgetRouter);
 app.use('/api/intelligence', intelligenceRouter);
 
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok', service: 'CrashZero API' });
+  res.status(200).json({
+    status: 'ok',
+    service: 'CrashZero API'
+  });
 });
 
 app.listen(port, () => {

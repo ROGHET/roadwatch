@@ -5,21 +5,20 @@ import { GoogleGenAI } from '@google/genai';
 const router = Router();
 const prisma = new PrismaClient();
 
-// Initialize Gemini API conditionally
-let ai: GoogleGenAI | null = null;
+console.log("AI ROUTE API KEY:", !!process.env.GEMINI_API_KEY);
 
-if (process.env.GEMINI_API_KEY) {
-  ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+// Initialize Gemini API conditionally
+function getGeminiClient(): GoogleGenAI {
+  if (!process.env.GEMINI_API_KEY) {
+    throw new Error('Missing GEMINI_API_KEY');
+  }
+
+  return new GoogleGenAI({
+    apiKey: process.env.GEMINI_API_KEY
+  });
 }
 
-console.log("Gemini configured:", !!process.env.GEMINI_API_KEY);
-
 router.post('/chat', async (req, res) => {
-  if (!ai) {
-    return res.status(503).json({
-      error: "Gemini API not configured"
-    });
-  }
   let contextData = '';
 
   try {
@@ -101,22 +100,44 @@ router.post('/chat', async (req, res) => {
 
     if (!contextData) {
       contextData = `
-      DATABASE CONTEXT: No specific data was found or selected in the CrashZero database for this query.
-      INSTRUCTIONS: Inform the user that data is unavailable.
+        DATABASE CONTEXT:
+        No matching CrashZero database records were found.
+
+        INSTRUCTIONS:
+        You may answer general knowledge questions normally.
+        Only mention missing data if the question requires CrashZero-specific information.
       `;
     }
 
     // 2. Query Gemini
-    const systemInstruction = `You are the CrashZero AI Assistant. Your goal is to help citizens understand road safety, budgets, file complaints, and draft RTI requests. Be helpful, formal when drafting RTIs, and concise.
-    ${contextData}`;
+    const systemInstruction = `You are CrashZero AI.
+You help with:
+- road safety
+- pothole reporting
+- complaint guidance
+- RTI drafting
+- infrastructure information
+- general knowledge questions
 
-    const response = await ai!.models.generateContent({
+Rules:
+- Use database context when provided.
+- If no database context exists, answer general questions normally.
+- Only mention missing data when the question requires CrashZero-specific information.
+- Be concise and factual.
+${contextData}`;
+
+    const ai = getGeminiClient();
+    console.log("Prompt:", prompt);
+
+    const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
             systemInstruction: systemInstruction,
         }
     });
+
+    console.log("Gemini response received");
 
     const aiText = response.text || "I'm sorry, I couldn't process that request.";
 
@@ -134,11 +155,16 @@ router.post('/chat', async (req, res) => {
 
     res.json({ response: aiText });
   } catch (error: any) {
-    console.error('AI chat error:', error);
-    
-    // Local Fallback Mode (Friendly UX)
-    return res.status(200).json({ 
-      response: "CrashZero AI has exhausted its daily AI token quota and will become available again after the quota resets. Context-aware AI responses are temporarily unavailable." 
+    console.error("AI chat error:");
+    console.error(error);
+
+    if (error instanceof Error) {
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
+    }
+
+    return res.status(500).json({
+      error: "Gemini request failed"
     });
   }
 });
