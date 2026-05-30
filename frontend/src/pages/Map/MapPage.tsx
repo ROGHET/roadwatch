@@ -6,9 +6,11 @@ import { useComplaintStore } from '../../stores/complaintStore'
 export default function MapPage() {
   const location = useLocation()
   const complaintPickMode = useComplaintStore((state) => state.complaintPickMode)
+  const locationPickPending = useComplaintStore((state) => state.locationPickPending)
   const cancelLocationPick = useComplaintStore((state) => state.cancelLocationPick)
   const openedForComplaintPick =
-    (location.state as { complaintPickMode?: boolean } | null)?.complaintPickMode === true
+    (location.state as { complaintPickMode?: boolean } | null)?.complaintPickMode === true ||
+    locationPickPending
 
   useEffect(() => {
     if (!openedForComplaintPick && complaintPickMode) {

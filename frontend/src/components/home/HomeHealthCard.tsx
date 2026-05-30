@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useI18n } from '../../lib/i18n'
 import { mockRoads } from '../../data/roads'
 import { routes } from '../../lib/routes'
+import { AnimatedCounter } from '../common/AnimatedCounter'
 import { MetricCard } from '../stitch'
 
 function computeInfrastructureHealth() {
@@ -19,7 +20,7 @@ export function HomeHealthCard() {
   return (
     <MetricCard
       label={t('infrastructureHealth')}
-      value={`${health}%`}
+      value={<AnimatedCounter value={health} suffix="%" duration={1100} />}
       meta="+2.4% vs last week"
       description={t('infrastructureHealthDesc')}
       icon={Activity}

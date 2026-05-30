@@ -195,7 +195,7 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
 
         <motion.div
           key="map-detail-panel"
-          className="pointer-events-auto absolute inset-x-0 bottom-0 z-[500] flex max-h-[min(90vh,800px)] flex-col lg:inset-x-auto lg:bottom-auto lg:right-4 lg:top-24 lg:w-[min(26rem,calc(100vw-2rem))]"
+          className="pointer-events-auto absolute inset-x-0 bottom-0 z-[500] flex h-[min(90dvh,800px)] max-h-[min(90dvh,800px)] flex-col lg:inset-x-auto lg:bottom-auto lg:right-4 lg:top-24 lg:h-[min(calc(100dvh-7rem),800px)] lg:max-h-[min(calc(100dvh-7rem),800px)] lg:w-[min(26rem,calc(100vw-2rem))]"
           role="dialog"
           aria-modal="true"
           variants={prefersReducedMotion ? undefined : fadeInUp}
@@ -204,7 +204,7 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
           exit={prefersReducedMotion ? undefined : 'hidden'}
           transition={prefersReducedMotion ? undefined : springSnappy}
         >
-          <div className="rw-map-glass flex min-h-0 max-h-[min(90vh,800px)] flex-col overflow-hidden rounded-t-[1.5rem] shadow-[0_24px_80px_-28px_rgb(0_0_0/0.55)] lg:rounded-[1.5rem]">
+          <div className="rw-map-glass flex h-full min-h-0 flex-col overflow-hidden rounded-t-[1.5rem] shadow-[0_24px_80px_-28px_rgb(0_0_0/0.55)] lg:rounded-[1.5rem]">
               <div
                 className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-[var(--rw-border-strong)] lg:hidden"
                 aria-hidden="true"
@@ -398,7 +398,7 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
                 ) : null}
               </div>
 
-              <div className="shrink-0 border-t border-[var(--st-outline-white)] bg-transparent p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+              <div className="shrink-0 border-t border-[var(--st-outline-white)] bg-[var(--rw-surface)]/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md">
                 {selection.kind === 'location' && (
                   <div className="flex flex-col gap-2">
                     {complaintPickMode && locationPickPending ? (

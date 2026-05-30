@@ -1,6 +1,7 @@
 import { motion, useReducedMotion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { HomeHealthCard } from '../../components/home/HomeHealthCard'
+import { HomeMetricsRow } from '../../components/home/HomeMetricsRow'
 import { HomeQuickActions } from '../../components/home/HomeQuickActions'
 import { HomeRecentIntelligence } from '../../components/home/HomeRecentIntelligence'
 import { MapPreviewCard } from '../../components/map/MapPreviewCard'
@@ -32,6 +33,7 @@ export default function HomePage() {
       >
         <h1 className="rw-type-display text-[var(--st-on-surface)]">{getGreeting(t)}</h1>
         <HomeHealthCard />
+        <HomeMetricsRow />
       </motion.section>
 
       <motion.div

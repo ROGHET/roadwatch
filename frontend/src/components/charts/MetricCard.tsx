@@ -1,4 +1,5 @@
 import { motion, useReducedMotion } from 'framer-motion'
+import { type ReactNode } from 'react'
 import { type LucideIcon } from 'lucide-react'
 import {
   Card,
@@ -11,7 +12,7 @@ import { cardHover, staggerItem } from '../../lib/motion'
 
 export type MetricCardProps = {
   label: string
-  value: string | number
+  value: string | number | ReactNode
   icon: LucideIcon
   hint?: string
   className?: string

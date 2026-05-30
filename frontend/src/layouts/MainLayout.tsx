@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { AnimatedOutlet } from '../components/common/AnimatedOutlet'
 import { CommandPalette } from '../components/command/CommandPalette'
+import { RtiGenerationModal } from '../components/rti/RtiGenerationModal'
 import { ProfileMenu } from '../components/navigation/ProfileMenu'
 import { fadeInDown, transitions } from '../lib/motion'
 import { routes } from '../lib/routes'
@@ -52,6 +53,7 @@ export default function MainLayout() {
   const isMapRoute = location.pathname === routes.map
   const [commandOpen, setCommandOpen] = useState(false)
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
+  const [rtiModalOpen, setRtiModalOpen] = useState(false)
   const { t } = useI18n()
 
   const openCommandPalette = useCallback(() => setCommandOpen(true), [])
@@ -158,7 +160,12 @@ export default function MainLayout() {
         open={commandOpen}
         onClose={closeCommandPalette}
         onOpenSettings={handleOpenSettings}
+        onOpenRti={() => {
+          closeCommandPalette()
+          setRtiModalOpen(true)
+        }}
       />
+      <RtiGenerationModal open={rtiModalOpen} onClose={() => setRtiModalOpen(false)} />
     </div>
   )
 }

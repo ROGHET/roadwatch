@@ -4,11 +4,14 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 import '../../lib/map/leafletDefaults'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { MapContainer, ZoomControl } from 'react-leaflet'
 import { mapRoadMarkers } from '../../data/mapMarkers'
 import { getMergedComplaintMarkers } from '../../lib/complaints/mergedComplaints'
 import { useGeolocation } from '../../hooks/useGeolocation'
+import { inferPlaceFromCoordinates } from '../../lib/map/inferPlace'
 import { fetchLocationIntelligence } from '../../lib/map/locationIntelligence'
+import { routes } from '../../lib/routes'
 import { fetchComplaints } from '../../lib/api/complaints'
 import {
   INDIA_MAP_MAX_BOUNDS,
@@ -43,11 +46,12 @@ export type RoadWatchMapViewProps = {
 }
 
 export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapViewProps) {
+  const navigate = useNavigate()
   const submittedComplaints = useComplaintStore((state) => state.submittedComplaints)
   const setSubmittedComplaints = useComplaintStore((state) => state.setSubmittedComplaints)
   const complaintPickMode = useComplaintStore((state) => state.complaintPickMode)
   const locationPickPending = useComplaintStore((state) => state.locationPickPending)
-  const cancelLocationPick = useComplaintStore((state) => state.cancelLocationPick)
+  const completeLocationPick = useComplaintStore((state) => state.completeLocationPick)
   const complaintMarkers = useMemo(
     () => getMergedComplaintMarkers(submittedComplaints),
     [submittedComplaints],
@@ -163,15 +167,6 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
     return undefined
   }, [mode, locateStatus, startWatching, stopWatching])
 
-  useEffect(
-    () => () => {
-      if (locationPickPending) {
-        cancelLocationPick()
-      }
-    },
-    [locationPickPending, cancelLocationPick],
-  )
-
   const focusOn = useCallback((lat: number, lng: number, zoom: number) => {
     setFlyTarget((current) => ({
       lat,
@@ -197,6 +192,20 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
     setIntelLoading(true)
     try {
       const intelligence = await fetchLocationIntelligence(lat, lng)
+
+      if (complaintPickMode && locationPickPending) {
+        const place = inferPlaceFromCoordinates(lat, lng)
+        completeLocationPick(
+          lat,
+          lng,
+          intelligence.locationName || place.label,
+          intelligence.city || place.city,
+          intelligence.state || place.state,
+        )
+        navigate(routes.complaint)
+        return
+      }
+
       setSelection({ kind: 'location', lat, lng, intelligence })
     } finally {
       setIntelLoading(false)
@@ -283,7 +292,7 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
           className="pointer-events-none absolute bottom-4 left-1/2 z-[510] -translate-x-1/2 rounded-full bg-[var(--rw-primary)] px-4 py-2 text-xs font-medium text-white shadow-md"
           role="status"
         >
-          Tap the map, then choose &quot;Select this location for complaint&quot;
+          Tap the map to set the complaint location
         </p>
       ) : null}
 

@@ -1,17 +1,15 @@
 import { useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AlertTriangle, CheckCircle2, ClipboardList, Clock } from 'lucide-react'
-import { ChartContainer } from '../../components/charts/ChartContainer'
 import { MetricCard } from '../../components/charts/MetricCard'
 import { StatGrid } from '../../components/charts/StatGrid'
+import { AnimatedCounter } from '../../components/common/AnimatedCounter'
 import { PageContainer } from '../../components/common/PageContainer'
 import { SectionHeader } from '../../components/common/SectionHeader'
 import { ComplaintListSection } from '../../components/complaints/ComplaintListSection'
+import { AnalyticsDashboardSections } from '../../components/dashboard/AnalyticsDashboardSections'
 import { DashboardSection } from '../../components/dashboard/DashboardSection'
-import {
-  dashboardPageCopy,
-  dashboardSeverityChart,
-} from '../../data/dashboard'
+import { dashboardPageCopy } from '../../data/dashboard'
 import { fetchComplaints } from '../../lib/api/complaints'
 import { getRecentIntelligenceItems } from '../../lib/complaints/mergedComplaints'
 import { routes } from '../../lib/routes'
@@ -82,7 +80,7 @@ export default function DashboardPage() {
   return (
     <PageContainer className="gap-8">
       <SectionHeader
-        title={dashboardPageCopy.title}
+        title="Analytics Dashboard"
         description={dashboardPageCopy.description}
       />
 
@@ -95,7 +93,7 @@ export default function DashboardPage() {
             <MetricCard
               key={metric.id}
               label={metric.label}
-              value={metric.value}
+              value={<AnimatedCounter value={metric.value} duration={1000} />}
               icon={metric.icon}
               hint={metric.hint}
             />
@@ -103,15 +101,7 @@ export default function DashboardPage() {
         </StatGrid>
       </DashboardSection>
 
-      <DashboardSection
-        title={dashboardPageCopy.severitySectionTitle}
-        description={dashboardPageCopy.severitySectionDescription}
-      >
-        <ChartContainer
-          title={dashboardSeverityChart.title}
-          description={dashboardSeverityChart.description}
-        />
-      </DashboardSection>
+      <AnalyticsDashboardSections />
 
       <ComplaintListSection
         title={dashboardPageCopy.recentComplaintsTitle}

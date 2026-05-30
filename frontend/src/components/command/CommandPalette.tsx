@@ -1,7 +1,12 @@
 import { Search } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { appCommands, type AppCommand } from '../../lib/appCommands'
+import {
+  appCommands,
+  commandGroupStyles,
+  type AppCommand,
+  type AppCommandGroup,
+} from '../../lib/appCommands'
 import { rankByFuzzyQuery } from '../../lib/fuzzyMatch'
 import { useThemeStore } from '../../providers/ThemeProvider'
 import { useSettingsStore } from '../../stores/settingsStore'
@@ -10,13 +15,24 @@ export type CommandPaletteProps = {
   open: boolean
   onClose: () => void
   onOpenSettings?: () => void
+  onOpenRti?: () => void
 }
+
+const groupOrder: AppCommandGroup[] = [
+  'Navigation',
+  'Complaints',
+  'Map',
+  'Assistant',
+  'RTI',
+  'Analytics',
+  'Settings',
+]
 
 function getSearchText(command: AppCommand) {
-  return `${command.label} ${command.keywords} ${command.group}`
+  return `${command.label} ${command.description ?? ''} ${command.keywords} ${command.group}`
 }
 
-export function CommandPalette({ open, onClose, onOpenSettings }: CommandPaletteProps) {
+export function CommandPalette({ open, onClose, onOpenSettings, onOpenRti }: CommandPaletteProps) {
   const navigate = useNavigate()
   const setTheme = useThemeStore((state) => state.setTheme)
   const setLanguage = useSettingsStore((state) => state.setLanguage)
@@ -30,6 +46,20 @@ export function CommandPalette({ open, onClose, onOpenSettings }: CommandPalette
     [query],
   )
 
+  const groupedResults = useMemo(() => {
+    return groupOrder
+      .map((group) => ({
+        group,
+        commands: results.filter((command) => command.group === group),
+      }))
+      .filter((entry) => entry.commands.length > 0)
+  }, [results])
+
+  const flatResults = useMemo(
+    () => groupedResults.flatMap((entry) => entry.commands),
+    [groupedResults],
+  )
+
   const runCommand = useCallback(
     (command: AppCommand) => {
       onClose()
@@ -41,6 +71,11 @@ export function CommandPalette({ open, onClose, onOpenSettings }: CommandPalette
         if (command.action === 'open-accessibility') {
           navigate('/settings')
         }
+        return
+      }
+
+      if (command.action === 'open-rti') {
+        onOpenRti?.()
         return
       }
 
@@ -68,7 +103,7 @@ export function CommandPalette({ open, onClose, onOpenSettings }: CommandPalette
         navigate(command.href)
       }
     },
-    [navigate, onClose, onOpenSettings, setLanguage, setTheme],
+    [navigate, onClose, onOpenRti, onOpenSettings, setLanguage, setTheme],
   )
 
   useEffect(() => {
@@ -95,27 +130,27 @@ export function CommandPalette({ open, onClose, onOpenSettings }: CommandPalette
 
       if (event.key === 'ArrowDown') {
         event.preventDefault()
-        setActiveIndex((index) => (results.length ? (index + 1) % results.length : 0))
+        setActiveIndex((index) => (flatResults.length ? (index + 1) % flatResults.length : 0))
         return
       }
 
       if (event.key === 'ArrowUp') {
         event.preventDefault()
         setActiveIndex((index) =>
-          results.length ? (index - 1 + results.length) % results.length : 0,
+          flatResults.length ? (index - 1 + flatResults.length) % flatResults.length : 0,
         )
         return
       }
 
-      if (event.key === 'Enter' && results[activeIndex]) {
+      if (event.key === 'Enter' && flatResults[activeIndex]) {
         event.preventDefault()
-        runCommand(results[activeIndex])
+        runCommand(flatResults[activeIndex])
       }
     }
 
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [activeIndex, onClose, open, results, runCommand])
+  }, [activeIndex, flatResults, onClose, open, runCommand])
 
   useEffect(() => {
     if (!open || !listRef.current) return
@@ -124,6 +159,8 @@ export function CommandPalette({ open, onClose, onOpenSettings }: CommandPalette
   }, [activeIndex, open])
 
   if (!open) return null
+
+  let runningIndex = -1
 
   return (
     <div className="fixed inset-0 z-[600] flex items-start justify-center px-4 pt-[12vh]">
@@ -150,7 +187,7 @@ export function CommandPalette({ open, onClose, onOpenSettings }: CommandPalette
             className="min-w-0 flex-1 bg-transparent text-sm text-[var(--st-on-surface)] placeholder:text-[var(--st-on-surface-variant)] focus:outline-none"
             aria-controls="command-palette-list"
             aria-activedescendant={
-              results[activeIndex] ? `command-option-${results[activeIndex].id}` : undefined
+              flatResults[activeIndex] ? `command-option-${flatResults[activeIndex].id}` : undefined
             }
             autoComplete="off"
           />
@@ -165,43 +202,80 @@ export function CommandPalette({ open, onClose, onOpenSettings }: CommandPalette
           className="max-h-80 overflow-y-auto p-2"
           role="listbox"
         >
-          {results.length === 0 ? (
+          {flatResults.length === 0 ? (
             <p className="px-3 py-6 text-center text-sm text-[var(--st-on-surface-variant)]">
               No matching commands
             </p>
           ) : (
-            results.map((command, index) => {
-              const Icon = command.icon
-              const isActive = index === activeIndex
+            groupedResults.map(({ group, commands }) => (
+              <div key={group} className="mb-2">
+                <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--st-on-surface-variant)]">
+                  {group}
+                </p>
+                {commands.map((command) => {
+                  runningIndex += 1
+                  const index = runningIndex
+                  const Icon = command.icon
+                  const isActive = index === activeIndex
+                  const styles = commandGroupStyles[group]
 
-              return (
-                <button
-                  key={command.id}
-                  id={`command-option-${command.id}`}
-                  type="button"
-                  role="option"
-                  aria-selected={isActive}
-                  data-active={isActive ? 'true' : 'false'}
-                  className={[
-                    'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors',
-                    isActive
-                      ? 'bg-[var(--st-primary-container)]/25 text-[var(--st-on-surface)]'
-                      : 'text-[var(--st-on-surface-variant)] hover:bg-white/5',
-                  ].join(' ')}
-                  onMouseEnter={() => setActiveIndex(index)}
-                  onClick={() => runCommand(command)}
-                >
-                  <Icon className="size-4 shrink-0" aria-hidden="true" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block font-medium text-[var(--st-on-surface)]">
-                      {command.label}
-                    </span>
-                    <span className="rw-type-metadata mt-0.5 block opacity-70">{command.group}</span>
-                  </span>
-                </button>
-              )
-            })
+                  return (
+                    <button
+                      key={command.id}
+                      id={`command-option-${command.id}`}
+                      type="button"
+                      role="option"
+                      aria-selected={isActive}
+                      data-active={isActive ? 'true' : 'false'}
+                      className={[
+                        'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors',
+                        isActive
+                          ? 'bg-[var(--st-primary-container)]/25 text-[var(--st-on-surface)]'
+                          : 'text-[var(--st-on-surface-variant)] hover:bg-white/5',
+                      ].join(' ')}
+                      onMouseEnter={() => setActiveIndex(index)}
+                      onClick={() => runCommand(command)}
+                    >
+                      <span
+                        className={`inline-flex size-8 shrink-0 items-center justify-center rounded-lg ${styles.iconWrap}`}
+                      >
+                        <Icon className="size-4" aria-hidden="true" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-2">
+                          <span className="block font-medium text-[var(--st-on-surface)]">
+                            {command.label}
+                          </span>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${styles.badge}`}
+                          >
+                            {group}
+                          </span>
+                        </span>
+                        {command.description ? (
+                          <span className="rw-type-metadata mt-0.5 block opacity-70">
+                            {command.description}
+                          </span>
+                        ) : null}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            ))
           )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 border-t border-[var(--st-outline-white)] px-4 py-2 text-[10px] text-[var(--st-on-surface-variant)]">
+          <span>
+            <kbd className="rounded border border-[var(--st-outline-white)] px-1">↑↓</kbd> navigate
+          </span>
+          <span>
+            <kbd className="rounded border border-[var(--st-outline-white)] px-1">Enter</kbd> select
+          </span>
+          <span>
+            <kbd className="rounded border border-[var(--st-outline-white)] px-1">Esc</kbd> close
+          </span>
         </div>
       </div>
     </div>

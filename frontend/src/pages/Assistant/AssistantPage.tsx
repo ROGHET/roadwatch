@@ -1,6 +1,7 @@
-import { AlertCircle, Bot, Download, Loader2, MapPin, Plus, Search } from 'lucide-react'
+import { AlertCircle, Bot, Loader2, MapPin, Plus, Search } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { AssistantChatPanel } from '../../components/assistant/AssistantChatPanel'
 import { Badge } from '../../components/common/Badge'
 import { Button } from '../../components/common/Button'
 import {
@@ -17,6 +18,7 @@ import { Label } from '../../components/common/Label'
 import { PageContainer } from '../../components/common/PageContainer'
 import { SectionHeader } from '../../components/common/SectionHeader'
 import { Textarea } from '../../components/common/Textarea'
+import { RtiGenerationModal } from '../../components/rti/RtiGenerationModal'
 import { assistantPageCopy, assistantSamplePrompt, assistantSuggestedQuestions, assistantSystemKnowledge } from '../../data/assistant'
 import { mockComplaintRecords } from '../../data/complaints'
 import { mockRoads } from '../../data/roads'
@@ -30,6 +32,7 @@ import {
 } from '../../lib/complaints/resolveComplaint'
 import { useI18n } from '../../lib/i18n'
 import { routes } from '../../lib/routes'
+import { useAssistantChatStore } from '../../stores/assistantChatStore'
 import { useComplaintStore } from '../../stores/complaintStore'
 import { useMapStore } from '../../stores/mapStore'
 
@@ -229,7 +232,8 @@ function resolveLocalCity(input: string) {
     const city = normalizeText(location.city)
     const state = normalizeText(location.state)
     const statePart = parts[1] ? stateAliases[parts[1]] : undefined
-    const stateMatches = !parts[1] || normalizeText(statePart ?? parts[1]) === state
+    const stateMatches =
+      !parts[1] || (normalizeText(statePart ?? parts[1]) === state)
     const countryMatches = !parts[2] || /india|in/.test(parts[2])
 
     return (
@@ -289,101 +293,7 @@ function isComplaintResolved(status: string, resolutionStatus?: string): boolean
   )
 }
 
-function buildRtiDraft(_authority: string, contextTitle: string, contextDetails: Array<readonly [string, string]>) {
-  const details = contextDetails
-    .filter(([, value]) => value && !['Unknown', 'Not Available', 'No Data'].includes(value))
-    .map(([label, value]) => `${label}: ${value}`)
-
-  const requestedInfo = [
-    `Certified copies of records, inspections, work orders, and action taken reports related to ${contextTitle}.`,
-    'Details of sanctioned budget, expenditure, contractor assignment, maintenance schedule, and repair history, if available.',
-    'Current status of pending complaints, escalation notes, and expected resolution timelines for this matter.',
-  ]
-
-  if (details.length) {
-    requestedInfo.push(`Relevant CrashZero context for reference: ${details.join('; ')}.`)
-  }
-
-  return [
-    'To:',
-    'Public Information Officer',
-    'Authority: __________',
-    '',
-    'Subject:',
-    'Request for information under RTI Act 2005',
-    '',
-    'Information Requested:',
-    ...requestedInfo.map((item, index) => `${index + 1}. ${item}`),
-    '',
-    'Applicant Details:',
-    'Name: __________',
-    'Address: __________',
-    'Phone: __________',
-    'Email: __________',
-    '',
-    'Date: __________',
-    'Signature: __________',
-  ].join('\n')
-}
-
-function wrapPdfLine(line: string, maxLength = 88) {
-  if (line.length <= maxLength) return [line]
-  const words = line.split(' ')
-  const lines: string[] = []
-  let current = ''
-
-  words.forEach((word) => {
-    const next = current ? `${current} ${word}` : word
-    if (next.length > maxLength) {
-      lines.push(current)
-      current = word
-    } else {
-      current = next
-    }
-  })
-
-  if (current) lines.push(current)
-  return lines
-}
-
-function escapePdfText(text: string) {
-  return text.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)')
-}
-
-function createPdfBlob(text: string) {
-  const lines = text.split('\n').flatMap((line) => (line ? wrapPdfLine(line) : ['']))
-  const content = [
-    'BT',
-    '/F1 11 Tf',
-    '50 790 Td',
-    '14 TL',
-    ...lines.map((line) => `(${escapePdfText(line)}) Tj T*`),
-    'ET',
-  ].join('\n')
-  const objects = [
-    '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n',
-    '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n',
-    '3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\nendobj\n',
-    '4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n',
-    `5 0 obj\n<< /Length ${content.length} >>\nstream\n${content}\nendstream\nendobj\n`,
-  ]
-  let pdf = '%PDF-1.4\n'
-  const offsets = [0]
-
-  objects.forEach((object) => {
-    offsets.push(pdf.length)
-    pdf += object
-  })
-
-  const xrefStart = pdf.length
-  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`
-  offsets.slice(1).forEach((offset) => {
-    pdf += `${String(offset).padStart(10, '0')} 00000 n \n`
-  })
-  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF`
-
-  return new Blob([pdf], { type: 'application/pdf' })
-}
+const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
 
 export default function AssistantPage() {
   const { t } = useI18n()
@@ -430,11 +340,13 @@ export default function AssistantPage() {
   const [manualRoadName, setManualRoadName] = useState('')
   const [showContextForm, setShowContextForm] = useState(false)
   const [prompt, setPrompt] = useState('')
-  const [response, setResponse] = useState<string | null>(null)
-  const [rtiDraft, setRtiDraft] = useState<string | null>(null)
+  const [rtiModalOpen, setRtiModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [geocodedLocation, setGeocodedLocation] = useState<GeocodedLocation | null>(null)
+  const addMessage = useAssistantChatStore((state) => state.addMessage)
+  const clearMessages = useAssistantChatStore((state) => state.clearMessages)
+  const messages = useAssistantChatStore((state) => state.messages)
 
   useEffect(() => {
     setActiveContext(initialContext)
@@ -565,7 +477,7 @@ export default function AssistantPage() {
 
       try {
         const response = await fetch(
-          `http://localhost:3000/api/intelligence/geocode?lat=${activeLocation.latitude}&lng=${activeLocation.longitude}`,
+          `${apiBaseUrl}/api/intelligence/geocode?lat=${activeLocation.latitude}&lng=${activeLocation.longitude}`,
         )
         if (!response.ok) throw new Error('Geocode failed')
         const payload = (await response.json()) as { city?: string; state?: string; label?: string }
@@ -697,7 +609,7 @@ export default function AssistantPage() {
         : 'I can still help with CrashZero navigation, RTI drafting, complaint filing, road-safety concepts, and general road maintenance questions.')
 
     setError(null)
-    setResponse(`${quotaFallbackNotice}\n\n${fallback}`)
+    addMessage('assistant', `${quotaFallbackNotice}\n\n${fallback}`)
   }
 
   const buildGroundedContextResponse = (promptText: string) => {
@@ -782,7 +694,7 @@ export default function AssistantPage() {
     return null
   }
 
-  const callAiEndpoint = async (promptText: string) => {
+  const callAiEndpoint = async (promptText: string): Promise<string> => {
     setIsLoading(true)
     setError(null)
 
@@ -850,7 +762,7 @@ export default function AssistantPage() {
         },
       }
 
-      const res = await fetch('http://localhost:3000/api/ai/chat', {
+      const res = await fetch(`${apiBaseUrl}/api/ai/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -858,13 +770,13 @@ export default function AssistantPage() {
 
       if (!res.ok) {
         resolveQuotaFallback(apiPrompt)
-        return
+        return ''
       }
 
       const data = (await res.json()) as { response?: string }
       if (isQuotaOrTransportFailure(data.response)) {
         resolveQuotaFallback(apiPrompt)
-        return
+        return ''
       }
 
       const groundedFallback = buildGroundedContextResponse(promptText)
@@ -873,55 +785,49 @@ export default function AssistantPage() {
         (groundedFallback || offlineFallback) &&
         /no specific data|do not have specific data|database at this time|data was found/i.test(data.response ?? '')
       ) {
-        setResponse(groundedFallback ?? offlineFallback)
-        return
+        return groundedFallback ?? offlineFallback ?? quotaFallbackNotice
       }
 
-      setResponse(data.response ?? groundedFallback ?? offlineFallback ?? quotaFallbackNotice)
+      return data.response ?? groundedFallback ?? offlineFallback ?? quotaFallbackNotice
     } catch {
       resolveQuotaFallback(promptText)
+      return ''
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!prompt.trim() || isLoading) return
-    setRtiDraft(null)
     setError(null)
-    const groundedResponse = buildGroundedContextResponse(prompt)
+    const promptText = prompt.trim()
+    addMessage('user', promptText)
+    setPrompt('')
+
+    const groundedResponse = buildGroundedContextResponse(promptText)
     if (groundedResponse) {
-      setResponse(groundedResponse)
+      addMessage('assistant', groundedResponse)
       return
     }
 
-    const offlineAnswer = getOfflineAnswer(prompt)
+    const offlineAnswer = getOfflineAnswer(promptText)
     if (offlineAnswer) {
-      setResponse(offlineAnswer)
+      addMessage('assistant', offlineAnswer)
       return
     }
 
-    if (isProjectSpecificQuestion(prompt) && activeContext.type === 'generic') {
-      setResponse(
+    if (isProjectSpecificQuestion(promptText) && activeContext.type === 'generic') {
+      addMessage(
+        'assistant',
         'I need an active road, complaint, or location context to answer project-specific records such as budgets, contractors, complaint statistics, or official maintenance records.',
       )
       return
     }
 
-    void callAiEndpoint(prompt)
-  }
-
-  const handleGenerateRti = () => {
-    if (isLoading) return
-    const authority = activeRoad?.authority || activeContextSummary.details.find(([label]) => label === 'Authority')?.[1] || ''
-    const draft = buildRtiDraft(
-      authority,
-      activeContextSummary.title,
-      activeContextSummary.details.map(([label, value]) => [label, value] as const),
-    )
-    setError(null)
-    setRtiDraft(draft)
-    setResponse(draft)
+    const aiResponse = await callAiEndpoint(promptText)
+    if (aiResponse) {
+      addMessage('assistant', aiResponse)
+    }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -975,7 +881,7 @@ export default function AssistantPage() {
     }
 
     try {
-      const response = await fetch(`http://localhost:3000/api/intelligence/geocode?q=${encodeURIComponent(roadName)}`)
+      const response = await fetch(`${apiBaseUrl}/api/intelligence/geocode?q=${encodeURIComponent(roadName)}`)
       if (!response.ok) throw new Error('Geocode failed')
       const payload = (await response.json()) as {
         label?: string
@@ -1028,22 +934,18 @@ export default function AssistantPage() {
   const clearContext = () => {
     setActiveContext({ type: 'generic' })
     setGeocodedLocation(null)
-    setRtiDraft(null)
     navigate(routes.assistant, { replace: true, state: {} })
   }
 
-  const handleExportPdf = () => {
-    if (!rtiDraft) return
-    const blob = createPdfBlob(rtiDraft)
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = 'CrashZero-RTI-Request.pdf'
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
-    URL.revokeObjectURL(url)
-  }
+  const defaultRtiAuthority =
+    activeRoad?.authority ||
+    activeComplaint?.assignedAuthority ||
+    activeContextSummary.details.find(([label]) => label === 'Authority')?.[1] ||
+    'NHAI'
+
+  const defaultRtiInformation = activeComplaint
+    ? `Certified copies of records, inspections, work orders, and action taken reports related to ${activeComplaint.title}.`
+    : `Certified copies of records, inspections, work orders, and action taken reports related to ${activeContextSummary.title}.`
 
   const contextTitle =
     activeContextSummary.type === 'generic' ? t('assistantContextLabel') : activeContextSummary.title
@@ -1145,25 +1047,18 @@ export default function AssistantPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {!response && !error && !isLoading ? (
+          {messages.length === 0 && !isLoading && !error ? (
             <EmptyState icon={AlertCircle} title={t('assistantEmptyTitle')} description={t('assistantEmptyDescription')} className="py-8" />
-          ) : (
-            <div className="min-h-[120px] rounded-md border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-4 text-sm">
-              {isLoading ? (
-                <div className="flex h-full items-center justify-center text-[var(--rw-text-secondary)]">
-                  <Loader2 className="mr-2 size-5 animate-spin" />
-                  Generating contextual response...
-                </div>
-              ) : error ? (
-                <div className="flex h-full items-center justify-center text-[var(--rw-danger)]">
-                  <AlertCircle className="mr-2 size-5" />
-                  {error}
-                </div>
-              ) : (
-                <div className="whitespace-pre-wrap text-[var(--rw-text-primary)]">{response}</div>
-              )}
+          ) : null}
+
+          <AssistantChatPanel isLoading={isLoading} />
+
+          {error ? (
+            <div className="flex items-center rounded-md border border-[var(--rw-danger)]/30 bg-[var(--rw-danger)]/10 p-3 text-sm text-[var(--rw-danger)]">
+              <AlertCircle className="mr-2 size-5 shrink-0" />
+              {error}
             </div>
-          )}
+          ) : null}
 
           <div className="flex flex-wrap gap-2">
             {assistantSuggestedQuestions.map((question) => (
@@ -1189,21 +1084,30 @@ export default function AssistantPage() {
           />
         </CardContent>
         <CardFooter className="flex flex-wrap gap-3">
-          <Button type="button" onClick={handleSend} disabled={isLoading || !prompt.trim()}>
+          <Button type="button" onClick={() => void handleSend()} disabled={isLoading || !prompt.trim()}>
             {isLoading ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
             {t('sendMessage')}
           </Button>
-          <Button type="button" variant="outline" onClick={handleGenerateRti} disabled={isLoading}>
+          <Button type="button" variant="outline" onClick={() => setRtiModalOpen(true)} disabled={isLoading}>
             {t('generateRti')}
           </Button>
-          {rtiDraft ? (
-            <Button type="button" variant="outline" onClick={handleExportPdf}>
-              <Download className="mr-2 size-4" />
-              Export PDF
-            </Button>
-          ) : null}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={clearMessages}
+            disabled={isLoading || messages.length === 0}
+          >
+            Clear Chat
+          </Button>
         </CardFooter>
       </Card>
+
+      <RtiGenerationModal
+        open={rtiModalOpen}
+        onClose={() => setRtiModalOpen(false)}
+        defaultAuthority={defaultRtiAuthority}
+        defaultInformation={defaultRtiInformation}
+      />
     </PageContainer>
   )
 }
