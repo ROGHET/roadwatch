@@ -58,7 +58,7 @@ model Road {
 model Complaint {
   id                 String   @id @default(uuid())
   complaintId        String?  @unique
-  userId             String
+  userId             String?
   roadId             String?
   authorityId        String?
   roadType           String?
@@ -70,13 +70,22 @@ model Complaint {
   status             ComplaintStatus @default(PENDING)
   latitude           Float
   longitude          Float
+  locationLabel      String?
+  city               String?
+  state              String?
   photoUrl           String?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  user      User       @relation(fields: [userId], references: [id])
+  user      User?      @relation(fields: [userId], references: [id])
   road      Road?      @relation(fields: [roadId], references: [id])
   authority Authority? @relation(fields: [authorityId], references: [id])
+}
+
+model ComplaintReferenceCounter {
+  year         Int      @id
+  nextSequence Int
+  updatedAt    DateTime @updatedAt
 }
 
 enum ComplaintStatus {

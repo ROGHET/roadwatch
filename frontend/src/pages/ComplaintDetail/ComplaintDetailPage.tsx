@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { useNavigate, useParams } from 'react-router-dom'
 
@@ -28,6 +28,8 @@ import {
 
 } from '../../lib/complaints/resolveComplaint'
 
+import { fetchComplaintById } from '../../lib/api/complaints'
+
 import { routes } from '../../lib/routes'
 
 import { useComplaintStore } from '../../stores/complaintStore'
@@ -46,11 +48,15 @@ export default function ComplaintDetailPage() {
 
   const submittedComplaints = useComplaintStore((state) => state.submittedComplaints)
 
+  const addSubmittedComplaint = useComplaintStore((state) => state.addSubmittedComplaint)
+
   const setSelection = useMapStore((state) => state.setSelection)
 
   const setViewport = useMapStore((state) => state.setViewport)
 
 
+
+  const [remoteLoaded, setRemoteLoaded] = useState(false)
 
   const complaint = useMemo(
 
@@ -65,6 +71,55 @@ export default function ComplaintDetailPage() {
     [complaintId, submittedComplaints],
 
   )
+
+  useEffect(() => {
+    if (!complaintId || complaint) {
+      setRemoteLoaded(true)
+      return
+    }
+
+    let cancelled = false
+    const requestedComplaintId = complaintId
+
+    async function loadComplaint() {
+      try {
+        const result = await fetchComplaintById(requestedComplaintId)
+        if (cancelled) return
+        if (result) {
+          addSubmittedComplaint(result)
+        }
+      } finally {
+        if (!cancelled) setRemoteLoaded(true)
+      }
+    }
+
+    void loadComplaint()
+    return () => {
+      cancelled = true
+    }
+  }, [addSubmittedComplaint, complaint, complaintId])
+
+  if (!complaint && !remoteLoaded) {
+
+    return (
+
+      <PageContainer>
+
+        <EmptyState
+
+          icon={AlertCircle}
+
+          title="Loading complaint"
+
+          description="Fetching the latest complaint record from the backend."
+
+        />
+
+      </PageContainer>
+
+    )
+
+  }
 
 
 

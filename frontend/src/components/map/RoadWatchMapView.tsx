@@ -9,6 +9,7 @@ import { mapRoadMarkers } from '../../data/mapMarkers'
 import { getMergedComplaintMarkers } from '../../lib/complaints/mergedComplaints'
 import { useGeolocation } from '../../hooks/useGeolocation'
 import { fetchLocationIntelligence } from '../../lib/map/locationIntelligence'
+import { fetchComplaints } from '../../lib/api/complaints'
 import {
   INDIA_MAP_MAX_BOUNDS,
   MAP_MAX_BOUNDS_VISCOSITY,
@@ -21,7 +22,7 @@ import {
 } from '../../lib/map/constants'
 import type { MapComplaintMarker } from '../../lib/map/types'
 import type { MockRoad } from '../../data/roads'
-import { useComplaintStore } from '../../stores/complaintStore'
+import { buildStoredSubmittedComplaint, useComplaintStore } from '../../stores/complaintStore'
 import { getInitialMapViewport, useMapStore } from '../../stores/mapStore'
 import { MapClickHandler } from './MapClickHandler'
 import { MapDetailOverlay } from './MapDetailOverlay'
@@ -43,6 +44,7 @@ export type RoadWatchMapViewProps = {
 
 export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapViewProps) {
   const submittedComplaints = useComplaintStore((state) => state.submittedComplaints)
+  const setSubmittedComplaints = useComplaintStore((state) => state.setSubmittedComplaints)
   const complaintPickMode = useComplaintStore((state) => state.complaintPickMode)
   const locationPickPending = useComplaintStore((state) => state.locationPickPending)
   const cancelLocationPick = useComplaintStore((state) => state.cancelLocationPick)
@@ -50,6 +52,26 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
     () => getMergedComplaintMarkers(submittedComplaints),
     [submittedComplaints],
   )
+
+  useEffect(() => {
+    if (mode !== 'expanded') return
+    let cancelled = false
+
+    async function loadComplaints() {
+      try {
+        const complaints = await fetchComplaints()
+        if (cancelled) return
+        setSubmittedComplaints(complaints.map((complaint) => buildStoredSubmittedComplaint(complaint)))
+      } catch {
+        // Keep existing mock/local markers if the API is unavailable.
+      }
+    }
+
+    void loadComplaints()
+    return () => {
+      cancelled = true
+    }
+  }, [mode, setSubmittedComplaints])
 
   const filter = useMapStore((state) => state.filter)
   const selection = useMapStore((state) => state.selection)

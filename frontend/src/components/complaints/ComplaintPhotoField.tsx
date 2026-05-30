@@ -1,5 +1,5 @@
 import { Camera, ImagePlus, X } from 'lucide-react'
-import { useId, useRef } from 'react'
+import { useId, useRef, useState } from 'react'
 import { Button } from '../common/Button'
 import { Label } from '../common/Label'
 
@@ -9,20 +9,31 @@ export type ComplaintPhotoFieldProps = {
   onChange: (previewUrl: string | null, file: File | null) => void
 }
 
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024
+const SUPPORTED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+
 export function ComplaintPhotoField({ label, previewUrl, onChange }: ComplaintPhotoFieldProps) {
   const galleryInputId = useId()
   const cameraInputId = useId()
   const galleryInputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const handleFile = (fileList: FileList | null) => {
     const file = fileList?.[0]
     if (!file) return
 
-    if (!file.type.startsWith('image/')) {
+    if (!SUPPORTED_IMAGE_TYPES.has(file.type)) {
+      setError('Use a JPEG, PNG, WebP, or GIF image.')
       return
     }
 
+    if (file.size > MAX_IMAGE_BYTES) {
+      setError('Image must be 10 MB or smaller.')
+      return
+    }
+
+    setError(null)
     const reader = new FileReader()
     reader.onload = () => {
       const result = typeof reader.result === 'string' ? reader.result : null
@@ -32,6 +43,7 @@ export function ComplaintPhotoField({ label, previewUrl, onChange }: ComplaintPh
   }
 
   const clearPhoto = () => {
+    setError(null)
     onChange(null, null)
     if (galleryInputRef.current) galleryInputRef.current.value = ''
     if (cameraInputRef.current) cameraInputRef.current.value = ''
@@ -89,6 +101,8 @@ export function ComplaintPhotoField({ label, previewUrl, onChange }: ComplaintPh
           Attach a photo from your gallery or capture one with your camera.
         </p>
       )}
+
+      {error ? <p className="text-xs text-[var(--rw-danger)]">{error}</p> : null}
     </div>
   )
 }

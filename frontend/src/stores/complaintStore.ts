@@ -80,6 +80,7 @@ type ComplaintStoreState = {
       photoDataUrl?: string
     },
   ) => void
+  setSubmittedComplaints: (complaints: StoredSubmittedComplaint[]) => void
   findSubmittedByComplaintId: (complaintId: string) => ComplaintLookupRecord | null
   requestComplaintLocationPick: () => void
   completeLocationPick: (
@@ -146,20 +147,20 @@ export function buildStoredSubmittedComplaint(
     photoDataUrl?: string
   },
 ): StoredSubmittedComplaint {
-  const submittedAt = new Date().toISOString()
+  const submittedAt = result.createdAt ?? new Date().toISOString()
   const reportedAt = formatDisplayDate(submittedAt)
   const updatedAt = formatDisplayDate(result.updatedAt ?? submittedAt)
-  const locationLabel = context?.locationLabel
-  const city = context?.city ?? 'Unknown City'
-  const state = context?.state ?? 'Unknown State'
-  const roadName = context?.roadName ?? locationLabel
+  const locationLabel = context?.locationLabel ?? result.locationLabel
+  const city = context?.city ?? result.city ?? 'Unknown City'
+  const state = context?.state ?? result.state ?? 'Unknown State'
+  const roadName = context?.roadName ?? result.roadName ?? locationLabel
   const title = roadName
     ? `${result.issueType} — ${roadName}`
     : `${result.issueType} report`
 
   const marker: MapComplaintMarker = {
     id: result.id,
-    roadId: context?.roadId ?? `submitted-${result.id}`,
+    roadId: context?.roadId ?? result.roadId ?? `submitted-${result.id}`,
     lat: result.latitude,
     lng: result.longitude,
     title,
@@ -209,7 +210,7 @@ export function buildStoredSubmittedComplaint(
     city,
     state,
     locationLabel,
-    photoDataUrl: context?.photoDataUrl,
+    photoDataUrl: context?.photoDataUrl ?? result.photoUrl,
   }
 }
 
@@ -276,6 +277,11 @@ export const useComplaintStore = create<ComplaintStoreState>()(
           ],
         })),
 
+      setSubmittedComplaints: (complaints) =>
+        set({
+          submittedComplaints: complaints,
+        }),
+
       findSubmittedByComplaintId: (complaintId) => {
         const normalized = complaintId.trim().toUpperCase()
         const match = get().submittedComplaints.find(
@@ -302,8 +308,7 @@ export const useComplaintStore = create<ComplaintStoreState>()(
     {
       name: 'rw-complaint-workflow',
       partialize: (state) => ({
-        draft: state.draft,
-        submittedComplaints: state.submittedComplaints,
+        draft: state.draft ? { ...state.draft, photoDataUrl: undefined } : null,
       }),
     },
   ),

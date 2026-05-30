@@ -275,6 +275,20 @@ function stateComplaintSeverity(
   return undefined
 }
 
+function formatComplaintStatus(status: string): string {
+  return status
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+function isComplaintResolved(status: string, resolutionStatus?: string): boolean {
+  return (
+    status.toLowerCase() === 'resolved' ||
+    resolutionStatus?.toLowerCase() === 'resolved'
+  )
+}
+
 function buildRtiDraft(_authority: string, contextTitle: string, contextDetails: Array<readonly [string, string]>) {
   const details = contextDetails
     .filter(([, value]) => value && !['Unknown', 'Not Available', 'No Data'].includes(value))
@@ -666,6 +680,8 @@ export default function AssistantPage() {
       ...(activeComplaint ? ['', buildComplaintContextBlock(activeComplaint)] : []),
       '',
       'Rules:',
+      'Answer the user question first in natural language.',
+      'Use context as supporting evidence; never dump raw database fields as the main answer.',
       'Prioritize the selected road, complaint, or location before answering.',
       'If a value is unknown, say Unknown, Not Available, or No Data.',
       'Explain app navigation using the actual CrashZero navigation paths.',
@@ -713,20 +729,43 @@ export default function AssistantPage() {
       const locationLine =
         activeComplaint.locationLabel ??
         [activeComplaint.city, activeComplaint.state].filter(Boolean).join(', ')
+      const issue = activeComplaint.issueType || 'road issue'
+      const place = locationLine || activeComplaint.roadName || 'the selected location'
+      const status = formatComplaintStatus(activeComplaint.status || 'pending')
+      const resolved = isComplaintResolved(
+        activeComplaint.status || 'pending',
+        activeComplaint.resolutionStatus,
+      )
+
+      if (/who is responsible|who handles|authority|responsible/i.test(normalized)) {
+        return [
+          `This complaint is assigned to ${activeComplaint.assignedAuthority || 'the responsible road authority'}.`,
+          activeComplaint.assignedDepartment
+            ? `The handling department is ${activeComplaint.assignedDepartment}.`
+            : 'The specific department is not available in the complaint record.',
+        ].join('\n')
+      }
+
+      if (/what is this issue about|is it resolved|resolved|about this|this issue/i.test(normalized)) {
+        return [
+          `This complaint reports ${issue} near ${place}.`,
+          '',
+          resolved
+            ? `Current status is ${status}, meaning it has been marked resolved.`
+            : `Current status is ${status}, meaning it has not yet been resolved.`,
+          activeComplaint.assignedAuthority
+            ? `It is assigned to ${activeComplaint.assignedAuthority}.`
+            : 'The responsible authority is not available in the complaint record.',
+        ].join('\n')
+      }
+
       return [
-        `${activeComplaint.title} is linked to ${activeComplaint.roadName ?? 'Unknown road'}.`,
+        `This complaint reports ${issue} near ${place}.`,
         '',
         `Complaint ID: ${activeComplaint.referenceId}`,
-        `Issue type: ${activeComplaint.issueType || 'Unknown'}`,
-        `Description: ${activeComplaint.description || 'Not Available'}`,
-        `Coordinates: ${formatCoord(activeComplaint.lat)}, ${formatCoord(activeComplaint.lng)}`,
-        `Location: ${locationLine || 'Not Available'}`,
         `Authority: ${activeComplaint.assignedAuthority || 'Unknown'}`,
+        `Status: ${status}`,
         `Severity: ${activeComplaint.severity || 'Unknown'}`,
-        `Status: ${activeComplaint.status || 'Unknown'}`,
-        `Resolution: ${activeComplaint.resolutionStatus || 'Not Available'}`,
-        `Reported at: ${activeComplaint.reportedAt || 'Not Available'}`,
-        `Updated at: ${activeComplaint.updatedAt || 'Not Available'}`,
       ].join('\n')
     }
 

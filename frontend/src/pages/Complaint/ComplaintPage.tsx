@@ -327,6 +327,9 @@ export default function ComplaintPage() {
         description: description.trim(),
         lat,
         lng,
+        locationLabel: locationLabel || undefined,
+        city: city || undefined,
+        state: stateName || undefined,
         photoUrl: photoPreview ?? undefined,
       })
 

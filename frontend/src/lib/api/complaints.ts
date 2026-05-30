@@ -58,6 +58,9 @@ export type SubmitComplaintInput = {
   description: string
   lat: number
   lng: number
+  locationLabel?: string
+  city?: string
+  state?: string
   photoUrl?: string
   userId?: string
 }
@@ -74,6 +77,13 @@ export type ComplaintRoutingResult = {
   status: string
   latitude: number
   longitude: number
+  locationLabel?: string
+  city?: string
+  state?: string
+  roadId?: string
+  roadName?: string
+  photoUrl?: string
+  createdAt?: string
   updatedAt?: string
 }
 
@@ -105,6 +115,11 @@ export async function submitComplaint(
       status: 'ROUTED',
       latitude: input.lat,
       longitude: input.lng,
+      locationLabel: input.locationLabel,
+      city: input.city,
+      state: input.state,
+      photoUrl: input.photoUrl,
+      createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     })
   }
@@ -117,36 +132,66 @@ export async function submitComplaint(
       description: input.description,
       lat: input.lat,
       lng: input.lng,
+      locationLabel: input.locationLabel,
+      city: input.city,
+      state: input.state,
       photoUrl: input.photoUrl,
       userId: input.userId,
     })
 
-    return {
-      id: data.id,
-      complaintId: data.complaintId ?? '',
-      roadType: (data.roadType ?? input.roadType) as RoadType,
-      issueType: data.issueType,
-      assignedAuthority: data.assignedAuthority ?? '',
-      assignedDepartment: data.assignedDepartment ?? '',
-      severity: data.severity,
-      description: data.description,
-      status: data.status,
-      latitude: data.latitude,
-      longitude: data.longitude,
-      updatedAt: data.updatedAt,
-    }
+    return mapApiComplaintToRoutingResult(data, input)
   } catch (error) {
     throw normalizeApiError(error)
   }
 }
 
 type ApiComplaintRecord = {
+  id?: string
   complaintId?: string | null
+  roadType?: string | null
+  issueType?: string
+  severity?: string
+  description?: string
   status?: string
+  latitude?: number
+  longitude?: number
+  locationLabel?: string | null
+  city?: string | null
+  state?: string | null
   assignedAuthority?: string | null
   assignedDepartment?: string | null
+  roadId?: string | null
+  road?: { id?: string; name?: string; type?: string } | null
+  photoUrl?: string | null
   updatedAt?: string
   createdAt?: string
+}
+
+function mapApiComplaintToRoutingResult(
+  record: ApiComplaintRecord,
+  fallback?: Partial<SubmitComplaintInput>,
+): ComplaintRoutingResult {
+  return {
+    id: record.id ?? record.complaintId ?? '',
+    complaintId: record.complaintId ?? record.id ?? '',
+    roadType: (record.roadType ?? fallback?.roadType ?? 'NH') as RoadType,
+    issueType: record.issueType ?? fallback?.issueType ?? 'Other',
+    assignedAuthority: record.assignedAuthority ?? '',
+    assignedDepartment: record.assignedDepartment ?? '',
+    severity: record.severity ?? fallback?.severity ?? 'medium',
+    description: record.description ?? fallback?.description ?? '',
+    status: record.status ?? 'PENDING',
+    latitude: record.latitude ?? fallback?.lat ?? 0,
+    longitude: record.longitude ?? fallback?.lng ?? 0,
+    locationLabel: record.locationLabel ?? fallback?.locationLabel,
+    city: record.city ?? fallback?.city,
+    state: record.state ?? fallback?.state,
+    roadId: record.roadId ?? record.road?.id,
+    roadName: record.road?.name ?? record.locationLabel ?? undefined,
+    photoUrl: record.photoUrl ?? fallback?.photoUrl,
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
+  }
 }
 
 function mapApiComplaintToLookup(record: ApiComplaintRecord): ComplaintLookupResult | null {
@@ -182,6 +227,82 @@ export async function lookupComplaint(
     if (normalizeApiError(error).status === 404) {
       return null
     }
+    throw normalizeApiError(error)
+  }
+}
+
+export async function fetchComplaints(): Promise<ComplaintRoutingResult[]> {
+  if (useMockData) {
+    return mockDelay(
+      mockComplaintRecords.map((record) => ({
+        id: record.id,
+        complaintId: record.referenceId,
+        roadType: (record.roadType ?? 'NH') as RoadType,
+        issueType: record.issueType ?? 'Other',
+        assignedAuthority: record.assignedAuthority,
+        assignedDepartment: record.assignedDepartment,
+        severity: record.severity ?? 'medium',
+        description: record.description ?? '',
+        status: record.status,
+        latitude: record.lat,
+        longitude: record.lng,
+        city: record.city,
+        state: 'Tamil Nadu',
+        roadId: record.roadId,
+        roadName: record.roadName,
+        createdAt: record.reportedAt,
+        updatedAt: record.updatedAt,
+      })),
+    )
+  }
+
+  try {
+    const { data } = await apiClient.get<ApiComplaintRecord[]>('/api/complaints')
+    return data.map((record) => mapApiComplaintToRoutingResult(record))
+  } catch (error) {
+    throw normalizeApiError(error)
+  }
+}
+
+export async function fetchComplaintById(
+  complaintId: string,
+): Promise<ComplaintRoutingResult | null> {
+  if (useMockData) {
+    const record = mockComplaintRecords.find(
+      (complaint) =>
+        complaint.id.toUpperCase() === complaintId.toUpperCase() ||
+        complaint.referenceId.toUpperCase() === complaintId.toUpperCase(),
+    )
+    return record
+      ? {
+          id: record.id,
+          complaintId: record.referenceId,
+          roadType: (record.roadType ?? 'NH') as RoadType,
+          issueType: record.issueType ?? 'Other',
+          assignedAuthority: record.assignedAuthority,
+          assignedDepartment: record.assignedDepartment,
+          severity: record.severity ?? 'medium',
+          description: record.description ?? '',
+          status: record.status,
+          latitude: record.lat,
+          longitude: record.lng,
+          city: record.city,
+          state: 'Tamil Nadu',
+          roadId: record.roadId,
+          roadName: record.roadName,
+          createdAt: record.reportedAt,
+          updatedAt: record.updatedAt,
+        }
+      : null
+  }
+
+  try {
+    const { data } = await apiClient.get<ApiComplaintRecord>(
+      `/api/complaints/${encodeURIComponent(complaintId)}`,
+    )
+    return mapApiComplaintToRoutingResult(data)
+  } catch (error) {
+    if (normalizeApiError(error).status === 404) return null
     throw normalizeApiError(error)
   }
 }

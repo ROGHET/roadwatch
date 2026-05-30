@@ -13,9 +13,11 @@ console.log("API KEY FOUND:", !!process.env.GEMINI_API_KEY);
 
 const app = express();
 const port = process.env.PORT || 3000;
+const payloadLimit = '15mb';
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: payloadLimit }));
+app.use(express.urlencoded({ extended: true, limit: payloadLimit }));
 
 app.use('/api/complaints', complaintsRouter);
 app.use('/api/roads', roadsRouter);
@@ -29,6 +31,23 @@ app.get('/health', (req, res) => {
     service: 'CrashZero API'
   });
 });
+
+app.use(
+  (
+    error: Error & { type?: string; status?: number },
+    _req: express.Request,
+    res: express.Response,
+    next: express.NextFunction,
+  ) => {
+    if (error.type === 'entity.too.large' || error.status === 413) {
+      return res.status(413).json({
+        error: 'Uploaded image is too large. Please attach an image up to 10 MB.',
+      });
+    }
+
+    next(error);
+  },
+);
 
 app.listen(port, () => {
   console.log(`Server listening on port ${port}`);

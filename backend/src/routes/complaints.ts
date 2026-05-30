@@ -7,7 +7,8 @@ import { autoRouteComplaint } from '../services/routing';
 const router = Router();
 const prisma = new PrismaClient();
 
-const DEMO_USER_EMAIL = 'citizen@example.com';
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const SUPPORTED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 
 const ISSUE_TYPES = [
   'Pothole',
@@ -19,33 +20,46 @@ const ISSUE_TYPES = [
   'Other',
 ] as const;
 
-async function resolveUserId(userId: string | undefined): Promise<string> {
-  if (userId) {
-    return userId;
+function validatePhotoUrl(photoUrl: unknown): { ok: true } | { ok: false; status: number; error: string } {
+  if (photoUrl == null || photoUrl === '') {
+    return { ok: true };
   }
 
-  const demoUser = await prisma.user.findUnique({
-    where: { email: DEMO_USER_EMAIL },
-    select: { id: true },
-  });
-
-  if (!demoUser) {
-    throw new Error('DEMO_USER_NOT_FOUND');
+  if (typeof photoUrl !== 'string') {
+    return { ok: false, status: 400, error: 'photoUrl must be a data URL string.' };
   }
 
-  return demoUser.id;
+  const match = photoUrl.match(/^data:([^;]+);base64,(.+)$/);
+  if (!match) {
+    return { ok: false, status: 400, error: 'Photo must be uploaded as a base64 image data URL.' };
+  }
+
+  const [, mimeType, base64] = match;
+  if (!SUPPORTED_IMAGE_TYPES.has(mimeType)) {
+    return { ok: false, status: 400, error: 'Unsupported image type. Use JPEG, PNG, WebP, or GIF.' };
+  }
+
+  const padding = base64.endsWith('==') ? 2 : base64.endsWith('=') ? 1 : 0;
+  const byteLength = Math.floor((base64.length * 3) / 4) - padding;
+  if (byteLength > MAX_IMAGE_BYTES) {
+    return { ok: false, status: 413, error: 'Uploaded image is too large. Please attach an image up to 10 MB.' };
+  }
+
+  return { ok: true };
 }
 
 router.post('/', async (req, res) => {
   try {
     const {
-      userId,
       roadType,
       issueType,
       severity,
       description,
       lat,
       lng,
+      locationLabel,
+      city,
+      state,
       photoUrl,
     } = req.body;
 
@@ -61,18 +75,22 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'severity, description, lat, and lng are required' });
     }
 
+    const photoValidation = validatePhotoUrl(photoUrl);
+    if (photoValidation.ok === false) {
+      return res.status(photoValidation.status).json({ error: photoValidation.error });
+    }
+
     const routing = resolveAuthorityRouting(roadType);
     if (!routing) {
       return res.status(400).json({ error: 'Unable to route complaint for road type' });
     }
 
-    const resolvedUserId = await resolveUserId(userId);
     const complaintId = await generateComplaintId(prisma);
 
     const complaint = await prisma.complaint.create({
       data: {
         complaintId,
-        userId: resolvedUserId,
+        userId: null,
         roadType,
         issueType,
         assignedAuthority: routing.assignedAuthority,
@@ -81,6 +99,9 @@ router.post('/', async (req, res) => {
         description,
         latitude: lat,
         longitude: lng,
+        locationLabel,
+        city,
+        state,
         photoUrl,
         status: 'ROUTED',
       },
@@ -90,14 +111,10 @@ router.post('/', async (req, res) => {
 
     const updatedComplaint = await prisma.complaint.findUnique({
       where: { id: complaint.id },
-      include: { authority: true, road: true },
     });
 
     res.status(201).json(updatedComplaint);
   } catch (error) {
-    if (error instanceof Error && error.message === 'DEMO_USER_NOT_FOUND') {
-      return res.status(500).json({ error: 'Demo user not found. Run database seed.' });
-    }
     console.error('Create complaint error:', error);
     res.status(500).json({ error: 'Failed to submit complaint' });
   }
@@ -106,10 +123,6 @@ router.post('/', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const complaints = await prisma.complaint.findMany({
-      include: {
-        authority: true,
-        road: true,
-      },
       orderBy: { createdAt: 'desc' },
     });
     res.json(complaints);
@@ -124,7 +137,6 @@ router.get('/:id', async (req, res) => {
       where: {
         OR: [{ id: req.params.id }, { complaintId: req.params.id }],
       },
-      include: { authority: true, road: true },
     });
 
     if (!complaint) {
