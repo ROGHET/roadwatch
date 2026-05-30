@@ -4,11 +4,11 @@ import { StitchSectionHeader } from '../../components/stitch'
 import { fadeInUp } from '../../lib/motion'
 import { useSettingsStore, type FontSize, type Language } from '../../stores/settingsStore'
 import { useThemeStore, type ThemePreference } from '../../providers/ThemeProvider'
-import { useI18n } from '../../lib/i18n'
+import { useI18n, type TranslationKey } from '../../lib/i18n'
 
 type Option<T> = { value: T; label: string }
 
-function getFontOptions(t: (key: any) => string): Option<FontSize>[] {
+function getFontOptions(t: (key: TranslationKey) => string): Option<FontSize>[] {
   return [
     { value: 'small', label: t('smallFont') },
     { value: 'medium', label: t('mediumFont') },
@@ -16,14 +16,14 @@ function getFontOptions(t: (key: any) => string): Option<FontSize>[] {
   ]
 }
 
-function getLanguageOptions(t: (key: any) => string): Option<Language>[] {
+function getLanguageOptions(): Option<Language>[] {
   return [
     { value: 'en', label: 'English' },
     { value: 'hi', label: 'हिंदी (Hindi)' },
   ]
 }
 
-function getThemeOptions(t: (key: any) => string): Option<ThemePreference>[] {
+function getThemeOptions(t: (key: TranslationKey) => string): Option<ThemePreference>[] {
   return [
     { value: 'light', label: t('lightTheme') },
     { value: 'dark', label: t('darkTheme') },
@@ -44,8 +44,10 @@ function SettingsGroup<T extends string>({
 }) {
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="text-sm font-semibold text-[var(--st-on-surface-variant)] uppercase tracking-wider">{title}</h3>
-      <div className="rw-glass-panel rw-glass-edge rounded-2xl overflow-hidden shadow-[var(--st-shadow-glass)] flex flex-col">
+      <h3 className="text-sm font-semibold uppercase tracking-wider text-[var(--st-on-surface-variant)]">
+        {title}
+      </h3>
+      <div className="rw-glass-panel rw-glass-edge flex flex-col overflow-hidden rounded-2xl shadow-[var(--st-shadow-glass)]">
         {options.map((opt) => (
           <button
             key={opt.value}
@@ -53,7 +55,7 @@ function SettingsGroup<T extends string>({
             onClick={() => onChange(opt.value)}
             className="flex items-center justify-between border-b border-[var(--st-outline-white)] p-4 text-left transition-colors last:border-b-0 hover:bg-[var(--rw-surface-muted)]"
           >
-            <span className="text-[var(--st-on-surface)] font-medium">{opt.label}</span>
+            <span className="font-medium text-[var(--st-on-surface)]">{opt.label}</span>
             {currentValue === opt.value ? (
               <Check className="size-5 text-[var(--st-primary)]" aria-hidden="true" />
             ) : null}
@@ -66,19 +68,20 @@ function SettingsGroup<T extends string>({
 
 export default function SettingsPage() {
   const prefersReducedMotion = useReducedMotion()
-  
   const fontSize = useSettingsStore((state) => state.fontSize)
   const setFontSize = useSettingsStore((state) => state.setFontSize)
-  
   const language = useSettingsStore((state) => state.language)
   const setLanguage = useSettingsStore((state) => state.setLanguage)
-  
   const theme = useThemeStore((state) => state.theme)
   const setTheme = useThemeStore((state) => state.setTheme)
-  const { t } = useI18n()
+  const i18n = useI18n()
+
+  const fontOptions = getFontOptions(i18n.t)
+  const themeOptions = getThemeOptions(i18n.t)
+  const languageOptions = getLanguageOptions()
 
   return (
-    <div className="flex flex-col gap-[var(--st-stack-lg)] pb-28 pt-2 md:pb-8 max-w-2xl mx-auto">
+    <div className="mx-auto flex max-w-2xl flex-col gap-[var(--st-stack-lg)] pb-28 pt-2 md:pb-8">
       <motion.section
         className="flex flex-col gap-[var(--st-stack-md)]"
         variants={prefersReducedMotion ? undefined : fadeInUp}
@@ -86,29 +89,29 @@ export default function SettingsPage() {
         animate={prefersReducedMotion ? undefined : 'visible'}
       >
         <StitchSectionHeader
-          eyebrow={t('preferences')}
-          title={t('settings')}
-          description={t('settingsDescription')}
+          eyebrow={i18n.t('preferences')}
+          title={i18n.t('settings')}
+          description={i18n.t('settingsDescription')}
         />
-        
-        <div className="flex flex-col gap-8 mt-4">
+
+        <div className="mt-4 flex flex-col gap-8">
           <SettingsGroup
-            title={t('theme')}
-            options={getThemeOptions(t)}
+            title={i18n.t('theme')}
+            options={themeOptions}
             currentValue={theme}
             onChange={setTheme}
           />
 
           <SettingsGroup
-            title={t('accessibility')}
-            options={getFontOptions(t)}
+            title={i18n.t('accessibility')}
+            options={fontOptions}
             currentValue={fontSize}
             onChange={setFontSize}
           />
 
           <SettingsGroup
-            title={t('language')}
-            options={getLanguageOptions(t)}
+            title={i18n.t('language')}
+            options={languageOptions}
             currentValue={language}
             onChange={setLanguage}
           />

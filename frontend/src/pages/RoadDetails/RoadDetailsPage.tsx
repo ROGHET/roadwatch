@@ -1,4 +1,5 @@
 import { useParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { AlertCircle } from 'lucide-react'
 import { Alert } from '../../components/common/Alert'
 import { EmptyState } from '../../components/common/EmptyState'
@@ -10,10 +11,12 @@ import { DashboardSection } from '../../components/dashboard/DashboardSection'
 import { ComplaintListSection } from '../../components/complaints/ComplaintListSection'
 import { RoadSummaryCard } from '../../components/road/RoadSummaryCard'
 import { complaintsByRoadId } from '../../data/complaints'
+import { routes } from '../../lib/routes'
 import { useRoad } from '../../hooks/useRoad'
 
 export default function RoadDetailsPage() {
   const { roadId } = useParams()
+  const navigate = useNavigate()
   const { data: road, isPending, isError } = useRoad(roadId)
 
   if (isPending) {
@@ -96,6 +99,7 @@ export default function RoadDetailsPage() {
         title="Complaint History"
         description={`Issues reported on ${roadName}.`}
         items={roadComplaints}
+        onItemClick={(item) => navigate(routes.complaintDetail(item.id))}
         emptyTitle="No complaints for this road"
         emptyDescription="No citizen reports have been filed for this corridor yet."
       />

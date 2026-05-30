@@ -5,10 +5,35 @@ import { fadeInUp, springSnappy } from '../../lib/motion'
 import type { RoutePreviewSnapshot } from '../../lib/map/providers/types'
 import { useI18n } from '../../lib/i18n'
 
+type Coordinates = { lat: number; lng: number }
+
+function estimateRoute(origin: Coordinates | null, destination: Coordinates | null) {
+  if (!origin || !destination) return null
+  const toRad = (value: number) => (value * Math.PI) / 180
+  const radiusKm = 6371
+  const dLat = toRad(destination.lat - origin.lat)
+  const dLng = toRad(destination.lng - origin.lng)
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(origin.lat)) *
+      Math.cos(toRad(destination.lat)) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2)
+  const straightLineKm = radiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  const distanceKm = straightLineKm * 1.25
+  const travelTimeMinutes = Math.max(1, Math.round((distanceKm / 35) * 60))
+
+  return {
+    distanceKm,
+    travelTimeMinutes,
+  }
+}
+
 export type RoutePreviewSheetProps = {
   open: boolean
   loading: boolean
   route: RoutePreviewSnapshot | null
+  origin: { lat: number; lng: number } | null
   destination: { lat: number; lng: number } | null
   destinationLabel: string
   onClose: () => void
@@ -19,6 +44,7 @@ export function RoutePreviewSheet({
   open,
   loading,
   route,
+  origin,
   destination,
   destinationLabel,
   onClose,
@@ -26,6 +52,8 @@ export function RoutePreviewSheet({
 }: RoutePreviewSheetProps) {
   const prefersReducedMotion = useReducedMotion()
   const { t } = useI18n()
+  const hasRealRoute = Boolean(route && route.path.length > 1 && route.distanceKm > 0 && route.travelTimeMinutes > 0 && route.source !== 'Unavailable')
+  const estimatedRoute = hasRealRoute ? null : estimateRoute(origin, destination)
   const destinationText = destination
     ? `${destination.lat.toFixed(3)}, ${destination.lng.toFixed(3)}`
     : destinationLabel
@@ -80,12 +108,16 @@ export function RoutePreviewSheet({
               <div className="rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-3">
                 <p className="text-xs text-[var(--rw-text-tertiary)]">{t('status')}</p>
                 <p className="mt-1 text-sm font-semibold text-[var(--rw-text-primary)]">
-                  {loading ? t('calculatingRoute') : route ? t('readyToPreview') : t('waitingForRouteData')}
+                  {loading
+                    ? t('calculatingRoute')
+                    : hasRealRoute
+                      ? t('readyToPreview')
+                      : 'Destination preview only.'}
                 </p>
               </div>
             </div>
 
-            {route ? (
+            {hasRealRoute && route ? (
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-3">
                   <div className="flex items-center gap-2 text-xs text-[var(--rw-text-tertiary)]">
@@ -112,6 +144,27 @@ export function RoutePreviewSheet({
                   </p>
                 </div>
               </div>
+            ) : estimatedRoute ? (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-3">
+                  <div className="flex items-center gap-2 text-xs text-[var(--rw-text-tertiary)]">
+                    <Route className="size-3.5" aria-hidden="true" />
+                    Estimated Distance
+                  </div>
+                  <p className="mt-2 text-lg font-semibold text-[var(--rw-text-primary)]">
+                    {estimatedRoute.distanceKm.toFixed(1)} km
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-3">
+                  <div className="flex items-center gap-2 text-xs text-[var(--rw-text-tertiary)]">
+                    <Clock3 className="size-3.5" aria-hidden="true" />
+                    Estimated Travel Time
+                  </div>
+                  <p className="mt-2 text-lg font-semibold text-[var(--rw-text-primary)]">
+                    {estimatedRoute.travelTimeMinutes} min
+                  </p>
+                </div>
+              </div>
             ) : null}
 
             <div className="rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-3">
@@ -122,7 +175,9 @@ export function RoutePreviewSheet({
               <p className="mt-2 text-sm leading-6 text-[var(--rw-text-secondary)]">
                 {loading
                   ? t('preparingRoutePreview')
-                  : route?.overview ?? t('routeOverviewWillAppearHere')}
+                  : hasRealRoute && route
+                    ? route.overview
+                    : 'Open in Google Maps to navigate to this location.'}
               </p>
             </div>
 
@@ -132,7 +187,7 @@ export function RoutePreviewSheet({
                 {t('routeInstructions')}
               </div>
               <ol className="mt-3 space-y-2 text-sm text-[var(--rw-text-secondary)]">
-                {route?.instructions?.length ? (
+                {hasRealRoute && route?.instructions?.length ? (
                   route.instructions.map((instruction, index) => (
                     <li key={`${instruction}-${index}`} className="flex gap-2">
                       <span className="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--rw-surface)] text-[10px] font-semibold text-[var(--rw-text-primary)]">
@@ -143,7 +198,7 @@ export function RoutePreviewSheet({
                   ))
                 ) : (
                   <li className="text-[var(--rw-text-tertiary)]">
-                    {t('turnByTurnWillAppearHere')}
+                    Use the Google Maps action for turn-by-turn navigation.
                   </li>
                 )}
               </ol>

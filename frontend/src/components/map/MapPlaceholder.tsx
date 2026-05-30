@@ -31,7 +31,7 @@ export function MapPlaceholder({
         className,
       )}
       role="img"
-      aria-label={title}
+      aria-label={displayTitle}
       variants={prefersReducedMotion ? undefined : fadeInUp}
       initial={prefersReducedMotion ? false : 'hidden'}
       whileInView={prefersReducedMotion ? undefined : 'visible'}
@@ -46,8 +46,8 @@ export function MapPlaceholder({
         <Map className="size-7 text-[var(--rw-text-secondary)]" />
       </motion.div>
       <div className="flex max-w-sm flex-col gap-1">
-        <p className="text-sm font-semibold text-[var(--rw-text-primary)]">{title}</p>
-        <p className="text-sm text-[var(--rw-text-secondary)]">{description}</p>
+        <p className="text-sm font-semibold text-[var(--rw-text-primary)]">{displayTitle}</p>
+        <p className="text-sm text-[var(--rw-text-secondary)]">{displayDescription}</p>
       </div>
     </motion.div>
   )

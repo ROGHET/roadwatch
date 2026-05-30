@@ -129,7 +129,7 @@ const lightColors: SemanticColors = {
   warningForeground: colorPalette.warning[700],
   danger: colorPalette.danger[600],
   dangerSubtle: colorPalette.danger[50],
-  dangerForeground: colorPalette.danger[700],
+  dangerForeground: colorPalette.neutral[0],
   info: colorPalette.info[600],
   infoSubtle: colorPalette.info[50],
   infoForeground: colorPalette.info[700],

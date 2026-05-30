@@ -17,7 +17,7 @@ const buttonVariants = cva(
         ghost:
           'bg-transparent text-[var(--rw-text-primary)] hover:bg-[var(--rw-surface-muted)]',
         danger:
-          'bg-[var(--rw-danger)] text-white hover:opacity-90 shadow-sm',
+          'bg-[var(--rw-danger)] text-[var(--rw-danger-foreground)] hover:opacity-90 shadow-sm',
       },
       size: {
         sm: 'h-[var(--rw-button-height-sm)] px-[var(--rw-button-padding-sm)] text-sm',

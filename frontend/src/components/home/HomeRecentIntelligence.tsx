@@ -1,7 +1,9 @@
 import { AlertTriangle, LightbulbOff, Sparkles } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { mockComplaintSummaries } from '../../data/complaints'
 import { GlassPanel, StitchSectionHeader } from '../stitch'
 import { useI18n } from '../../lib/i18n'
+import { routes } from '../../lib/routes'
 
 const toneBySeverity = {
   critical: {
@@ -33,6 +35,7 @@ const toneBySeverity = {
 export function HomeRecentIntelligence() {
   const items = mockComplaintSummaries.slice(0, 3)
   const { t } = useI18n()
+  const navigate = useNavigate()
 
   return (
     <section className="flex flex-col gap-[var(--st-stack-sm)]">
@@ -43,22 +46,26 @@ export function HomeRecentIntelligence() {
           const Icon = tone.Icon
 
           return (
-            <GlassPanel
+            <button
               key={item.id}
-              className={`flex items-start gap-4 rounded-2xl border-l-4 p-4 ${tone.border}`}
+              type="button"
+              onClick={() => navigate(routes.complaintDetail(item.id))}
+              className="text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rw-ring)]"
             >
-              <div className={`rounded-xl p-2 ${tone.iconWrap}`}>
-                <Icon className={`size-5 ${tone.icon}`} aria-hidden="true" />
-              </div>
-              <div className="flex min-w-0 flex-col">
-                <span className="text-[15px] font-semibold text-[var(--st-on-surface)]">
-                  {item.title}
-                </span>
-                <span className="rw-type-metadata mt-1 text-[var(--st-on-surface-variant)]">
-                  {item.roadName ?? t('monitoredCorridor')} • {item.reportedAt}
-                </span>
-              </div>
-            </GlassPanel>
+              <GlassPanel className={`flex items-start gap-4 rounded-2xl border-l-4 p-4 ${tone.border}`}>
+                <div className={`rounded-xl p-2 ${tone.iconWrap}`}>
+                  <Icon className={`size-5 ${tone.icon}`} aria-hidden="true" />
+                </div>
+                <div className="flex min-w-0 flex-col">
+                  <span className="text-[15px] font-semibold text-[var(--st-on-surface)]">
+                    {item.title}
+                  </span>
+                  <span className="rw-type-metadata mt-1 text-[var(--st-on-surface-variant)]">
+                    {item.roadName ?? t('monitoredCorridor')} • {item.reportedAt}
+                  </span>
+                </div>
+              </GlassPanel>
+            </button>
           )
         })}
       </div>

@@ -208,6 +208,8 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
         zoomControl={false}
         minZoom={MAP_MIN_ZOOM}
         maxZoom={MAP_MAX_ZOOM}
+        maxBounds={INDIA_MAP_MAX_BOUNDS}
+        maxBoundsViscosity={MAP_MAX_BOUNDS_VISCOSITY}
         worldCopyJump={true}
         attributionControl={mode === 'expanded'}
         scrollWheelZoom={false}
@@ -264,7 +266,7 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
         selection={selection}
         userLocation={userPosition}
         onClose={clearSelection}
-        onZoomToHere={(lat, lng) => focusOn(lat, lng, 18)}
+        onZoomToHere={(lat, lng) => focusOn(lat, lng, ROAD_FOCUS_ZOOM)}
       />
     </div>
   )

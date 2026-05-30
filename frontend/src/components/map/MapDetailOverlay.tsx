@@ -9,7 +9,6 @@ import { complaintsByRoadId } from '../../data/complaints'
 import { getRoadBudget } from '../../data/mapRoadBudget'
 import type { MapDisplayMode } from '../../lib/map/constants'
 import { getRouteProvider } from '../../lib/map/providers/registry'
-import type { RoutePreviewSnapshot } from '../../lib/map/providers/types'
 import type { MapActiveSelection } from '../../lib/map/types'
 import { fadeInUp, springSnappy } from '../../lib/motion'
 import { routes } from '../../lib/routes'
@@ -89,20 +88,13 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
         originLabel: target.originLabel ?? t('selectedMapLocation'),
         destinationLabel,
       })
-      setRoutePreview(preview)
-    } catch {
-      try {
-        const { mockRouteProvider } = await import('../../lib/map/providers/routeProviders')
-        const fallbackPreview: RoutePreviewSnapshot = await mockRouteProvider.getRoutePreview({
-          origin,
-          destination,
-          originLabel: target.originLabel ?? t('selectedMapLocation'),
-          destinationLabel,
-        })
-        setRoutePreview(fallbackPreview)
-      } catch {
+      if (preview.path.length < 2 || preview.distanceKm <= 0 || preview.travelTimeMinutes <= 0 || preview.source === 'Unavailable') {
         setRoutePreview(null)
+      } else {
+        setRoutePreview(preview)
       }
+    } catch {
+      setRoutePreview(null)
     } finally {
       setRouteLoading(false)
     }
@@ -119,7 +111,19 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
     if (selection?.kind === 'road') {
       aiState = { contextType: 'road', roadId: selection.road.id, roadName: selection.road.roadName, latitude: selection.road.lat, longitude: selection.road.lng }
     } else if (selection?.kind === 'complaint') {
-      aiState = { contextType: 'complaint', complaintId: selection.complaint.id, roadId: selection.complaint.roadId, roadName: selection.complaint.roadName, latitude: selection.complaint.lat, longitude: selection.complaint.lng }
+      aiState = {
+        contextType: 'complaint',
+        complaintId: selection.complaint.id,
+        roadId: selection.complaint.roadId,
+        roadName: selection.complaint.roadName,
+        latitude: selection.complaint.lat,
+        longitude: selection.complaint.lng,
+        severity: selection.complaint.severity,
+        status: selection.complaint.status,
+        resolutionStatus: selection.complaint.resolutionStatus,
+        citizenReports: selection.complaint.citizenReports,
+        maintenanceReports: selection.complaint.maintenanceReports,
+      }
     } else if (selection?.kind === 'location') {
       aiState = { contextType: 'location', latitude: selection.lat, longitude: selection.lng }
     }
@@ -160,7 +164,7 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
         />
 
         <motion.div
-          className="pointer-events-auto absolute inset-x-0 bottom-0 z-[500] flex max-h-[min(78dvh,34rem)] flex-col lg:inset-x-auto lg:bottom-auto lg:right-4 lg:top-24 lg:max-h-[calc(100%-7rem)] lg:w-[min(26rem,calc(100vw-2rem))]"
+          className="pointer-events-auto absolute inset-x-0 bottom-0 z-[500] flex max-h-[85vh] flex-col lg:inset-x-auto lg:bottom-auto lg:right-4 lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:w-[min(26rem,calc(100vw-2rem))]"
           role="dialog"
           aria-modal="true"
           variants={prefersReducedMotion ? undefined : fadeInUp}
@@ -169,13 +173,13 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
           exit={prefersReducedMotion ? undefined : 'hidden'}
           transition={prefersReducedMotion ? undefined : springSnappy}
         >
-          <div className="rw-map-glass flex flex-col rounded-t-[1.5rem] shadow-[0_24px_80px_-28px_rgb(0_0_0/0.55)] lg:rounded-[1.5rem]">
+          <div className="rw-map-glass flex flex-col h-full overflow-hidden rounded-t-[1.5rem] shadow-[0_24px_80px_-28px_rgb(0_0_0/0.55)] lg:rounded-[1.5rem]">
               <div
-                className="mx-auto mt-2 h-1 w-10 rounded-full bg-[var(--rw-border-strong)] lg:hidden"
+                className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-[var(--rw-border-strong)] lg:hidden"
                 aria-hidden="true"
               />
 
-              <div className="flex items-start justify-between gap-3 border-b border-[var(--rw-border)] px-4 py-3 lg:px-5">
+              <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[var(--rw-border)] px-4 py-3 lg:px-5">
                 <p className="text-xs font-medium uppercase tracking-wide text-[var(--rw-text-tertiary)]">
                   {selection.kind === 'road'
                     ? t('roadSummary')
@@ -193,7 +197,7 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
                 </button>
               </div>
 
-              <div className="overflow-y-auto px-4 py-4 lg:px-5">
+              <div className="overflow-y-auto flex-1 px-4 py-4 lg:px-5">
                 {selection.kind === 'location' ? (
                   <div className="flex flex-col gap-4">
                     <div>
@@ -282,34 +286,6 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
                         </dd>
                       </div>
                     </dl>
-
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        type="button"
-                        onClick={() =>
-                          openRoutePreview(
-                            { lat: selection.lat, lng: selection.lng },
-                            selection.intelligence.locationName,
-                          )
-                        }
-                      >
-                        <Route className="size-4 mr-2" aria-hidden="true" />
-                        {t('previewRoute')}
-                      </Button>
-                      <Button type="button" variant="outline" onClick={() => navigate(routes.complaint)}>
-                        Report Issue
-                      </Button>
-                      <Button type="button" variant="outline" onClick={handleAskAI}>
-                        <Bot className="size-4 mr-2" aria-hidden="true" />
-                        Ask AI About This Location
-                      </Button>
-                      <Button type="button" variant="outline" onClick={handleZoomToHere}>
-                        Zoom To Here
-                      </Button>
-                      <Button type="button" variant="outline" onClick={handleOpenGoogleMaps}>
-                        {t('openInGoogleMaps')}
-                      </Button>
-                    </div>
                   </div>
                 ) : null}
 
@@ -357,32 +333,6 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
                         </div>
                       ) : null}
                     </dl>
-
-                    <div className="flex flex-wrap gap-2">
-                      <Button type="button" onClick={() => handleMoreDetails(selection.road.id)}>
-                        {t('moreDetails')}
-                      </Button>
-                      <Button type="button" variant="outline" onClick={() => navigate(routes.complaint)}>
-                        File Complaint
-                      </Button>
-                      <Button type="button" variant="outline" onClick={handleAskAI}>
-                        <Bot className="size-4 mr-2" aria-hidden="true" />
-                        Ask AI About This Road
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() =>
-                          openRoutePreview(
-                            { lat: selection.road.lat, lng: selection.road.lng },
-                            selection.road.roadName,
-                          )
-                        }
-                      >
-                        <Route className="size-4 mr-2" aria-hidden="true" />
-                        Preview Route
-                      </Button>
-                    </div>
                   </div>
                 ) : null}
 
@@ -398,52 +348,120 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
                     resolutionStatus={selection.complaint.resolutionStatus}
                     citizenReports={selection.complaint.citizenReports}
                     maintenanceReports={selection.complaint.maintenanceReports}
-                    footer={
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => {
-                            persistForNavigation()
-                            navigate(routes.complaint) // Assuming this is how they "View Complaint" in mock mode
-                          }}
-                        >
-                          View Complaint
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() =>
-                            openRoutePreview(
-                              { lat: selection.complaint.lat, lng: selection.complaint.lng },
-                              selection.complaint.roadName ?? selection.complaint.title,
-                            )
-                          }
-                        >
-                          <Route className="size-4 mr-2" aria-hidden="true" />
-                          {t('previewRoute')}
-                        </Button>
-                        <Button type="button" variant="outline" onClick={handleAskAI}>
-                          <Bot className="size-4 mr-2" aria-hidden="true" />
-                          Ask AI About This Complaint
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => {
-                            persistForNavigation()
-                            navigate(routes.complaint)
-                          }}
-                        >
-                          File similar issue
-                        </Button>
-                        <Button type="button" variant="ghost" onClick={onClose}>
-                          Close
-                        </Button>
-                      </div>
-                    }
                   />
                 ) : null}
+              </div>
+
+              {/* Fixed Footer for Buttons */}
+              <div className="shrink-0 border-t border-[var(--rw-border)] bg-[var(--rw-surface-muted)]/80 p-4">
+                {selection.kind === 'location' && (
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      onClick={() =>
+                        openRoutePreview(
+                          { lat: selection.lat, lng: selection.lng },
+                          selection.intelligence.locationName,
+                        )
+                      }
+                    >
+                      <Route className="size-4 mr-2" aria-hidden="true" />
+                      {t('previewRoute')}
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => navigate(routes.complaint)}>
+                      Report Issue
+                    </Button>
+                    <Button type="button" variant="outline" onClick={handleAskAI}>
+                      <Bot className="size-4 mr-2" aria-hidden="true" />
+                      Ask AI About This Location
+                    </Button>
+                    <Button type="button" variant="outline" onClick={handleZoomToHere}>
+                      Zoom To Here
+                    </Button>
+                  </div>
+                )}
+
+                {selection.kind === 'road' && (
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="button" onClick={() => handleMoreDetails(selection.road.id)}>
+                      {t('moreDetails')}
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => navigate(routes.complaint)}>
+                      File Complaint
+                    </Button>
+                    <Button type="button" variant="outline" onClick={handleAskAI}>
+                      <Bot className="size-4 mr-2" aria-hidden="true" />
+                      Ask AI About This Road
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() =>
+                        openRoutePreview(
+                          { lat: selection.road.lat, lng: selection.road.lng },
+                          selection.road.roadName,
+                        )
+                      }
+                    >
+                      <Route className="size-4 mr-2" aria-hidden="true" />
+                      Preview Route
+                    </Button>
+                  </div>
+                )}
+
+                {selection.kind === 'complaint' && (
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        persistForNavigation()
+                        navigate(routes.complaintDetail(selection.complaint.id))
+                      }}
+                    >
+                      View Complaint
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() =>
+                        openRoutePreview(
+                          { lat: selection.complaint.lat, lng: selection.complaint.lng },
+                          selection.complaint.roadName ?? selection.complaint.title,
+                        )
+                      }
+                    >
+                      <Route className="size-4 mr-2" aria-hidden="true" />
+                      {t('previewRoute')}
+                    </Button>
+                    <Button type="button" variant="outline" onClick={handleAskAI}>
+                      <Bot className="size-4 mr-2" aria-hidden="true" />
+                      Ask AI About This Complaint
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        persistForNavigation()
+                        navigate(routes.complaint, {
+                          state: {
+                            prefill: {
+                              roadId: selection.complaint.roadId,
+                              lat: selection.complaint.lat,
+                              lng: selection.complaint.lng,
+                              title: selection.complaint.title,
+                            }
+                          }
+                        })
+                      }}
+                    >
+                      File similar issue
+                    </Button>
+                    <Button type="button" variant="ghost" onClick={onClose}>
+                      Close
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
         </motion.div>
@@ -453,6 +471,7 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
         open={routePreviewOpen}
         loading={routeLoading}
         route={routePreview}
+        origin={routePreview?.origin ?? routePreviewTarget?.origin ?? null}
         destination={routePreview?.destination ?? routePreviewTarget?.destination ?? null}
         destinationLabel={routePreview?.destinationLabel ?? routePreviewTarget?.destinationLabel ?? 'Selected destination'}
         onClose={clearRoutePreview}

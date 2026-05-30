@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import { ChartContainer } from '../../components/charts/ChartContainer'
 import { MetricCard } from '../../components/charts/MetricCard'
 import { StatGrid } from '../../components/charts/StatGrid'
@@ -11,8 +12,11 @@ import {
   dashboardRecentComplaints,
   dashboardSeverityChart,
 } from '../../data/dashboard'
+import { routes } from '../../lib/routes'
 
 export default function DashboardPage() {
+  const navigate = useNavigate()
+
   return (
     <PageContainer className="gap-8">
       <SectionHeader
@@ -51,6 +55,7 @@ export default function DashboardPage() {
         title={dashboardPageCopy.recentComplaintsTitle}
         description={dashboardPageCopy.recentComplaintsDescription}
         items={dashboardRecentComplaints}
+        onItemClick={(item) => navigate(routes.complaintDetail(item.id))}
       />
     </PageContainer>
   )

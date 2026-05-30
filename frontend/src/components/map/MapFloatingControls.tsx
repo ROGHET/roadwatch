@@ -70,6 +70,18 @@ export function MapFloatingControls({
   const controlsEnabled = mode === 'expanded'
   const locating = locateStatus === 'loading' || locateStatus === 'refreshing'
   const filterOptions = getFilterOptions(t)
+  const openLocationHelp = () => {
+    const ua = navigator.userAgent.toLowerCase()
+    const helpUrl = ua.includes('edg')
+      ? 'https://support.microsoft.com/en-us/microsoft-edge/allow-or-block-site-permissions-in-microsoft-edge-17c6fdb8-3322-4d96-9027-4c8f0b8d8a8a'
+      : ua.includes('safari') && !ua.includes('chrome')
+        ? 'https://support.apple.com/guide/safari/websites-ibrw8ee48344/mac'
+        : ua.includes('firefox')
+          ? 'https://support.mozilla.org/en-US/kb/how-manage-your-location-permissions-firefox'
+          : 'https://support.google.com/chrome/answer/142065'
+
+    window.open(helpUrl, '_blank', 'noopener,noreferrer')
+  }
 
   const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -234,7 +246,7 @@ export function MapFloatingControls({
 
           <Button
             type="button"
-            className="rounded-full bg-[var(--rw-danger)] px-4 text-white shadow-[var(--st-shadow-fab)] hover:brightness-110"
+            className="rounded-full bg-[var(--rw-danger)] px-4 text-[var(--rw-danger-foreground)] shadow-[var(--st-shadow-fab)] transition-[background-color,transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:bg-[color-mix(in_srgb,var(--rw-danger)_84%,black)] hover:shadow-[0_16px_36px_-14px_rgb(127_29_29/0.5)] active:scale-95"
             aria-label="Report a road issue"
             onClick={() => {
               persistForNavigation()
@@ -274,7 +286,7 @@ export function MapFloatingControls({
               <Button
                 type="button"
                 className="shrink-0 rounded-full bg-[var(--st-primary-container)] px-4 text-[var(--st-on-primary-container)] shadow-[var(--st-shadow-fab)] hover:brightness-110"
-                onClick={() => window.open('https://support.google.com/chrome/answer/142065', '_blank', 'noopener,noreferrer')}
+                onClick={openLocationHelp}
               >
                 {t('howToEnable')}
               </Button>

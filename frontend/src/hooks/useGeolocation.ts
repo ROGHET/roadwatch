@@ -17,6 +17,7 @@ export type GeolocationStatus =
   | 'loading'
   | 'refreshing'
   | 'granted'
+  | 'prompt'
   | 'denied'
   | 'unavailable'
 
@@ -170,7 +171,7 @@ export function useGeolocation(trackHeading = false) {
       return { position: null, usedCache: false }
     }
 
-    const permission = await readGeolocationPermission()
+    const permission = (await readGeolocationPermission()) as PermissionState | null
     setPermissionState(permission ?? 'unsupported')
     if (permission === 'denied') {
       setStatus('denied')
@@ -181,8 +182,12 @@ export function useGeolocation(trackHeading = false) {
       return { position: null, usedCache: false }
     }
 
+    if (permission === 'prompt') {
+      setStatus('prompt')
+    }
+
     const cached = readCachedLocation()
-    if (cached && permission !== 'denied') {
+    if (cached) {
       setPosition(cached)
       setStatus('granted')
       setErrorMessage(null)
@@ -210,7 +215,7 @@ export function useGeolocation(trackHeading = false) {
         return
       }
 
-      const permission = await readGeolocationPermission()
+      const permission = (await readGeolocationPermission()) as PermissionState | null
       if (!mounted) return
       setPermissionState(permission ?? 'unsupported')
       if (permission === 'denied') {

@@ -120,9 +120,8 @@ function routeOverview(distanceKm: number, travelTimeMinutes: number): string {
 
 function routeInstructions(destinationLabel: string): string[] {
   return [
-    `Head toward ${destinationLabel} using the nearest arterial corridor.`,
-    'Continue through the highlighted junctions shown on the map once live routing is enabled.',
-    'Turn-by-turn instructions will replace this placeholder after the route engine is connected.',
+    `Open Google Maps for ${destinationLabel} once live directions are available.`,
+    'Turn-by-turn instructions are unavailable until a live routing provider is configured.',
   ]
 }
 
@@ -165,17 +164,26 @@ function parseOpenRouteServiceSteps(steps: Array<{ instruction?: string }>): str
 
 export const mockRouteProvider: RouteProvider = {
   id: 'mock-route',
-  label: 'Mock route provider',
+  label: 'Unavailable',
   async getRoutePreview({ origin, destination, originLabel, destinationLabel }) {
-    return buildRouteSnapshot({
+    const snapshot = buildRouteSnapshot({
       origin,
       destination,
       originLabel,
       destinationLabel,
-      source: 'Mock route provider',
-      distanceMultiplier: 1.22,
-      speedKph: 28,
+      source: 'Unavailable',
+      distanceMultiplier: 1,
+      speedKph: 30,
     })
+
+    return {
+      ...snapshot,
+      distanceKm: 0,
+      travelTimeMinutes: 0,
+      overview: 'Open in Google Maps to navigate to this location.',
+      instructions: [],
+      path: [],
+    }
   },
 }
 

@@ -19,6 +19,7 @@ export type ComplaintListSectionProps = {
   description?: string
   action?: ReactNode
   items: ComplaintListItem[]
+  onItemClick?: (item: ComplaintListItem) => void
   emptyTitle?: string
   emptyDescription?: string
   className?: string
@@ -30,6 +31,7 @@ export function ComplaintListSection({
   description,
   action,
   items,
+  onItemClick,
   emptyTitle = 'No complaints',
   emptyDescription = 'Complaints will appear here once submitted.',
   className,
@@ -64,7 +66,17 @@ export function ComplaintListSection({
         >
           {items.map(({ id, ...item }) => (
             <motion.li key={id} role="listitem" variants={prefersReducedMotion ? undefined : staggerItem}>
-              <ComplaintSummaryCard {...item} className="h-full" />
+              {onItemClick ? (
+                <button
+                  type="button"
+                  onClick={() => onItemClick({ id, ...item })}
+                  className="block h-full w-full text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rw-ring)]"
+                >
+                  <ComplaintSummaryCard {...item} className="h-full" />
+                </button>
+              ) : (
+                <ComplaintSummaryCard {...item} className="h-full" />
+              )}
             </motion.li>
           ))}
         </motion.ul>

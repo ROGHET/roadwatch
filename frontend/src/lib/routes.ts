@@ -5,4 +5,5 @@ export const routes = {
   dashboard: '/dashboard',
   assistant: '/assistant',
   road: (roadId: string) => `/road/${roadId}`,
+  complaintDetail: (id: string) => `/complaints/${id}`,
 } as const

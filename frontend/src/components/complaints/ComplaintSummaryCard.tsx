@@ -89,11 +89,11 @@ export function ComplaintSummaryCard({
         ) : null}
         <div className="flex flex-wrap items-center gap-2">
           {severity ? (
-            <Badge variant={severityVariant[severity]}>{t(severity)} {t('severity')}</Badge>
+            <Badge variant={severityVariant[severity]}>{severityLabel[severity]} {t('severity')}</Badge>
           ) : null}
           {resolutionStatus ? (
             <Badge variant="secondary" className="capitalize">
-              {t(resolutionStatus) || resolutionStatus}
+              {resolutionStatus}
             </Badge>
           ) : null}
         </div>

@@ -2,6 +2,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import MainLayout from '../layouts/MainLayout'
 import AssistantPage from '../pages/Assistant/AssistantPage'
 import ComplaintPage from '../pages/Complaint/ComplaintPage'
+import ComplaintDetailPage from '../pages/ComplaintDetail/ComplaintDetailPage'
 import DashboardPage from '../pages/Dashboard/DashboardPage'
 import HomePage from '../pages/Home/HomePage'
 import MapPage from '../pages/Map/MapPage'
@@ -29,6 +30,10 @@ const router = createBrowserRouter([
       {
         path: 'complaint',
         element: <ComplaintPage />,
+      },
+      {
+        path: 'complaints/:complaintId',
+        element: <ComplaintDetailPage />,
       },
       {
         path: 'dashboard',

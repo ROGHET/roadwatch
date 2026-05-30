@@ -1,36 +1,32 @@
-export type AssistantRoadContext = {
-  roadId: string
-  roadName: string
-  authority: string
-  contractor: string
-}
-
-export const assistantDefaultContext: AssistantRoadContext = {
-  roadId: 'chennai-sardar-patel-road',
-  roadName: 'Sardar Patel Road',
-  authority: 'Tamil Nadu State Highways Department',
-  contractor: 'Tamil Nadu Road Development Company Ltd.',
-}
-
 export const assistantSuggestedQuestions: readonly string[] = [
-  'Who maintains this road?',
-  'Who is responsible for repairs on this corridor?',
-  'How much money was sanctioned and spent on this road?',
-  'When was this road last repaired?',
-  'Show complaint history for this road.',
-  'Which authority should receive a new complaint?',
-  'Generate an RTI request for maintenance records.',
-]
+  'How do I file a complaint?',
+  'How do I change language?',
+  'How do I open the map?',
+  'How do I view complaint history?',
+  'What does severity mean?',
+  'How do I generate an RTI?',
+] as const
 
 export const assistantSamplePrompt =
-  'Who is responsible for maintaining Sardar Patel Road and what was the last sanctioned repair budget?'
+  'How do I file a complaint and track it after submission?'
 
 export const assistantPageCopy = {
   title: 'CrashZero AI',
   description:
-    'Ask road-related questions about maintenance, budgets, contractors, complaint history, and RTI requests.',
+    'Ask questions about roads, complaints, map navigation, budgets, contractors, and RTI requests.',
   emptyTitle: 'No messages yet',
   emptyDescription:
-    'Ask a question below or choose a suggested prompt to start a conversation about the selected road.',
+    'Ask a question below or choose a suggested prompt to start a conversation with context from the app.',
   contextLabel: 'Context',
 } as const
+
+export const assistantSystemKnowledge = [
+  'CrashZero is a road transparency app.',
+  'Explain app navigation clearly when asked.',
+  'Users can open the map from the Home page or the Map tab.',
+  'Users can file a complaint from the Complaint page or the red Report Issue action.',
+  'Users can change language in Settings > Language.',
+  'Users can view complaint history from road details or complaint detail pages.',
+  'Severity describes the urgency of a complaint and should match the selected complaint context.',
+  'RTI requests should be framed around the selected road, complaint, or location context when available.',
+] as const
