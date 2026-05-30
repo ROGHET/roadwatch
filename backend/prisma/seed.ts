@@ -119,32 +119,49 @@ async function main() {
   console.log(`Created ${roads.length} Roads.`);
 
   // 4. Create Complaints (at least 15)
+  const roadTypes = ['NH', 'SH', 'MDR', 'Urban Road', 'Village Road'] as const;
+  const routingByRoadType: Record<(typeof roadTypes)[number], { assignedAuthority: string; assignedDepartment: string }> = {
+    NH: { assignedAuthority: 'NHAI', assignedDepartment: 'National Highways Division' },
+    SH: { assignedAuthority: 'State PWD', assignedDepartment: 'State Public Works Department' },
+    MDR: { assignedAuthority: 'District Engineer', assignedDepartment: 'District Roads & Bridges Division' },
+    'Urban Road': { assignedAuthority: 'Municipal Corporation', assignedDepartment: 'Urban Roads & Infrastructure Wing' },
+    'Village Road': { assignedAuthority: 'Rural Development Department', assignedDepartment: 'Rural Roads & Connectivity Cell' },
+  };
+
   const complaintData = [
-    { userId: citizen1.id, roadId: roads[0].id, authId: nhai.id, issueType: 'Pothole', severity: 'HIGH', status: ComplaintStatus.ROUTED, lat: 18.8500, lng: 73.1500, desc: 'Deep pothole on fast lane' },
-    { userId: citizen2.id, roadId: roads[0].id, authId: nhai.id, issueType: 'Accident', severity: 'CRITICAL', status: ComplaintStatus.IN_PROGRESS, lat: 18.8800, lng: 73.1200, desc: 'Major collision blocking 2 lanes' },
-    { userId: citizen1.id, roadId: roads[1].id, authId: pwd.id, issueType: 'Streetlight', severity: 'LOW', status: ComplaintStatus.RESOLVED, lat: 19.0300, lng: 72.9500, desc: 'Streetlights not working' },
-    { userId: citizen2.id, roadId: roads[2].id, authId: pwd.id, issueType: 'Waterlogging', severity: 'MEDIUM', status: ComplaintStatus.PENDING, lat: 19.1500, lng: 72.9000, desc: 'Water accumulated near junction' },
-    { userId: citizen1.id, roadId: roads[3].id, authId: nhai.id, issueType: 'Traffic Jam', severity: 'LOW', status: ComplaintStatus.RESOLVED, lat: 19.2000, lng: 72.8450, desc: 'Heavy traffic congestion' },
-    { userId: citizen2.id, roadId: roads[4].id, authId: nmmc.id, issueType: 'Pothole', severity: 'MEDIUM', status: ComplaintStatus.ROUTED, lat: 19.0500, lng: 73.0100, desc: 'Multiple small potholes' },
-    { userId: citizen1.id, roadId: roads[5].id, authId: pwd.id, issueType: 'Debris', severity: 'HIGH', status: ComplaintStatus.IN_PROGRESS, lat: 19.1200, lng: 72.9900, desc: 'Construction debris on road' },
-    { userId: citizen2.id, roadId: roads[6].id, authId: nhai.id, issueType: 'Accident', severity: 'CRITICAL', status: ComplaintStatus.PENDING, lat: 18.9200, lng: 72.9800, desc: 'Truck overturned' },
-    { userId: citizen1.id, roadId: roads[7].id, authId: pwd.id, issueType: 'Cracks', severity: 'MEDIUM', status: ComplaintStatus.ROUTED, lat: 19.0600, lng: 72.9800, desc: 'Bridge expansion joint damaged' },
-    { userId: citizen2.id, roadId: roads[8].id, authId: nmmc.id, issueType: 'Waterlogging', severity: 'MEDIUM', status: ComplaintStatus.RESOLVED, lat: 19.1050, lng: 73.0150, desc: 'Drain clogged' },
-    { userId: citizen1.id, roadId: roads[9].id, authId: nmmc.id, issueType: 'Signage', severity: 'LOW', status: ComplaintStatus.REJECTED, lat: 19.0400, lng: 73.0200, desc: 'Speed limit sign missing' },
-    { userId: citizen2.id, roadId: roads[2].id, authId: pwd.id, issueType: 'Pothole', severity: 'HIGH', status: ComplaintStatus.IN_PROGRESS, lat: 19.1600, lng: 72.9200, desc: 'Massive crater after rain' },
-    { userId: citizen1.id, roadId: roads[3].id, authId: nhai.id, issueType: 'Debris', severity: 'MEDIUM', status: ComplaintStatus.ROUTED, lat: 19.2500, lng: 72.8500, desc: 'Fallen tree branches' },
-    { userId: citizen2.id, roadId: roads[4].id, authId: nmmc.id, issueType: 'Streetlight', severity: 'LOW', status: ComplaintStatus.PENDING, lat: 19.0550, lng: 73.0150, desc: 'Entire stretch is dark' },
-    { userId: citizen1.id, roadId: roads[5].id, authId: pwd.id, issueType: 'Signage', severity: 'LOW', status: ComplaintStatus.RESOLVED, lat: 19.1500, lng: 72.9900, desc: 'Faded lane markings' }
+    { userId: citizen1.id, roadId: roads[0].id, authId: nhai.id, roadType: 'NH', issueType: 'Pothole', severity: 'HIGH', status: ComplaintStatus.ROUTED, lat: 18.8500, lng: 73.1500, desc: 'Deep pothole on fast lane' },
+    { userId: citizen2.id, roadId: roads[0].id, authId: nhai.id, roadType: 'NH', issueType: 'Accident Hazard', severity: 'CRITICAL', status: ComplaintStatus.IN_PROGRESS, lat: 18.8800, lng: 73.1200, desc: 'Major collision blocking 2 lanes' },
+    { userId: citizen1.id, roadId: roads[1].id, authId: pwd.id, roadType: 'SH', issueType: 'Streetlight Failure', severity: 'LOW', status: ComplaintStatus.RESOLVED, lat: 19.0300, lng: 72.9500, desc: 'Streetlights not working' },
+    { userId: citizen2.id, roadId: roads[2].id, authId: pwd.id, roadType: 'MDR', issueType: 'Waterlogging', severity: 'MEDIUM', status: ComplaintStatus.PENDING, lat: 19.1500, lng: 72.9000, desc: 'Water accumulated near junction' },
+    { userId: citizen1.id, roadId: roads[3].id, authId: nhai.id, roadType: 'NH', issueType: 'Other', severity: 'LOW', status: ComplaintStatus.RESOLVED, lat: 19.2000, lng: 72.8450, desc: 'Heavy traffic congestion' },
+    { userId: citizen2.id, roadId: roads[4].id, authId: nmmc.id, roadType: 'Urban Road', issueType: 'Pothole', severity: 'MEDIUM', status: ComplaintStatus.ROUTED, lat: 19.0500, lng: 73.0100, desc: 'Multiple small potholes' },
+    { userId: citizen1.id, roadId: roads[5].id, authId: pwd.id, roadType: 'SH', issueType: 'Other', severity: 'HIGH', status: ComplaintStatus.IN_PROGRESS, lat: 19.1200, lng: 72.9900, desc: 'Construction debris on road' },
+    { userId: citizen2.id, roadId: roads[6].id, authId: nhai.id, roadType: 'NH', issueType: 'Accident Hazard', severity: 'CRITICAL', status: ComplaintStatus.PENDING, lat: 18.9200, lng: 72.9800, desc: 'Truck overturned' },
+    { userId: citizen1.id, roadId: roads[7].id, authId: pwd.id, roadType: 'MDR', issueType: 'Road Crack', severity: 'MEDIUM', status: ComplaintStatus.ROUTED, lat: 19.0600, lng: 72.9800, desc: 'Bridge expansion joint damaged' },
+    { userId: citizen2.id, roadId: roads[8].id, authId: nmmc.id, roadType: 'Urban Road', issueType: 'Waterlogging', severity: 'MEDIUM', status: ComplaintStatus.RESOLVED, lat: 19.1050, lng: 73.0150, desc: 'Drain clogged' },
+    { userId: citizen1.id, roadId: roads[9].id, authId: nmmc.id, roadType: 'Urban Road', issueType: 'Missing Signage', severity: 'LOW', status: ComplaintStatus.REJECTED, lat: 19.0400, lng: 73.0200, desc: 'Speed limit sign missing' },
+    { userId: citizen2.id, roadId: roads[2].id, authId: pwd.id, roadType: 'MDR', issueType: 'Pothole', severity: 'HIGH', status: ComplaintStatus.IN_PROGRESS, lat: 19.1600, lng: 72.9200, desc: 'Massive crater after rain' },
+    { userId: citizen1.id, roadId: roads[3].id, authId: nhai.id, roadType: 'NH', issueType: 'Other', severity: 'MEDIUM', status: ComplaintStatus.ROUTED, lat: 19.2500, lng: 72.8500, desc: 'Fallen tree branches' },
+    { userId: citizen2.id, roadId: roads[4].id, authId: nmmc.id, roadType: 'Urban Road', issueType: 'Streetlight Failure', severity: 'LOW', status: ComplaintStatus.PENDING, lat: 19.0550, lng: 73.0150, desc: 'Entire stretch is dark' },
+    { userId: citizen1.id, roadId: roads[5].id, authId: pwd.id, roadType: 'Village Road', issueType: 'Missing Signage', severity: 'LOW', status: ComplaintStatus.RESOLVED, lat: 19.1500, lng: 72.9900, desc: 'Faded lane markings' }
   ];
 
   let complaintsCreated = 0;
-  for (const c of complaintData) {
+  for (const [index, c] of complaintData.entries()) {
+    const roadType = c.roadType as (typeof roadTypes)[number];
+    const routing = routingByRoadType[roadType];
+    const year = new Date().getFullYear();
+
     await prisma.complaint.create({
       data: {
+        complaintId: `RW-${year}-${String(index + 1).padStart(4, '0')}`,
         userId: c.userId,
         roadId: c.roadId,
         authorityId: c.authId,
+        roadType,
         issueType: c.issueType,
+        assignedAuthority: routing.assignedAuthority,
+        assignedDepartment: routing.assignedDepartment,
         severity: c.severity,
         status: c.status,
         latitude: c.lat,

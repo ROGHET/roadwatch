@@ -2,7 +2,7 @@ import { useMemo, useRef } from 'react'
 import L from 'leaflet'
 import { Marker } from 'react-leaflet'
 import MarkerClusterGroup from 'react-leaflet-cluster'
-import { mapComplaintMarkers, mapRoadMarkers } from '../../data/mapMarkers'
+import { mapRoadMarkers } from '../../data/mapMarkers'
 import { createComplaintMarkerIcon, createRoadMarkerIcon } from '../../lib/map/icons'
 import type { MapLayerFilter } from '../../lib/map/constants'
 import type { GeolocationPosition } from '../../hooks/useGeolocation'
@@ -20,6 +20,7 @@ const clusterGroupProps = {
 
 export type MapMarkerLayersProps = {
   filter: MapLayerFilter
+  complaintMarkers: MapComplaintMarker[]
   userPosition: GeolocationPosition | null
   onSelectRoad: (road: MockRoad) => void
   onSelectComplaint: (complaint: MapComplaintMarker) => void
@@ -27,6 +28,7 @@ export type MapMarkerLayersProps = {
 
 export function MapMarkerLayers({
   filter,
+  complaintMarkers,
   userPosition,
   onSelectRoad,
   onSelectComplaint,
@@ -59,9 +61,9 @@ export function MapMarkerLayers({
     [],
   )
 
-  const complaintMarkers = useMemo(
+  const complaintMarkerNodes = useMemo(
     () =>
-      mapComplaintMarkers.map((complaint) => (
+      complaintMarkers.map((complaint) => (
         <Marker
           key={complaint.id}
           position={[complaint.lat, complaint.lng]}
@@ -76,7 +78,7 @@ export function MapMarkerLayers({
           }}
         />
       )),
-    [],
+    [complaintMarkers],
   )
 
   return (
@@ -92,7 +94,7 @@ export function MapMarkerLayers({
 
       {showComplaints ? (
         <MarkerClusterGroup {...clusterGroupProps} maxClusterRadius={48}>
-          {complaintMarkers}
+          {complaintMarkerNodes}
         </MarkerClusterGroup>
       ) : null}
     </>

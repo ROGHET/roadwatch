@@ -2,16 +2,28 @@ import {
   BarChart3,
   Bot,
   FileWarning,
+  Globe,
   Info,
   LayoutDashboard,
   Map,
+  Moon,
   Settings,
   Shield,
+  Sun,
+  Type,
   Users,
   Wallet,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { routes } from './routes'
+
+export type AppCommandAction =
+  | 'open-settings'
+  | 'set-theme-dark'
+  | 'set-theme-light'
+  | 'set-language-en'
+  | 'set-language-hi'
+  | 'open-accessibility'
 
 export type AppCommand = {
   id: string
@@ -20,7 +32,7 @@ export type AppCommand = {
   icon: LucideIcon
   group: 'Navigation' | 'Actions' | 'Information'
   href?: string
-  action?: 'open-settings'
+  action?: AppCommandAction
 }
 
 export const appCommands: AppCommand[] = [
@@ -39,6 +51,70 @@ export const appCommands: AppCommand[] = [
     icon: LayoutDashboard,
     group: 'Navigation',
     href: routes.dashboard,
+  },
+  {
+    id: 'open-complaint',
+    label: 'Open Complaint',
+    keywords: 'complaint file report issue submit track',
+    icon: FileWarning,
+    group: 'Navigation',
+    href: routes.complaint,
+  },
+  {
+    id: 'theme-dark',
+    label: 'Dark Mode',
+    keywords: 'theme dark mode appearance night',
+    icon: Moon,
+    group: 'Actions',
+    action: 'set-theme-dark',
+  },
+  {
+    id: 'theme-light',
+    label: 'Light Mode',
+    keywords: 'theme light mode appearance day',
+    icon: Sun,
+    group: 'Actions',
+    action: 'set-theme-light',
+  },
+  {
+    id: 'language',
+    label: 'Language',
+    keywords: 'language hindi english locale translate',
+    icon: Globe,
+    group: 'Actions',
+    href: '/language',
+  },
+  {
+    id: 'language-english',
+    label: 'Switch to English',
+    keywords: 'language english en locale',
+    icon: Globe,
+    group: 'Actions',
+    action: 'set-language-en',
+  },
+  {
+    id: 'language-hindi',
+    label: 'Switch to Hindi',
+    keywords: 'language hindi hi locale',
+    icon: Globe,
+    group: 'Actions',
+    action: 'set-language-hi',
+  },
+  {
+    id: 'settings',
+    label: 'Settings',
+    keywords: 'settings preferences configuration theme language accessibility',
+    icon: Settings,
+    group: 'Actions',
+    action: 'open-settings',
+  },
+  {
+    id: 'accessibility',
+    label: 'Accessibility',
+    keywords: 'accessibility font size text settings',
+    icon: Type,
+    group: 'Actions',
+    action: 'open-accessibility',
   },
   {
     id: 'open-analytics',
@@ -97,19 +173,11 @@ export const appCommands: AppCommand[] = [
     href: routes.dashboard,
   },
   {
-    id: 'settings',
-    label: 'Settings',
-    keywords: 'settings preferences configuration',
-    icon: Settings,
-    group: 'Actions',
-    action: 'open-settings',
-  },
-  {
     id: 'about',
     label: 'About',
     keywords: 'about roadwatch platform version',
     icon: Info,
     group: 'Information',
-    action: 'open-settings',
+    href: '/about',
   },
 ]

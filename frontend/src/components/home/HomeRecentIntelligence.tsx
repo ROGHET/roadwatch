@@ -1,6 +1,7 @@
 import { AlertTriangle, LightbulbOff, Sparkles } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { mockComplaintSummaries } from '../../data/complaints'
+import { getRecentIntelligenceItems } from '../../lib/complaints/mergedComplaints'
+import { useComplaintStore } from '../../stores/complaintStore'
 import { GlassPanel, StitchSectionHeader } from '../stitch'
 import { useI18n } from '../../lib/i18n'
 import { routes } from '../../lib/routes'
@@ -33,7 +34,8 @@ const toneBySeverity = {
 } as const
 
 export function HomeRecentIntelligence() {
-  const items = mockComplaintSummaries.slice(0, 3)
+  const submittedComplaints = useComplaintStore((state) => state.submittedComplaints)
+  const items = getRecentIntelligenceItems(submittedComplaints, 3)
   const { t } = useI18n()
   const navigate = useNavigate()
 

@@ -14,12 +14,17 @@ import {
   ComplaintStatusBadge,
   type ComplaintStatus,
 } from './ComplaintStatusBadge'
+import { ComplaintRoutingInfo } from './ComplaintRoutingInfo'
 import { type ComplaintSeverity } from './ComplaintCard'
 
 export type ComplaintSummaryCardProps = {
   title: string
   referenceId?: string
   roadName?: string
+  roadType?: string
+  issueType?: string
+  assignedAuthority?: string
+  assignedDepartment?: string
   status: ComplaintStatus
   severity?: ComplaintSeverity
   reportedAt?: string
@@ -52,6 +57,10 @@ export function ComplaintSummaryCard({
   title,
   referenceId,
   roadName,
+  roadType,
+  issueType,
+  assignedAuthority,
+  assignedDepartment,
   status,
   severity,
   reportedAt,
@@ -86,6 +95,15 @@ export function ComplaintSummaryCard({
             <MapPin className="size-4 shrink-0" aria-hidden="true" />
             <span className="truncate">{roadName}</span>
           </CardDescription>
+        ) : null}
+        {roadType || issueType || assignedAuthority || assignedDepartment ? (
+          <ComplaintRoutingInfo
+            compact
+            roadType={roadType}
+            issueType={issueType}
+            assignedAuthority={assignedAuthority}
+            assignedDepartment={assignedDepartment}
+          />
         ) : null}
         <div className="flex flex-wrap items-center gap-2">
           {severity ? (

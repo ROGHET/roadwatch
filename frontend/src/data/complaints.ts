@@ -1,6 +1,9 @@
 import type { ComplaintCardProps } from '../components/complaints/ComplaintCard'
 import type { ComplaintListItem } from '../components/complaints/ComplaintListSection'
+import { resolveAuthorityRouting, type RoadType } from '../lib/complaintRouting'
 import { mockRoads } from './roads'
+
+const mockRoadTypes: RoadType[] = ['NH', 'SH', 'MDR', 'Urban Road', 'Village Road']
 
 export type MockComplaintDetail = {
   id: string
@@ -9,8 +12,11 @@ export type MockComplaintDetail = {
   lat: number
   lng: number
   referenceId: string
+  roadType: RoadType
   issueType: string
-} & Omit<ComplaintCardProps, 'footer' | 'className'>
+  assignedAuthority: string
+  assignedDepartment: string
+} & Omit<ComplaintCardProps, 'footer' | 'className' | 'issueType'>
 
 export type MockComplaintRecord = MockComplaintDetail & {
   roadId: string
@@ -186,6 +192,8 @@ function formatReference(index: number): string {
 
 function createComplaintRecord(index: number, road: (typeof mockRoads)[number]) {
   const template = issueTemplates[index % issueTemplates.length]
+  const roadType = mockRoadTypes[index % mockRoadTypes.length]
+  const routing = resolveAuthorityRouting(roadType)
   const variant = Math.floor(index / issueTemplates.length)
   const latOffset = ((index % 7) - 3) * 0.0017
   const lngOffset = (((index + 3) % 7) - 3) * 0.0018
@@ -201,6 +209,9 @@ function createComplaintRecord(index: number, road: (typeof mockRoads)[number]) 
     lat: Number((road.lat + latOffset).toFixed(5)),
     lng: Number((road.lng + lngOffset).toFixed(5)),
     referenceId: formatReference(index),
+    roadType,
+    assignedAuthority: routing.assignedAuthority,
+    assignedDepartment: routing.assignedDepartment,
     title: `${template.title} near ${road.roadName}`,
     roadName: road.roadName,
     status: ['pending', 'routed', 'in_review', 'resolved', 'rejected'][index % 5] as ComplaintCardProps['status'],
@@ -222,7 +233,15 @@ export const mockComplaintRecords: MockComplaintRecord[] = mockRoads.flatMap((ro
 )
 
 export const mockComplaintSummaries: ComplaintListItem[] = mockComplaintRecords.map(
-  ({ id, lat: _lat, lng: _lng, city: _city, roadId: _roadId, issueType: _issueType, description: _description, ...summary }) => ({
+  ({
+    id,
+    lat: _lat,
+    lng: _lng,
+    city: _city,
+    roadId: _roadId,
+    description: _description,
+    ...summary
+  }) => ({
     id,
     ...summary,
   }),

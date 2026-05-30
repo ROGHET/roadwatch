@@ -42,8 +42,7 @@ export async function autoRouteComplaint(complaintId: string, lat: number, lng: 
         data: {
           roadId: nearestRoad.id,
           authorityId: nearestRoad.authorityId,
-          status: 'ROUTED'
-        }
+        },
       });
       
       return { success: true, roadId: nearestRoad.id, authorityId: nearestRoad.authorityId };

@@ -20,8 +20,14 @@ import { Textarea } from '../../components/common/Textarea'
 import { assistantPageCopy, assistantSamplePrompt, assistantSuggestedQuestions, assistantSystemKnowledge } from '../../data/assistant'
 import { mockComplaintRecords } from '../../data/complaints'
 import { mockRoads } from '../../data/roads'
+import {
+  augmentPromptWithComplaintContext,
+  buildComplaintContextBlock,
+} from '../../lib/complaints/complaintContext'
+import { resolveComplaintById } from '../../lib/complaints/resolveComplaint'
 import { useI18n } from '../../lib/i18n'
 import { routes } from '../../lib/routes'
+import { useComplaintStore } from '../../stores/complaintStore'
 import { useMapStore } from '../../stores/mapStore'
 
 type AssistantContext =
@@ -133,6 +139,45 @@ const offlineKnowledge = [
     matcher: /^ *(hello|hi|hey)[!. ]*$/i,
     answer:
       'Hello! I am CrashZero AI. I can help with road issues, complaint filing, map navigation, RTI drafts, and general road-safety questions.',
+  },
+  {
+    matcher: /theme|dark mode|light mode|appearance/i,
+    answer:
+      'Open Settings from the profile menu or command palette (Ctrl+K). Choose Theme to switch dark, light, or system mode. You can also run "Dark Mode" or "Light Mode" from the command palette.',
+  },
+  {
+    matcher: /language|hindi|english|translate/i,
+    answer:
+      'Change language from Settings > Language, the Language page, or the command palette. CrashZero supports English and Hindi.',
+  },
+  {
+    matcher: /settings|preferences|configuration/i,
+    answer:
+      'Open Settings from the profile menu or command palette. Settings includes theme, language, and accessibility options such as font size.',
+  },
+  {
+    matcher: /accessibility|font size|text size/i,
+    answer:
+      'Accessibility options are in Settings. Adjust font size to small, medium, or large for easier reading.',
+  },
+  {
+    matcher: /dashboard|overview|metrics/i,
+    answer:
+      'Open Dashboard from the top navigation dashboard icon or command palette. The dashboard summarizes complaint volume, severity, and recent activity.',
+  },
+  {
+    matcher: /open map|map tab|where is the map/i,
+    answer:
+      'Open the Map from the bottom navigation Map icon, Home quick actions, or command palette. Tap the map to inspect location intelligence and file complaints.',
+  },
+  {
+    matcher: /file a complaint|submit complaint|report issue|track complaint/i,
+    answer:
+      'Open Complaint from the navigation Complaint tab or command palette. Fill road type, issue type, location, and description, then submit. Track status with your complaint ID on the same page.',
+  },
+  {
+    matcher: /\brti\b|right to information/i,
+    answer: rtiGuidance,
   },
   {
     matcher: /what\s+is\s+a?\s*pothole|pothole/i,
@@ -302,6 +347,7 @@ export default function AssistantPage() {
   const location = useLocation()
   const navigate = useNavigate()
   const selection = useMapStore((state) => state.selection)
+  const submittedComplaints = useComplaintStore((state) => state.submittedComplaints)
 
   const initialContext = useMemo<AssistantContext>(() => {
     const state = (location.state ?? {}) as Partial<Record<string, unknown>>
@@ -358,8 +404,71 @@ export default function AssistantPage() {
 
   const activeComplaint = useMemo(() => {
     if (activeContext.type !== 'complaint') return null
-    return mockComplaintRecords.find((complaint) => complaint.id === activeContext.complaintId) ?? null
-  }, [activeContext])
+
+    const state = (location.state ?? {}) as Partial<Record<string, unknown>>
+    const complaintKey =
+      typeof state.complaintId === 'string'
+        ? state.complaintId
+        : typeof state.referenceId === 'string'
+          ? state.referenceId
+          : activeContext.complaintId
+
+    const resolved = resolveComplaintById(complaintKey, submittedComplaints)
+    if (resolved) return resolved
+
+    const mock = mockComplaintRecords.find((complaint) => complaint.id === complaintKey)
+    if (mock) {
+      return {
+        id: mock.id,
+        referenceId: mock.referenceId,
+        roadId: mock.roadId,
+        title: mock.title,
+        description: mock.description ?? '',
+        roadName: mock.roadName,
+        city: mock.city,
+        state: 'Tamil Nadu',
+        lat: mock.lat,
+        lng: mock.lng,
+        roadType: mock.roadType,
+        issueType: mock.issueType,
+        assignedAuthority: mock.assignedAuthority,
+        assignedDepartment: mock.assignedDepartment,
+        status: mock.status,
+        severity: mock.severity,
+        reportedAt: mock.reportedAt,
+        updatedAt: mock.updatedAt,
+        resolutionStatus: mock.resolutionStatus,
+        citizenReports: mock.citizenReports,
+        maintenanceReports: mock.maintenanceReports,
+      }
+    }
+
+    if (
+      typeof state.issueType === 'string' ||
+      typeof state.description === 'string' ||
+      typeof state.latitude === 'number'
+    ) {
+      return {
+        id: complaintKey,
+        referenceId: typeof state.referenceId === 'string' ? state.referenceId : complaintKey,
+        roadId: typeof state.roadId === 'string' ? state.roadId : 'unknown',
+        title: typeof state.location === 'string' ? state.location : 'Complaint context',
+        description: typeof state.description === 'string' ? state.description : '',
+        roadName: typeof state.roadName === 'string' ? state.roadName : undefined,
+        city: 'Not Available',
+        state: 'Not Available',
+        lat: typeof state.latitude === 'number' ? state.latitude : 0,
+        lng: typeof state.longitude === 'number' ? state.longitude : 0,
+        issueType: typeof state.issueType === 'string' ? state.issueType : undefined,
+        assignedAuthority: typeof state.authority === 'string' ? state.authority : undefined,
+        assignedDepartment: undefined,
+        status: 'pending' as const,
+        locationLabel: typeof state.location === 'string' ? state.location : undefined,
+      }
+    }
+
+    return null
+  }, [activeContext, location.state, submittedComplaints])
 
   const activeLocation = useMemo(() => {
     if (activeContext.type === 'location') return activeContext
@@ -452,15 +561,22 @@ export default function AssistantPage() {
     }
 
     if (activeComplaint) {
+      const locationLine =
+        activeComplaint.locationLabel ??
+        [activeComplaint.city, activeComplaint.state].filter(Boolean).join(', ')
       return {
         type: 'complaint' as const,
         title: activeComplaint.title,
         details: [
+          ['Complaint ID', activeComplaint.referenceId],
+          ['Issue type', activeComplaint.issueType || 'Unknown'],
+          ['Description', activeComplaint.description || 'Not Available'],
+          ['Coordinates', `${formatCoord(activeComplaint.lat)}, ${formatCoord(activeComplaint.lng)}`],
+          ['Location', locationLine || 'Not Available'],
+          ['Authority', activeComplaint.assignedAuthority || 'Unknown'],
           ['Severity', activeComplaint.severity || 'Unknown'],
           ['Status', activeComplaint.status || 'Unknown'],
           ['Resolution', activeComplaint.resolutionStatus || 'Not Available'],
-          ['Citizen reports', activeComplaint.citizenReports ? String(activeComplaint.citizenReports) : 'No Data'],
-          ['Maintenance reports', activeComplaint.maintenanceReports ? String(activeComplaint.maintenanceReports) : 'No Data'],
         ],
       }
     }
@@ -510,13 +626,14 @@ export default function AssistantPage() {
       'Current active context:',
       `${activeContextSummary.title}`,
       contextLines,
+      ...(activeComplaint ? ['', buildComplaintContextBlock(activeComplaint)] : []),
       '',
       'Rules:',
       'Prioritize the selected road, complaint, or location before answering.',
       'If a value is unknown, say Unknown, Not Available, or No Data.',
       'Explain app navigation using the actual CrashZero navigation paths.',
     ].join('\n')
-  }, [activeContextSummary])
+  }, [activeComplaint, activeContextSummary])
 
   const resolveQuotaFallback = (promptText: string) => {
     const fallback =
@@ -550,15 +667,27 @@ export default function AssistantPage() {
       ].join('\n')
     }
 
-    if (activeComplaint && /(this complaint|complaint|severity|status|resolution|report|history|tell about|about this)/i.test(normalized)) {
+    if (
+      activeComplaint &&
+      /(this complaint|this issue|complaint|severity|status|resolution|report|history|tell about|about this|when will|who is responsible|who handles|be fixed|current status|generate rti|rti for)/i.test(
+        normalized,
+      )
+    ) {
+      const locationLine =
+        activeComplaint.locationLabel ??
+        [activeComplaint.city, activeComplaint.state].filter(Boolean).join(', ')
       return [
         `${activeComplaint.title} is linked to ${activeComplaint.roadName ?? 'Unknown road'}.`,
         '',
+        `Complaint ID: ${activeComplaint.referenceId}`,
+        `Issue type: ${activeComplaint.issueType || 'Unknown'}`,
+        `Description: ${activeComplaint.description || 'Not Available'}`,
+        `Coordinates: ${formatCoord(activeComplaint.lat)}, ${formatCoord(activeComplaint.lng)}`,
+        `Location: ${locationLine || 'Not Available'}`,
+        `Authority: ${activeComplaint.assignedAuthority || 'Unknown'}`,
         `Severity: ${activeComplaint.severity || 'Unknown'}`,
         `Status: ${activeComplaint.status || 'Unknown'}`,
         `Resolution: ${activeComplaint.resolutionStatus || 'Not Available'}`,
-        `Citizen reports: ${activeComplaint.citizenReports ? activeComplaint.citizenReports : 'No Data'}`,
-        `Maintenance reports: ${activeComplaint.maintenanceReports ? activeComplaint.maintenanceReports : 'No Data'}`,
         `Reported at: ${activeComplaint.reportedAt || 'Not Available'}`,
         `Updated at: ${activeComplaint.updatedAt || 'Not Available'}`,
       ].join('\n')
@@ -581,10 +710,13 @@ export default function AssistantPage() {
     setIsLoading(true)
     setError(null)
 
+    const apiPrompt = augmentPromptWithComplaintContext(promptText, activeComplaint)
+
     try {
       const body = {
-        prompt: promptText,
+        prompt: apiPrompt,
         systemPrompt,
+        contextComplaintId: activeComplaint?.referenceId,
         context: {
           type: activeContext.type,
           road: activeRoad
@@ -600,7 +732,16 @@ export default function AssistantPage() {
             : null,
           complaint: activeComplaint
             ? {
-                complaintId: activeComplaint.id,
+                complaintId: activeComplaint.referenceId,
+                issueType: activeComplaint.issueType || 'Unknown',
+                description: activeComplaint.description || 'Not Available',
+                latitude: activeComplaint.lat,
+                longitude: activeComplaint.lng,
+                location:
+                  (activeComplaint.locationLabel ??
+                    [activeComplaint.city, activeComplaint.state].filter(Boolean).join(', ')) ||
+                  'Not Available',
+                authority: activeComplaint.assignedAuthority || 'Unknown',
                 roadId: activeComplaint.roadId,
                 roadName: activeComplaint.roadName ?? 'Unknown',
                 severity: activeComplaint.severity || 'Unknown',
@@ -639,13 +780,13 @@ export default function AssistantPage() {
       })
 
       if (!res.ok) {
-        resolveQuotaFallback(promptText)
+        resolveQuotaFallback(apiPrompt)
         return
       }
 
       const data = (await res.json()) as { response?: string }
       if (isQuotaOrTransportFailure(data.response)) {
-        resolveQuotaFallback(promptText)
+        resolveQuotaFallback(apiPrompt)
         return
       }
 

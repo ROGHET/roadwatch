@@ -1,8 +1,11 @@
 import { getAqiProvider, getTrafficProvider, getWeatherProvider } from './providers/registry'
+import { inferPlaceFromCoordinates } from './inferPlace'
 
 /** Snapshot for map location intelligence (weather + air quality + traffic). */
 export type LocationWeatherSnapshot = {
   locationName: string
+  city: string
+  state: string
   temperatureC: number
   condition: string
   aqi: number
@@ -27,7 +30,6 @@ export interface LocationIntelligenceProvider {
 }
 
 const conditionCatalog = ['Clear', 'Partly cloudy', 'Overcast', 'Light rain', 'Haze', 'Mist'] as const
-const placeNames = ['Corridor Sector', 'Junction Block', 'Service Lane', 'Ring Segment', 'NH Stretch', 'Urban Arterial'] as const
 
 function hashCoordinates(lat: number, lng: number): number {
   const latKey = Math.round(lat * 100)
@@ -45,6 +47,7 @@ function aqiLabelFor(value: number): string {
 
 function buildMockSnapshot(lat: number, lng: number): LocationWeatherSnapshot {
   const seed = hashCoordinates(lat, lng)
+  const place = inferPlaceFromCoordinates(lat, lng)
   const aqi = 40 + (seed % 220)
   const trafficCondition = ['light', 'moderate', 'heavy', 'severe'][seed % 4] as LocationWeatherSnapshot['trafficCondition']
   const trafficDescriptionByCondition: Record<LocationWeatherSnapshot['trafficCondition'], string> = {
@@ -55,7 +58,9 @@ function buildMockSnapshot(lat: number, lng: number): LocationWeatherSnapshot {
   }
 
   return {
-    locationName: `${placeNames[seed % placeNames.length]} (${lat.toFixed(3)}, ${lng.toFixed(3)})`,
+    locationName: `${place.label} (${lat.toFixed(3)}, ${lng.toFixed(3)})`,
+    city: place.city,
+    state: place.state,
     temperatureC: 22 + (seed % 14),
     condition: conditionCatalog[seed % conditionCatalog.length],
     aqi,
@@ -79,8 +84,13 @@ export const mockLocationIntelligenceProvider: LocationIntelligenceProvider = {
       getTrafficProvider().getTraffic({ lat, lng }),
     ])
 
+    const place = inferPlaceFromCoordinates(lat, lng)
+
     return {
-      locationName: weather.locationName || airQuality.locationName || traffic.locationName,
+      locationName:
+        weather.locationName || airQuality.locationName || traffic.locationName || place.label,
+      city: place.city,
+      state: place.state,
       temperatureC: weather.temperatureC,
       condition: weather.condition,
       aqi: airQuality.aqi,

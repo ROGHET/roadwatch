@@ -5,7 +5,8 @@ import '../../lib/map/leafletDefaults'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { MapContainer, ZoomControl } from 'react-leaflet'
-import { mapComplaintMarkers, mapRoadMarkers } from '../../data/mapMarkers'
+import { mapRoadMarkers } from '../../data/mapMarkers'
+import { getMergedComplaintMarkers } from '../../lib/complaints/mergedComplaints'
 import { useGeolocation } from '../../hooks/useGeolocation'
 import { fetchLocationIntelligence } from '../../lib/map/locationIntelligence'
 import {
@@ -20,6 +21,7 @@ import {
 } from '../../lib/map/constants'
 import type { MapComplaintMarker } from '../../lib/map/types'
 import type { MockRoad } from '../../data/roads'
+import { useComplaintStore } from '../../stores/complaintStore'
 import { getInitialMapViewport, useMapStore } from '../../stores/mapStore'
 import { MapClickHandler } from './MapClickHandler'
 import { MapDetailOverlay } from './MapDetailOverlay'
@@ -40,6 +42,15 @@ export type RoadWatchMapViewProps = {
 }
 
 export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapViewProps) {
+  const submittedComplaints = useComplaintStore((state) => state.submittedComplaints)
+  const complaintPickMode = useComplaintStore((state) => state.complaintPickMode)
+  const locationPickPending = useComplaintStore((state) => state.locationPickPending)
+  const cancelLocationPick = useComplaintStore((state) => state.cancelLocationPick)
+  const complaintMarkers = useMemo(
+    () => getMergedComplaintMarkers(submittedComplaints),
+    [submittedComplaints],
+  )
+
   const filter = useMapStore((state) => state.filter)
   const selection = useMapStore((state) => state.selection)
   const routePreview = useMapStore((state) => state.routePreview)
@@ -100,7 +111,7 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
         lng: road.lng,
       }))
 
-    const complaintResults: MapSearchResult[] = mapComplaintMarkers
+    const complaintResults: MapSearchResult[] = complaintMarkers
       .filter(
         (complaint) =>
           complaint.title.toLowerCase().includes(query) ||
@@ -117,7 +128,7 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
       }))
 
     return [...roadResults, ...complaintResults].slice(0, 8)
-  }, [mode, searchQuery])
+  }, [complaintMarkers, mode, searchQuery])
 
   useEffect(() => {
     if (mode === 'expanded') {
@@ -129,6 +140,15 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
     stopWatching()
     return undefined
   }, [mode, locateStatus, startWatching, stopWatching])
+
+  useEffect(
+    () => () => {
+      if (locationPickPending) {
+        cancelLocationPick()
+      }
+    },
+    [locationPickPending, cancelLocationPick],
+  )
 
   const focusOn = useCallback((lat: number, lng: number, zoom: number) => {
     setFlyTarget((current) => ({
@@ -167,7 +187,7 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
       const road = mapRoadMarkers.find((record) => record.id === result.id)
       if (road) handleSelectRoad(road)
     } else {
-      const complaint = mapComplaintMarkers.find((record) => record.id === result.id)
+      const complaint = complaintMarkers.find((record) => record.id === result.id)
       if (complaint) handleSelectComplaint(complaint)
     }
     setSearchQuery('')
@@ -228,12 +248,22 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
         />
         <MapMarkerLayers
           filter={filter}
+          complaintMarkers={complaintMarkers}
           userPosition={mode === 'expanded' ? userPosition : null}
           onSelectRoad={handleSelectRoad}
           onSelectComplaint={handleSelectComplaint}
         />
       <MapRouteLayer route={routePreview} />
       </MapContainer>
+
+      {complaintPickMode ? (
+        <p
+          className="pointer-events-none absolute bottom-4 left-1/2 z-[510] -translate-x-1/2 rounded-full bg-[var(--rw-primary)] px-4 py-2 text-xs font-medium text-white shadow-md"
+          role="status"
+        >
+          Tap the map, then choose &quot;Select this location for complaint&quot;
+        </p>
+      ) : null}
 
       {intelLoading ? (
         <p

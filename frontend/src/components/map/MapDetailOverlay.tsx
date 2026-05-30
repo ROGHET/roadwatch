@@ -11,7 +11,9 @@ import type { MapDisplayMode } from '../../lib/map/constants'
 import { getRouteProvider } from '../../lib/map/providers/registry'
 import type { MapActiveSelection } from '../../lib/map/types'
 import { fadeInUp, springSnappy } from '../../lib/motion'
+import { inferPlaceFromCoordinates } from '../../lib/map/inferPlace'
 import { routes } from '../../lib/routes'
+import { useComplaintStore } from '../../stores/complaintStore'
 import { useMapStore } from '../../stores/mapStore'
 import { RoutePreviewSheet } from './RoutePreviewSheet'
 import { useI18n } from '../../lib/i18n'
@@ -36,6 +38,9 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
   const setRoutePreviewOpen = useMapStore((state) => state.setRoutePreviewOpen)
   const clearRoutePreview = useMapStore((state) => state.clearRoutePreview)
   const persistForNavigation = useMapStore((state) => state.persistForNavigation)
+  const submittedComplaints = useComplaintStore((state) => state.submittedComplaints)
+  const complaintPickMode = useComplaintStore((state) => state.complaintPickMode)
+  const completeLocationPick = useComplaintStore((state) => state.completeLocationPick)
   const [routeLoading, setRouteLoading] = useState(false)
   const { t } = useI18n()
 
@@ -111,13 +116,21 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
     if (selection?.kind === 'road') {
       aiState = { contextType: 'road', roadId: selection.road.id, roadName: selection.road.roadName, latitude: selection.road.lat, longitude: selection.road.lng }
     } else if (selection?.kind === 'complaint') {
+      const submitted = submittedComplaints.find(
+        (entry) => entry.marker.id === selection.complaint.id,
+      )
       aiState = {
         contextType: 'complaint',
         complaintId: selection.complaint.id,
-        roadId: selection.complaint.roadId,
-        roadName: selection.complaint.roadName,
+        referenceId: selection.complaint.referenceId,
+        issueType: selection.complaint.issueType,
+        description: submitted?.description ?? selection.complaint.title,
         latitude: selection.complaint.lat,
         longitude: selection.complaint.lng,
+        location: selection.complaint.roadName ?? selection.complaint.title,
+        authority: selection.complaint.assignedAuthority,
+        roadId: selection.complaint.roadId,
+        roadName: selection.complaint.roadName,
         severity: selection.complaint.severity,
         status: selection.complaint.status,
         resolutionStatus: selection.complaint.resolutionStatus,
@@ -136,6 +149,21 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
     }
   }
 
+  const handleSelectLocationForComplaint = () => {
+    if (selection?.kind !== 'location' || !complaintPickMode) return
+
+    const place = inferPlaceFromCoordinates(selection.lat, selection.lng)
+    completeLocationPick(
+      selection.lat,
+      selection.lng,
+      selection.intelligence.locationName,
+      selection.intelligence.city || place.city,
+      selection.intelligence.state || place.state,
+    )
+    onClose()
+    navigate(routes.complaint)
+  }
+
   const handleOpenGoogleMaps = () => {
     const selectedDestination =
       selection.kind === 'road'
@@ -151,8 +179,9 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
 
   return (
     <>
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         <motion.button
+          key="map-detail-backdrop"
           type="button"
           className="absolute inset-0 z-[450] bg-[var(--rw-scrim)]/35 lg:hidden"
           aria-label="Close map details"
@@ -164,6 +193,7 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
         />
 
         <motion.div
+          key="map-detail-panel"
           className="pointer-events-auto absolute inset-x-0 bottom-0 z-[500] flex max-h-[85vh] flex-col lg:inset-x-auto lg:bottom-auto lg:right-4 lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:w-[min(26rem,calc(100vw-2rem))]"
           role="dialog"
           aria-modal="true"
@@ -173,13 +203,13 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
           exit={prefersReducedMotion ? undefined : 'hidden'}
           transition={prefersReducedMotion ? undefined : springSnappy}
         >
-          <div className="rw-map-glass flex flex-col h-full overflow-hidden rounded-t-[1.5rem] shadow-[0_24px_80px_-28px_rgb(0_0_0/0.55)] lg:rounded-[1.5rem]">
+          <div className="rw-map-glass flex h-full min-h-0 max-h-[min(85dvh,100%)] flex-col overflow-hidden rounded-t-[1.5rem] shadow-[0_24px_80px_-28px_rgb(0_0_0/0.55)] lg:max-h-[calc(100dvh-7rem)] lg:rounded-[1.5rem]">
               <div
                 className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-[var(--rw-border-strong)] lg:hidden"
                 aria-hidden="true"
               />
 
-              <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[var(--rw-border)] px-4 py-3 lg:px-5">
+              <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[var(--rw-border)] bg-[var(--rw-surface)]/90 px-4 py-3 backdrop-blur-sm lg:px-5">
                 <p className="text-xs font-medium uppercase tracking-wide text-[var(--rw-text-tertiary)]">
                   {selection.kind === 'road'
                     ? t('roadSummary')
@@ -197,7 +227,7 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
                 </button>
               </div>
 
-              <div className="overflow-y-auto flex-1 px-4 py-4 lg:px-5">
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 lg:px-5">
                 {selection.kind === 'location' ? (
                   <div className="flex flex-col gap-4">
                     <div>
@@ -341,6 +371,10 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
                     title={selection.complaint.title}
                     referenceId={selection.complaint.referenceId}
                     roadName={selection.complaint.roadName}
+                    roadType={selection.complaint.roadType}
+                    issueType={selection.complaint.issueType}
+                    assignedAuthority={selection.complaint.assignedAuthority}
+                    assignedDepartment={selection.complaint.assignedDepartment}
                     status={selection.complaint.status}
                     severity={selection.complaint.severity}
                     reportedAt={selection.complaint.reportedAt}
@@ -352,12 +386,17 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
                 ) : null}
               </div>
 
-              {/* Fixed Footer for Buttons */}
-              <div className="shrink-0 border-t border-[var(--rw-border)] bg-[var(--rw-surface-muted)]/80 p-4">
+              <div className="sticky bottom-0 z-20 shrink-0 border-t border-[var(--rw-border)] bg-[var(--rw-surface)]/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md">
                 {selection.kind === 'location' && (
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex max-h-[40vh] flex-col gap-2 overflow-y-auto overscroll-contain">
+                    {complaintPickMode ? (
+                      <Button type="button" onClick={handleSelectLocationForComplaint}>
+                        Select this location for complaint
+                      </Button>
+                    ) : null}
                     <Button
                       type="button"
+                      variant="outline"
                       onClick={() =>
                         openRoutePreview(
                           { lat: selection.lat, lng: selection.lng },
@@ -382,7 +421,7 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
                 )}
 
                 {selection.kind === 'road' && (
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex max-h-[40vh] flex-wrap gap-2 overflow-y-auto overscroll-contain">
                     <Button type="button" onClick={() => handleMoreDetails(selection.road.id)}>
                       {t('moreDetails')}
                     </Button>
@@ -410,7 +449,7 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
                 )}
 
                 {selection.kind === 'complaint' && (
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex max-h-[40vh] flex-wrap gap-2 overflow-y-auto overscroll-contain">
                     <Button
                       type="button"
                       variant="outline"
@@ -442,16 +481,26 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
                       type="button"
                       variant="outline"
                       onClick={() => {
+                        const place = inferPlaceFromCoordinates(
+                          selection.complaint.lat,
+                          selection.complaint.lng,
+                        )
                         persistForNavigation()
                         navigate(routes.complaint, {
                           state: {
                             prefill: {
                               roadId: selection.complaint.roadId,
+                              roadName: selection.complaint.roadName,
                               lat: selection.complaint.lat,
                               lng: selection.complaint.lng,
+                              issueType: selection.complaint.issueType,
                               title: selection.complaint.title,
-                            }
-                          }
+                              locationLabel:
+                                selection.complaint.roadName ?? selection.complaint.title,
+                              city: place.city,
+                              state: place.state,
+                            },
+                          },
                         })
                       }}
                     >

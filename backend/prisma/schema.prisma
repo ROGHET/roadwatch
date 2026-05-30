@@ -56,19 +56,23 @@ model Road {
 }
 
 model Complaint {
-  id          String   @id @default(uuid())
-  userId      String
-  roadId      String?
-  authorityId String?
-  issueType   String
-  severity    String
-  description String
-  status      ComplaintStatus @default(PENDING)
-  latitude    Float
-  longitude   Float
-  photoUrl    String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                 String   @id @default(uuid())
+  complaintId        String?  @unique
+  userId             String
+  roadId             String?
+  authorityId        String?
+  roadType           String?
+  issueType          String
+  assignedAuthority  String?
+  assignedDepartment String?
+  severity           String
+  description        String
+  status             ComplaintStatus @default(PENDING)
+  latitude           Float
+  longitude          Float
+  photoUrl           String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   user      User       @relation(fields: [userId], references: [id])
   road      Road?      @relation(fields: [roadId], references: [id])

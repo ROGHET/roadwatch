@@ -1,4 +1,4 @@
-import { Bot, FileWarning, Home, Map, Search } from 'lucide-react'
+import { Bot, FileWarning, Home, LayoutDashboard, Map, Search } from 'lucide-react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { useCallback, useEffect, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
@@ -12,6 +12,7 @@ import { useI18n, type TranslationKey } from '../lib/i18n'
 const navLinks = [
   { to: routes.home, labelKey: 'navHome', icon: Home, end: true },
   { to: routes.map, labelKey: 'navMap', icon: Map },
+  { to: routes.dashboard, labelKey: 'navDashboard', icon: LayoutDashboard },
   { to: routes.complaint, labelKey: 'navComplaint', icon: FileWarning },
   { to: routes.assistant, labelKey: 'navAI', icon: Bot },
 ] as const

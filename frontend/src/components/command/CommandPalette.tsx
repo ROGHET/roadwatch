@@ -3,6 +3,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { appCommands, type AppCommand } from '../../lib/appCommands'
 import { rankByFuzzyQuery } from '../../lib/fuzzyMatch'
+import { useThemeStore } from '../../providers/ThemeProvider'
+import { useSettingsStore } from '../../stores/settingsStore'
 
 export type CommandPaletteProps = {
   open: boolean
@@ -16,6 +18,8 @@ function getSearchText(command: AppCommand) {
 
 export function CommandPalette({ open, onClose, onOpenSettings }: CommandPaletteProps) {
   const navigate = useNavigate()
+  const setTheme = useThemeStore((state) => state.setTheme)
+  const setLanguage = useSettingsStore((state) => state.setLanguage)
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const [query, setQuery] = useState('')
@@ -32,8 +36,31 @@ export function CommandPalette({ open, onClose, onOpenSettings }: CommandPalette
       setQuery('')
       setActiveIndex(0)
 
-      if (command.action === 'open-settings') {
+      if (command.action === 'open-settings' || command.action === 'open-accessibility') {
         onOpenSettings?.()
+        if (command.action === 'open-accessibility') {
+          navigate('/settings')
+        }
+        return
+      }
+
+      if (command.action === 'set-theme-dark') {
+        setTheme('dark')
+        return
+      }
+
+      if (command.action === 'set-theme-light') {
+        setTheme('light')
+        return
+      }
+
+      if (command.action === 'set-language-en') {
+        setLanguage('en')
+        return
+      }
+
+      if (command.action === 'set-language-hi') {
+        setLanguage('hi')
         return
       }
 
@@ -41,7 +68,7 @@ export function CommandPalette({ open, onClose, onOpenSettings }: CommandPalette
         navigate(command.href)
       }
     },
-    [navigate, onClose, onOpenSettings],
+    [navigate, onClose, onOpenSettings, setLanguage, setTheme],
   )
 
   useEffect(() => {
