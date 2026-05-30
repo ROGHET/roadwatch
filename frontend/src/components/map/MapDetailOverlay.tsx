@@ -40,6 +40,7 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
   const persistForNavigation = useMapStore((state) => state.persistForNavigation)
   const submittedComplaints = useComplaintStore((state) => state.submittedComplaints)
   const complaintPickMode = useComplaintStore((state) => state.complaintPickMode)
+  const locationPickPending = useComplaintStore((state) => state.locationPickPending)
   const completeLocationPick = useComplaintStore((state) => state.completeLocationPick)
   const [routeLoading, setRouteLoading] = useState(false)
   const { t } = useI18n()
@@ -179,7 +180,7 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
 
   return (
     <>
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="sync">
         <motion.button
           key="map-detail-backdrop"
           type="button"
@@ -194,7 +195,7 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
 
         <motion.div
           key="map-detail-panel"
-          className="pointer-events-auto absolute inset-x-0 bottom-0 z-[500] flex max-h-[85vh] flex-col lg:inset-x-auto lg:bottom-auto lg:right-4 lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:w-[min(26rem,calc(100vw-2rem))]"
+          className="pointer-events-auto absolute inset-x-0 bottom-0 z-[500] flex max-h-[calc(100dvh-5rem)] flex-col lg:inset-x-auto lg:bottom-auto lg:right-4 lg:top-24 lg:max-h-[calc(100dvh-7rem)] lg:w-[min(26rem,calc(100vw-2rem))]"
           role="dialog"
           aria-modal="true"
           variants={prefersReducedMotion ? undefined : fadeInUp}
@@ -203,13 +204,13 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
           exit={prefersReducedMotion ? undefined : 'hidden'}
           transition={prefersReducedMotion ? undefined : springSnappy}
         >
-          <div className="rw-map-glass flex h-full min-h-0 max-h-[min(85dvh,100%)] flex-col overflow-hidden rounded-t-[1.5rem] shadow-[0_24px_80px_-28px_rgb(0_0_0/0.55)] lg:max-h-[calc(100dvh-7rem)] lg:rounded-[1.5rem]">
+          <div className="rw-map-glass flex min-h-0 max-h-[calc(100dvh-5rem)] flex-col overflow-hidden rounded-t-[1.5rem] shadow-[0_24px_80px_-28px_rgb(0_0_0/0.55)] lg:max-h-[calc(100dvh-7rem)] lg:rounded-[1.5rem]">
               <div
                 className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-[var(--rw-border-strong)] lg:hidden"
                 aria-hidden="true"
               />
 
-              <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[var(--rw-border)] bg-[var(--rw-surface)]/90 px-4 py-3 backdrop-blur-sm lg:px-5">
+              <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[var(--st-outline-white)] bg-transparent px-4 py-3 lg:px-5">
                 <p className="text-xs font-medium uppercase tracking-wide text-[var(--rw-text-tertiary)]">
                   {selection.kind === 'road'
                     ? t('roadSummary')
@@ -285,6 +286,17 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
                           {selection.intelligence.rainProbabilityPercent}%
                         </dd>
                       </div>
+                      {selection.intelligence.roadType ? (
+                        <div className="col-span-2 rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-3">
+                          <dt className="flex items-center gap-1 text-xs text-[var(--rw-text-tertiary)]">
+                            <TrafficCone className="size-3.5" aria-hidden="true" />
+                            Road type
+                          </dt>
+                          <dd className="mt-1 font-semibold text-[var(--rw-text-primary)]">
+                            {selection.intelligence.roadType}
+                          </dd>
+                        </div>
+                      ) : null}
                       <div className="col-span-2 rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-3">
                         <dt className="flex items-center gap-1 text-xs text-[var(--rw-text-tertiary)]">
                           <Wind className="size-3.5" aria-hidden="true" />
@@ -386,10 +398,10 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
                 ) : null}
               </div>
 
-              <div className="sticky bottom-0 z-20 shrink-0 border-t border-[var(--rw-border)] bg-[var(--rw-surface)]/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md">
+              <div className="shrink-0 border-t border-[var(--st-outline-white)] bg-transparent p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
                 {selection.kind === 'location' && (
-                  <div className="flex max-h-[40vh] flex-col gap-2 overflow-y-auto overscroll-contain">
-                    {complaintPickMode ? (
+                  <div className="flex flex-col gap-2">
+                    {complaintPickMode && locationPickPending ? (
                       <Button type="button" onClick={handleSelectLocationForComplaint}>
                         Select this location for complaint
                       </Button>
@@ -421,7 +433,7 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
                 )}
 
                 {selection.kind === 'road' && (
-                  <div className="flex max-h-[40vh] flex-wrap gap-2 overflow-y-auto overscroll-contain">
+                  <div className="flex flex-wrap gap-2">
                     <Button type="button" onClick={() => handleMoreDetails(selection.road.id)}>
                       {t('moreDetails')}
                     </Button>
@@ -449,7 +461,7 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
                 )}
 
                 {selection.kind === 'complaint' && (
-                  <div className="flex max-h-[40vh] flex-wrap gap-2 overflow-y-auto overscroll-contain">
+                  <div className="flex flex-wrap gap-2">
                     <Button
                       type="button"
                       variant="outline"

@@ -274,6 +274,14 @@ export default function ComplaintDetailPage() {
 
                     authority: complaint.assignedAuthority,
 
+                    assignedDepartment: complaint.assignedDepartment,
+
+                    severity: complaint.severity,
+
+                    status: complaint.status,
+
+                    resolutionStatus: complaint.resolutionStatus,
+
                     roadId: complaint.roadId,
 
                     roadName: complaint.roadName,

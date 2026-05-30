@@ -24,7 +24,10 @@ import {
   augmentPromptWithComplaintContext,
   buildComplaintContextBlock,
 } from '../../lib/complaints/complaintContext'
-import { resolveComplaintById } from '../../lib/complaints/resolveComplaint'
+import {
+  resolveComplaintById,
+  type ResolvedComplaintDetail,
+} from '../../lib/complaints/resolveComplaint'
 import { useI18n } from '../../lib/i18n'
 import { routes } from '../../lib/routes'
 import { useComplaintStore } from '../../stores/complaintStore'
@@ -246,6 +249,32 @@ function isProjectSpecificQuestion(promptText: string) {
   return /budget|spent|contractor|authority|complaint\s+(count|statistics|stats)|project-specific|records?|work order|inspection report/i.test(promptText)
 }
 
+function stateComplaintStatus(value: unknown): ResolvedComplaintDetail['status'] {
+  if (
+    value === 'routed' ||
+    value === 'in_review' ||
+    value === 'resolved' ||
+    value === 'rejected'
+  ) {
+    return value
+  }
+  return 'pending'
+}
+
+function stateComplaintSeverity(
+  value: unknown,
+): ResolvedComplaintDetail['severity'] | undefined {
+  if (
+    value === 'low' ||
+    value === 'medium' ||
+    value === 'high' ||
+    value === 'critical'
+  ) {
+    return value
+  }
+  return undefined
+}
+
 function buildRtiDraft(_authority: string, contextTitle: string, contextDetails: Array<readonly [string, string]>) {
   const details = contextDetails
     .filter(([, value]) => value && !['Unknown', 'Not Available', 'No Data'].includes(value))
@@ -461,8 +490,16 @@ export default function AssistantPage() {
         lng: typeof state.longitude === 'number' ? state.longitude : 0,
         issueType: typeof state.issueType === 'string' ? state.issueType : undefined,
         assignedAuthority: typeof state.authority === 'string' ? state.authority : undefined,
-        assignedDepartment: undefined,
-        status: 'pending' as const,
+        assignedDepartment:
+          typeof state.assignedDepartment === 'string' ? state.assignedDepartment : undefined,
+        status: stateComplaintStatus(state.status),
+        severity: stateComplaintSeverity(state.severity),
+        resolutionStatus:
+          typeof state.resolutionStatus === 'string' ? state.resolutionStatus : undefined,
+        citizenReports: undefined,
+        maintenanceReports: undefined,
+        reportedAt: undefined,
+        updatedAt: undefined,
         locationLabel: typeof state.location === 'string' ? state.location : undefined,
       }
     }
@@ -742,6 +779,7 @@ export default function AssistantPage() {
                     [activeComplaint.city, activeComplaint.state].filter(Boolean).join(', ')) ||
                   'Not Available',
                 authority: activeComplaint.assignedAuthority || 'Unknown',
+                department: activeComplaint.assignedDepartment || 'Unknown',
                 roadId: activeComplaint.roadId,
                 roadName: activeComplaint.roadName ?? 'Unknown',
                 severity: activeComplaint.severity || 'Unknown',

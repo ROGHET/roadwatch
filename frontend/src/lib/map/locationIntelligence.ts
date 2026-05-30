@@ -1,5 +1,6 @@
 import { getAqiProvider, getTrafficProvider, getWeatherProvider } from './providers/registry'
 import { inferPlaceFromCoordinates } from './inferPlace'
+import { mapRoadMarkers } from '../../data/mapMarkers'
 
 /** Snapshot for map location intelligence (weather + air quality + traffic). */
 export type LocationWeatherSnapshot = {
@@ -16,6 +17,7 @@ export type LocationWeatherSnapshot = {
   rainProbabilityPercent: number
   trafficCondition: 'light' | 'moderate' | 'heavy' | 'severe'
   trafficDescription: string
+  roadType?: string
   observedAt: string
 }
 
@@ -71,8 +73,29 @@ function buildMockSnapshot(lat: number, lng: number): LocationWeatherSnapshot {
     rainProbabilityPercent: Math.min(100, 8 + (seed % 72)),
     trafficCondition,
     trafficDescription: trafficDescriptionByCondition[trafficCondition],
+    roadType: findNearestRoadType(lat, lng),
     observedAt: new Date().toISOString(),
   }
+}
+
+function distanceSquared(latA: number, lngA: number, latB: number, lngB: number): number {
+  return (latA - latB) ** 2 + (lngA - lngB) ** 2
+}
+
+function findNearestRoadType(lat: number, lng: number): string | undefined {
+  const nearest = mapRoadMarkers.reduce<{
+    roadType?: string
+    distance: number
+  } | null>((closest, road) => {
+    if (!road.roadType) return closest
+    const distance = distanceSquared(lat, lng, road.lat, road.lng)
+    if (!closest || distance < closest.distance) {
+      return { roadType: road.roadType, distance }
+    }
+    return closest
+  }, null)
+
+  return nearest && nearest.distance <= 0.02 ? nearest.roadType : undefined
 }
 
 /** Deterministic mock provider for demo and interface validation. */
@@ -101,6 +124,7 @@ export const mockLocationIntelligenceProvider: LocationIntelligenceProvider = {
       rainProbabilityPercent: weather.rainProbabilityPercent,
       trafficCondition: traffic.condition,
       trafficDescription: traffic.description,
+      roadType: findNearestRoadType(lat, lng),
       observedAt: traffic.observedAt || weather.observedAt || airQuality.observedAt,
     }
   },

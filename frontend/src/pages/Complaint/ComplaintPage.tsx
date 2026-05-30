@@ -255,7 +255,7 @@ export default function ComplaintPage() {
   const handlePickOnMap = () => {
     syncFormToDraft()
     requestComplaintLocationPick()
-    navigate(routes.map)
+    navigate(routes.map, { state: { complaintPickMode: true } })
   }
 
   const handleReportAnotherComplaint = () => {

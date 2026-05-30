@@ -65,7 +65,12 @@ export function MapMarkerLayers({
     () =>
       complaintMarkers.map((complaint) => (
         <Marker
-          key={complaint.id}
+          key={[
+            complaint.referenceId ?? complaint.id,
+            complaint.id,
+            complaint.lat.toFixed(5),
+            complaint.lng.toFixed(5),
+          ].join(':')}
           position={[complaint.lat, complaint.lng]}
           icon={createComplaintMarkerIcon(complaint.severity ?? 'medium')}
           bubblingMouseEvents={false}
