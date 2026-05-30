@@ -14,25 +14,40 @@ import { fetchComplaints } from '../../lib/api/complaints'
 import { getRecentIntelligenceItems } from '../../lib/complaints/mergedComplaints'
 import { routes } from '../../lib/routes'
 import { buildStoredSubmittedComplaint, useComplaintStore } from '../../stores/complaintStore'
+import { useMapStore } from '../../stores/mapStore'
+import type { ComplaintSeverity } from '../../components/complaints/ComplaintCard'
+
+function matchesSeverityFilter(severity: ComplaintSeverity | undefined, filters: ComplaintSeverity[]) {
+  if (filters.length === 0) return true
+  return filters.includes(severity ?? 'medium')
+}
 
 export default function DashboardPage() {
   const navigate = useNavigate()
   const submittedComplaints = useComplaintStore((state) => state.submittedComplaints)
   const setSubmittedComplaints = useComplaintStore((state) => state.setSubmittedComplaints)
-  const recentComplaints = getRecentIntelligenceItems(submittedComplaints, 6)
+  const severityFilters = useMapStore((state) => state.severityFilters)
+  const filteredComplaints = useMemo(
+    () =>
+      submittedComplaints.filter((entry) =>
+        matchesSeverityFilter(entry.marker.severity, severityFilters),
+      ),
+    [severityFilters, submittedComplaints],
+  )
+  const recentComplaints = getRecentIntelligenceItems(filteredComplaints, 6)
   const dashboardMetrics = useMemo(
     () => [
       {
         id: 'total-complaints',
         label: 'Total Complaints',
-        value: submittedComplaints.length,
+        value: filteredComplaints.length,
         icon: ClipboardList,
         hint: 'Stored complaint records',
       },
       {
         id: 'pending-complaints',
         label: 'Pending',
-        value: submittedComplaints.filter((entry) =>
+        value: filteredComplaints.filter((entry) =>
           ['pending', 'routed', 'in_review'].includes(entry.marker.status),
         ).length,
         icon: Clock,
@@ -41,21 +56,21 @@ export default function DashboardPage() {
       {
         id: 'resolved-complaints',
         label: 'Resolved',
-        value: submittedComplaints.filter((entry) => entry.marker.status === 'resolved').length,
+        value: filteredComplaints.filter((entry) => entry.marker.status === 'resolved').length,
         icon: CheckCircle2,
         hint: 'Closed complaint records',
       },
       {
         id: 'critical-open',
         label: 'Critical Open',
-        value: submittedComplaints.filter(
+        value: filteredComplaints.filter(
           (entry) => entry.marker.severity === 'critical' && entry.marker.status !== 'resolved',
         ).length,
         icon: AlertTriangle,
         hint: 'Immediate safety risk',
       },
     ],
-    [submittedComplaints],
+    [filteredComplaints],
   )
 
   useEffect(() => {

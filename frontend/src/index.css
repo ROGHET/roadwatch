@@ -214,10 +214,11 @@
   }
 
   .rw-report-action:hover {
-    background: #991b1b !important;
+    background: #ef4444 !important;
+    filter: brightness(1.08);
     color: #ffffff !important;
-    box-shadow: 0 20px 42px -16px rgb(127 29 29 / 0.62) !important;
-    transform: translateY(-2px);
+    box-shadow: 0 24px 48px -14px rgb(127 29 29 / 0.72) !important;
+    transform: translateY(-2px) scale(1.02);
   }
 
   .rw-report-action:active {
@@ -241,7 +242,8 @@
   }
 
   html.dark .rw-report-action:hover {
-    background: #b91c1c !important;
+    background: #f87171 !important;
+    filter: brightness(1.1);
     color: #ffffff !important;
   }
 

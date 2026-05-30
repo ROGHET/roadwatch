@@ -14,3 +14,11 @@ createRoot(document.getElementById('root')!).render(
     </AppProviders>
   </StrictMode>,
 )
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    void navigator.serviceWorker.register('/sw.js').catch(() => {
+      // Service worker registration is optional in local dev.
+    })
+  })
+}

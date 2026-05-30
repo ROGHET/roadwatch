@@ -16,10 +16,12 @@ function getFontOptions(t: (key: TranslationKey) => string): Option<FontSize>[] 
   ]
 }
 
-function getLanguageOptions(): Option<Language>[] {
+function getLanguageOptions(t: (key: TranslationKey) => string): Option<Language>[] {
   return [
-    { value: 'en', label: 'English' },
-    { value: 'hi', label: 'हिंदी (Hindi)' },
+    { value: 'en', label: t('langEnglish') },
+    { value: 'hi', label: t('langHindi') },
+    { value: 'mr', label: t('langMarathi') },
+    { value: 'ta', label: t('langTamil') },
   ]
 }
 
@@ -78,7 +80,7 @@ export default function SettingsPage() {
 
   const fontOptions = getFontOptions(i18n.t)
   const themeOptions = getThemeOptions(i18n.t)
-  const languageOptions = getLanguageOptions()
+  const languageOptions = getLanguageOptions(i18n.t)
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-[var(--st-stack-lg)] pb-28 pt-2 md:pb-8">

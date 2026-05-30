@@ -1,5 +1,7 @@
 import { create } from 'zustand'
+import type { ComplaintSeverity } from '../components/complaints/ComplaintCard'
 import { INDIA_CENTER, INDIA_DEFAULT_ZOOM, type MapLayerFilter } from '../lib/map/constants'
+import type { MapRoadTypeFilter } from '../lib/map/nominatimSearch'
 import type { RoutePreviewSnapshot, RoutePreviewTarget } from '../lib/map/providers/types'
 import type { MapActiveSelection } from '../lib/map/types'
 
@@ -12,6 +14,8 @@ export type MapViewport = {
 type MapStoreState = {
   center: MapViewport
   filter: MapLayerFilter
+  severityFilters: ComplaintSeverity[]
+  roadTypeFilters: MapRoadTypeFilter[]
   selection: MapActiveSelection | null
   routePreview: RoutePreviewSnapshot | null
   routePreviewTarget: RoutePreviewTarget | null
@@ -22,6 +26,10 @@ type MapStoreState = {
   skipMapTeardown: boolean
   setViewport: (center: Pick<MapViewport, 'lat' | 'lng'>, zoom: number) => void
   setFilter: (filter: MapLayerFilter) => void
+  setSeverityFilters: (filters: ComplaintSeverity[]) => void
+  setRoadTypeFilters: (filters: MapRoadTypeFilter[]) => void
+  toggleSeverityFilter: (severity: ComplaintSeverity) => void
+  toggleRoadTypeFilter: (roadType: MapRoadTypeFilter) => void
   setSelection: (selection: MapActiveSelection) => void
   clearSelection: () => void
   setRoutePreview: (routePreview: RoutePreviewSnapshot | null) => void
@@ -39,6 +47,8 @@ type MapStoreState = {
 export const useMapStore = create<MapStoreState>((set) => ({
   center: { lat: INDIA_CENTER.lat, lng: INDIA_CENTER.lng, zoom: INDIA_DEFAULT_ZOOM },
   filter: 'all',
+  severityFilters: [],
+  roadTypeFilters: [],
   selection: null,
   routePreview: null,
   routePreviewTarget: null,
@@ -56,6 +66,24 @@ export const useMapStore = create<MapStoreState>((set) => ({
   },
 
   setFilter: (filter) => set({ filter }),
+
+  setSeverityFilters: (severityFilters) => set({ severityFilters }),
+
+  setRoadTypeFilters: (roadTypeFilters) => set({ roadTypeFilters }),
+
+  toggleSeverityFilter: (severity) =>
+    set((state) => ({
+      severityFilters: state.severityFilters.includes(severity)
+        ? state.severityFilters.filter((value) => value !== severity)
+        : [...state.severityFilters, severity],
+    })),
+
+  toggleRoadTypeFilter: (roadType) =>
+    set((state) => ({
+      roadTypeFilters: state.roadTypeFilters.includes(roadType)
+        ? state.roadTypeFilters.filter((value) => value !== roadType)
+        : [...state.roadTypeFilters, roadType],
+    })),
 
   setSelection: (selection) => set({ selection }),
 
@@ -107,6 +135,8 @@ export const useMapStore = create<MapStoreState>((set) => ({
     set((state) => ({
       center: { lat: INDIA_CENTER.lat, lng: INDIA_CENTER.lng, zoom: INDIA_DEFAULT_ZOOM },
       filter: 'all',
+      severityFilters: [],
+      roadTypeFilters: [],
       selection: null,
       routePreview: null,
       routePreviewTarget: null,

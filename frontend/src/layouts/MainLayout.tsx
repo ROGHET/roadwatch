@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from 'framer-motion'
 import { useCallback, useEffect, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { AnimatedOutlet } from '../components/common/AnimatedOutlet'
+import { OfflineBanner } from '../components/common/OfflineBanner'
 import { CommandPalette } from '../components/command/CommandPalette'
 import { RtiGenerationModal } from '../components/rti/RtiGenerationModal'
 import { ProfileMenu } from '../components/navigation/ProfileMenu'
@@ -156,6 +157,7 @@ export default function MainLayout() {
         </div>
       </footer>
 
+      <OfflineBanner />
       <CommandPalette
         open={commandOpen}
         onClose={closeCommandPalette}

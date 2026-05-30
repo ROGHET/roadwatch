@@ -11,6 +11,9 @@ export type RtiFormInput = {
   informationSought: string
   publicAuthority: string
   applicantName?: string
+  applicantAddress?: string
+  subject?: string
+  state?: string
 }
 
 export type RtiDocument = {
@@ -19,6 +22,26 @@ export type RtiDocument = {
   applicantLine: string
   authority: string
   date: string
+  subject: string
+  applicantAddress: string
+  feeDeclaration: string
+}
+
+export const STATE_PWD_AUTHORITIES = [
+  'Maharashtra PWD',
+  'Tamil Nadu PWD',
+  'UP PWD',
+  'NHAI',
+  'Municipal Corporation',
+] as const
+
+export function inferStatePwdAuthority(state?: string): string {
+  if (!state) return 'State PWD'
+  const normalized = state.toLowerCase()
+  if (normalized.includes('maharashtra')) return 'Maharashtra PWD'
+  if (normalized.includes('tamil')) return 'Tamil Nadu PWD'
+  if (normalized.includes('uttar pradesh') || normalized === 'up') return 'UP PWD'
+  return `${state} PWD`
 }
 
 function splitInformationItems(text: string): string[] {
@@ -35,8 +58,12 @@ function splitInformationItems(text: string): string[] {
 }
 
 export function buildRtiDocument(input: RtiFormInput): RtiDocument {
-  const applicantLine = input.applicantName?.trim() || '_________'
+  const applicantLine = input.applicantName?.trim() || '___________________________'
+  const applicantAddress = input.applicantAddress?.trim() || '___________________________'
   const informationItems = splitInformationItems(input.informationSought)
+  const subject = input.subject?.trim() || 'Request for information under the Right to Information Act, 2005'
+  const feeDeclaration =
+    'I declare that I am a citizen of India. I am ready to pay the prescribed application fee of Rs. 10/- as applicable under the RTI Rules.'
   const date = new Date().toLocaleDateString('en-IN', {
     day: '2-digit',
     month: 'long',
@@ -44,23 +71,34 @@ export function buildRtiDocument(input: RtiFormInput): RtiDocument {
   })
 
   const plainText = [
+    'FORM OF APPLICATION FOR SEEKING INFORMATION UNDER THE RTI ACT, 2005',
+    '',
     'To,',
-    'Public Information Officer',
+    'The Public Information Officer',
     input.publicAuthority,
+    input.state ? `${input.state}, India` : '',
+    '',
+    'From,',
+    applicantLine,
+    applicantAddress,
     '',
     'Subject:',
-    'Request for information under RTI Act 2005',
+    subject,
     '',
-    'Applicant:',
-    applicantLine,
-    '',
-    'Information Requested:',
+    'Particulars of information required:',
     ...informationItems.map((item, index) => `${index + 1}. ${item}`),
     '',
+    'Fee Declaration:',
+    feeDeclaration,
+    '',
+    `Place: ${input.state ?? '___________________________'}`,
     `Date: ${date}`,
     '',
-    'Signature:',
-    '_________',
+    'Signature of Applicant:',
+    '___________________________',
+    '',
+    '--- Page footer ---',
+    'RoadWatch RTI Generator | Application under RTI Act 2005',
   ].join('\n')
 
   return {
@@ -69,6 +107,9 @@ export function buildRtiDocument(input: RtiFormInput): RtiDocument {
     applicantLine,
     authority: input.publicAuthority,
     date,
+    subject,
+    applicantAddress,
+    feeDeclaration,
   }
 }
 
@@ -98,27 +139,30 @@ function wrapPdfLine(line: string, maxLength = 82) {
 
 export function createRtiPdfBlob(document: RtiDocument): Blob {
   const bodyLines = [
+    'FORM OF APPLICATION FOR SEEKING INFORMATION UNDER THE RTI ACT, 2005',
+    '',
     'To,',
-    'Public Information Officer',
+    'The Public Information Officer',
     document.authority,
     '',
-    '________________________________________________________________',
-    '',
-    'Subject: Request for information under RTI Act 2005',
-    '',
-    '________________________________________________________________',
-    '',
-    'Applicant:',
+    'From,',
     document.applicantLine,
+    document.applicantAddress,
     '',
-    'Information Requested:',
+    'Subject:',
+    document.subject,
+    '',
+    'Particulars of information required:',
     ...document.informationItems.map((item, index) => `${index + 1}. ${item}`),
     '',
-    '________________________________________________________________',
+    'Fee Declaration:',
+    document.feeDeclaration,
     '',
     `Date: ${document.date}`,
     '',
-    'Signature: _________________________',
+    'Signature of Applicant: _________________________',
+    '',
+    'RoadWatch RTI Generator | Application under RTI Act 2005',
   ]
 
   const pdfLines = bodyLines.flatMap((line) => (line ? wrapPdfLine(line) : ['']))

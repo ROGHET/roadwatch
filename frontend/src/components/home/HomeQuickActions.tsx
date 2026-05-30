@@ -11,7 +11,10 @@ export function HomeQuickActions() {
   const { t } = useI18n()
 
   return (
-    <section className="grid grid-cols-2 gap-4 md:grid-cols-3" aria-label="Quick actions">
+    <section
+      className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
+      aria-label="Quick actions"
+    >
       <BentoCard
         label={t('quickReport')}
         icon={FileWarning}
@@ -36,7 +39,6 @@ export function HomeQuickActions() {
         icon={HeartHandshake}
         accentClassName="text-[var(--st-secondary)]"
         iconBgClassName="bg-[var(--st-secondary)]/10"
-        className="col-span-2 md:col-span-1"
         onClick={() => navigate(routes.dashboard)}
       />
       <BentoCard
@@ -44,7 +46,6 @@ export function HomeQuickActions() {
         icon={Activity}
         accentClassName="text-[var(--st-primary)]"
         iconBgClassName="bg-[var(--st-primary)]/10"
-        className="col-span-2 md:col-span-3 lg:col-span-1"
         onClick={() => navigate(routes.map)}
       />
     </section>

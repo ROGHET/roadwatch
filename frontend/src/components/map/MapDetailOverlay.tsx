@@ -1,5 +1,5 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { Bot, Clock3, Cloud, Droplets, Route, TrafficCone, Wind, X } from 'lucide-react'
+import { Bot, Clock3, Cloud, Droplets, Route, TrafficCone, Wind } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../common/Button'
@@ -16,6 +16,7 @@ import { routes } from '../../lib/routes'
 import { useComplaintStore } from '../../stores/complaintStore'
 import { useMapStore } from '../../stores/mapStore'
 import { RoutePreviewSheet } from './RoutePreviewSheet'
+import { MapSidePanel } from './MapSidePanel'
 import { useI18n } from '../../lib/i18n'
 
 export type MapDetailOverlayProps = {
@@ -195,40 +196,152 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
 
         <motion.div
           key="map-detail-panel"
-          className="pointer-events-auto absolute inset-x-0 bottom-0 z-[500] flex h-[min(90dvh,800px)] max-h-[min(90dvh,800px)] flex-col lg:inset-x-auto lg:bottom-auto lg:right-4 lg:top-24 lg:h-[min(calc(100dvh-7rem),800px)] lg:max-h-[min(calc(100dvh-7rem),800px)] lg:w-[min(26rem,calc(100vw-2rem))]"
-          role="dialog"
-          aria-modal="true"
+          className="contents"
           variants={prefersReducedMotion ? undefined : fadeInUp}
           initial={prefersReducedMotion ? false : 'hidden'}
           animate={prefersReducedMotion ? undefined : 'visible'}
           exit={prefersReducedMotion ? undefined : 'hidden'}
           transition={prefersReducedMotion ? undefined : springSnappy}
         >
-          <div className="rw-map-glass flex h-full min-h-0 flex-col overflow-hidden rounded-t-[1.5rem] shadow-[0_24px_80px_-28px_rgb(0_0_0/0.55)] lg:rounded-[1.5rem]">
-              <div
-                className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-[var(--rw-border-strong)] lg:hidden"
-                aria-hidden="true"
-              />
+          <MapSidePanel
+            title={
+              selection.kind === 'road'
+                ? t('roadSummary')
+                : selection.kind === 'complaint'
+                  ? t('complaintRecord')
+                  : t('locationIntelligenceTitle')
+            }
+            onClose={onClose}
+            closeLabel={t('closeDetails')}
+            footer={
+              <>
+                {selection.kind === 'location' && (
+                  <div className="flex flex-col gap-2">
+                    {complaintPickMode && locationPickPending ? (
+                      <Button type="button" onClick={handleSelectLocationForComplaint}>
+                        {t('selectLocationForComplaint')}
+                      </Button>
+                    ) : null}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() =>
+                        openRoutePreview(
+                          { lat: selection.lat, lng: selection.lng },
+                          selection.intelligence.locationName,
+                        )
+                      }
+                    >
+                      <Route className="size-4 mr-2" aria-hidden="true" />
+                      {t('previewRoute')}
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => navigate(routes.complaint)}>
+                      {t('reportIssue')}
+                    </Button>
+                    <Button type="button" variant="outline" onClick={handleAskAI}>
+                      <Bot className="size-4 mr-2" aria-hidden="true" />
+                      {t('askAIAboutLocation')}
+                    </Button>
+                    <Button type="button" variant="outline" onClick={handleZoomToHere}>
+                      {t('zoomToHere')}
+                    </Button>
+                  </div>
+                )}
 
-              <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[var(--st-outline-white)] bg-transparent px-4 py-3 lg:px-5">
-                <p className="text-xs font-medium uppercase tracking-wide text-[var(--rw-text-tertiary)]">
-                  {selection.kind === 'road'
-                    ? t('roadSummary')
-                    : selection.kind === 'complaint'
-                      ? t('complaintRecord')
-                      : t('locationIntelligenceTitle')}
-                </p>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-[var(--rw-text-secondary)] transition-[background-color,color,transform] duration-200 hover:bg-[var(--rw-surface-muted)] hover:text-[var(--rw-text-primary)] active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rw-ring)]"
-                  aria-label="Close details"
-                >
-                  <X className="size-4" aria-hidden="true" />
-                </button>
-              </div>
+                {selection.kind === 'road' && (
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="button" onClick={() => handleMoreDetails(selection.road.id)}>
+                      {t('moreDetails')}
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => navigate(routes.complaint)}>
+                      {t('fileComplaint')}
+                    </Button>
+                    <Button type="button" variant="outline" onClick={handleAskAI}>
+                      <Bot className="size-4 mr-2" aria-hidden="true" />
+                      {t('askAIAboutRoad')}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() =>
+                        openRoutePreview(
+                          { lat: selection.road.lat, lng: selection.road.lng },
+                          selection.road.roadName,
+                        )
+                      }
+                    >
+                      <Route className="size-4 mr-2" aria-hidden="true" />
+                      {t('previewRoute')}
+                    </Button>
+                  </div>
+                )}
 
-              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 lg:px-5">
+                {selection.kind === 'complaint' && (
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        persistForNavigation()
+                        navigate(routes.complaintDetail(selection.complaint.id))
+                      }}
+                    >
+                      {t('viewComplaint')}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() =>
+                        openRoutePreview(
+                          { lat: selection.complaint.lat, lng: selection.complaint.lng },
+                          selection.complaint.roadName ?? selection.complaint.title,
+                        )
+                      }
+                    >
+                      <Route className="size-4 mr-2" aria-hidden="true" />
+                      {t('previewRoute')}
+                    </Button>
+                    <Button type="button" variant="outline" onClick={handleAskAI}>
+                      <Bot className="size-4 mr-2" aria-hidden="true" />
+                      {t('askAIAboutComplaint')}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        const place = inferPlaceFromCoordinates(
+                          selection.complaint.lat,
+                          selection.complaint.lng,
+                        )
+                        persistForNavigation()
+                        navigate(routes.complaint, {
+                          state: {
+                            prefill: {
+                              roadId: selection.complaint.roadId,
+                              roadName: selection.complaint.roadName,
+                              lat: selection.complaint.lat,
+                              lng: selection.complaint.lng,
+                              issueType: selection.complaint.issueType,
+                              title: selection.complaint.title,
+                              locationLabel:
+                                selection.complaint.roadName ?? selection.complaint.title,
+                              city: place.city,
+                              state: place.state,
+                            },
+                          },
+                        })
+                      }}
+                    >
+                      {t('fileSimilarIssue')}
+                    </Button>
+                    <Button type="button" variant="ghost" onClick={onClose}>
+                      {t('closeDetails')}
+                    </Button>
+                  </div>
+                )}
+              </>
+            }
+          >
                 {selection.kind === 'location' ? (
                   <div className="flex flex-col gap-4">
                     <div>
@@ -236,7 +349,7 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
                         {selection.intelligence.locationName}
                       </h3>
                       <p className="mt-1 text-xs text-[var(--rw-text-tertiary)]">
-                        Tap any point on the map for environmental context
+                        {t('tapMapHint')}
                       </p>
                     </div>
 
@@ -290,7 +403,7 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
                         <div className="col-span-2 rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-3">
                           <dt className="flex items-center gap-1 text-xs text-[var(--rw-text-tertiary)]">
                             <TrafficCone className="size-3.5" aria-hidden="true" />
-                            Road type
+                            {t('roadTypeLabel')}
                           </dt>
                           <dd className="mt-1 font-semibold text-[var(--rw-text-primary)]">
                             {selection.intelligence.roadType}
@@ -361,6 +474,14 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
                         </dd>
                       </div>
                       <div className="flex justify-between gap-4 border-b border-[var(--rw-border)] py-2">
+                        <dt className="text-[var(--rw-text-secondary)]">{t('lastRepairDate')}</dt>
+                        <dd className="font-medium text-[var(--rw-text-primary)]">
+                          {'lastRepairDate' in selection.road && selection.road.lastRepairDate
+                            ? selection.road.lastRepairDate
+                            : t('notPublished')}
+                        </dd>
+                      </div>
+                      <div className="flex justify-between gap-4 border-b border-[var(--rw-border)] py-2">
                         <dt className="text-[var(--rw-text-secondary)]">{t('filterComplaints')}</dt>
                         <dd className="font-medium text-[var(--rw-text-primary)]">
                           {(complaintsByRoadId[selection.road.id] ?? []).length}
@@ -396,135 +517,7 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
                     maintenanceReports={selection.complaint.maintenanceReports}
                   />
                 ) : null}
-              </div>
-
-              <div className="shrink-0 border-t border-[var(--st-outline-white)] bg-[var(--rw-surface)]/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md">
-                {selection.kind === 'location' && (
-                  <div className="flex flex-col gap-2">
-                    {complaintPickMode && locationPickPending ? (
-                      <Button type="button" onClick={handleSelectLocationForComplaint}>
-                        Select this location for complaint
-                      </Button>
-                    ) : null}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() =>
-                        openRoutePreview(
-                          { lat: selection.lat, lng: selection.lng },
-                          selection.intelligence.locationName,
-                        )
-                      }
-                    >
-                      <Route className="size-4 mr-2" aria-hidden="true" />
-                      {t('previewRoute')}
-                    </Button>
-                    <Button type="button" variant="outline" onClick={() => navigate(routes.complaint)}>
-                      Report Issue
-                    </Button>
-                    <Button type="button" variant="outline" onClick={handleAskAI}>
-                      <Bot className="size-4 mr-2" aria-hidden="true" />
-                      Ask AI About This Location
-                    </Button>
-                    <Button type="button" variant="outline" onClick={handleZoomToHere}>
-                      Zoom To Here
-                    </Button>
-                  </div>
-                )}
-
-                {selection.kind === 'road' && (
-                  <div className="flex flex-wrap gap-2">
-                    <Button type="button" onClick={() => handleMoreDetails(selection.road.id)}>
-                      {t('moreDetails')}
-                    </Button>
-                    <Button type="button" variant="outline" onClick={() => navigate(routes.complaint)}>
-                      File Complaint
-                    </Button>
-                    <Button type="button" variant="outline" onClick={handleAskAI}>
-                      <Bot className="size-4 mr-2" aria-hidden="true" />
-                      Ask AI About This Road
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() =>
-                        openRoutePreview(
-                          { lat: selection.road.lat, lng: selection.road.lng },
-                          selection.road.roadName,
-                        )
-                      }
-                    >
-                      <Route className="size-4 mr-2" aria-hidden="true" />
-                      Preview Route
-                    </Button>
-                  </div>
-                )}
-
-                {selection.kind === 'complaint' && (
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        persistForNavigation()
-                        navigate(routes.complaintDetail(selection.complaint.id))
-                      }}
-                    >
-                      View Complaint
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() =>
-                        openRoutePreview(
-                          { lat: selection.complaint.lat, lng: selection.complaint.lng },
-                          selection.complaint.roadName ?? selection.complaint.title,
-                        )
-                      }
-                    >
-                      <Route className="size-4 mr-2" aria-hidden="true" />
-                      {t('previewRoute')}
-                    </Button>
-                    <Button type="button" variant="outline" onClick={handleAskAI}>
-                      <Bot className="size-4 mr-2" aria-hidden="true" />
-                      Ask AI About This Complaint
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        const place = inferPlaceFromCoordinates(
-                          selection.complaint.lat,
-                          selection.complaint.lng,
-                        )
-                        persistForNavigation()
-                        navigate(routes.complaint, {
-                          state: {
-                            prefill: {
-                              roadId: selection.complaint.roadId,
-                              roadName: selection.complaint.roadName,
-                              lat: selection.complaint.lat,
-                              lng: selection.complaint.lng,
-                              issueType: selection.complaint.issueType,
-                              title: selection.complaint.title,
-                              locationLabel:
-                                selection.complaint.roadName ?? selection.complaint.title,
-                              city: place.city,
-                              state: place.state,
-                            },
-                          },
-                        })
-                      }}
-                    >
-                      File similar issue
-                    </Button>
-                    <Button type="button" variant="ghost" onClick={onClose}>
-                      Close
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </div>
+          </MapSidePanel>
         </motion.div>
       </AnimatePresence>
 

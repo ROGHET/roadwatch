@@ -162,6 +162,35 @@ const translations = {
     maintenanceNotes: 'maintenance notes',
     reportedAt: 'Reported: ',
     updatedAt: 'Updated: ',
+    filterPanelTitle: 'Map Filters',
+    filterLayers: 'Layers',
+    filterSeverity: 'Severity',
+    filterRoadType: 'Road Type',
+    filterRoadTypeSearch: 'Search road types…',
+    filterPanelApply: 'Apply Filters',
+    filterPanelClear: 'Clear All',
+    searchPlaces: 'Search roads, places, coordinates…',
+    searchResults: 'Search results',
+    searchingPlaces: 'Searching places…',
+    recentSearches: 'Recent searches',
+    askAIAboutLocation: 'Ask AI About This Location',
+    askAIAboutRoad: 'Ask AI About This Road',
+    askAIAboutComplaint: 'Ask AI About This Complaint',
+    selectLocationForComplaint: 'Select this location for complaint',
+    zoomToHere: 'Zoom To Here',
+    viewComplaint: 'View Complaint',
+    fileSimilarIssue: 'File similar issue',
+    closeDetails: 'Close',
+    roadTypeLabel: 'Road type',
+    tapMapHint: 'Tap any point on the map for environmental context',
+    langEnglish: 'English',
+    langHindi: 'हिन्दी',
+    langMarathi: 'मराठी',
+    langTamil: 'தமிழ்',
+    offlineBanner: 'You are offline. Changes will sync when connection returns.',
+    offlineRetry: 'Retry sync',
+    backOnline: 'Back online',
+    lastRepairDate: 'Last relaying date',
   },
   hi: {
     appName: 'क्रैशज़ीरो',
@@ -324,13 +353,89 @@ const translations = {
     maintenanceNotes: 'रखरखाव नोट्स',
     reportedAt: 'रिपोर्ट किया गया: ',
     updatedAt: 'अपडेट किया गया: ',
+    filterPanelTitle: 'मानचित्र फ़िल्टर',
+    filterLayers: 'परतें',
+    filterSeverity: 'गंभीरता',
+    filterRoadType: 'सड़क प्रकार',
+    filterRoadTypeSearch: 'सड़क प्रकार खोजें…',
+    filterPanelApply: 'फ़िल्टर लागू करें',
+    filterPanelClear: 'सभी साफ़ करें',
+    searchPlaces: 'सड़कें, स्थान, निर्देशांक खोजें…',
+    searchResults: 'खोज परिणाम',
+    searchingPlaces: 'स्थान खोज रहे हैं…',
+    recentSearches: 'हाल की खोज',
+    askAIAboutLocation: 'इस स्थान के बारे में AI से पूछें',
+    askAIAboutRoad: 'इस सड़क के बारे में AI से पूछें',
+    askAIAboutComplaint: 'इस शिकायत के बारे में AI से पूछें',
+    selectLocationForComplaint: 'शिकायत के लिए यह स्थान चुनें',
+    zoomToHere: 'यहाँ ज़ूम करें',
+    viewComplaint: 'शिकायत देखें',
+    fileSimilarIssue: 'समान समस्या दर्ज करें',
+    closeDetails: 'बंद करें',
+    roadTypeLabel: 'सड़क प्रकार',
+    tapMapHint: 'पर्यावरणीय संदर्भ के लिए मानचित्र पर किसी बिंदु पर टैप करें',
+    langEnglish: 'English',
+    langHindi: 'हिन्दी',
+    langMarathi: 'मराठी',
+    langTamil: 'தமிழ்',
+    offlineBanner: 'आप ऑफ़लाइन हैं। कनेक्शन वापस आने पर परिवर्तन सिंक होंगे।',
+    offlineRetry: 'पुनः सिंक करें',
+    backOnline: 'ऑनलाइन',
+    lastRepairDate: 'अंतिम रिलेइंग तिथि',
   },
 } as const
 
 export type TranslationKey = keyof typeof translations.en
+type TranslationDict = Record<TranslationKey, string>
+
+const en = translations.en as TranslationDict
+const hi = translations.hi as TranslationDict
+
+const mrOverrides: Partial<TranslationDict> = {
+  appName: 'क्रॅशझिरो',
+  navHome: 'मुख्यपृष्ठ',
+  navMap: 'नकाशा',
+  navDashboard: 'डॅशबोर्ड',
+  navComplaint: 'तक्रार',
+  settings: 'सेटिंग्ज',
+  language: 'भाषा',
+  quickReport: 'समस्या नोंदवा',
+  quickAI: 'AI सहाय्यक',
+  quickDashboard: 'डॅशबोर्ड',
+  quickMap: 'नकाशा उघडा',
+  filterPanelTitle: 'नकाशा फिल्टर',
+  searchPlaces: 'रस्ते, ठिकाणे, निर्देशांक शोधा…',
+  locationIntelligenceTitle: 'स्थान बुद्धिमत्ता',
+  langMarathi: 'मराठी',
+}
+
+const taOverrides: Partial<TranslationDict> = {
+  appName: 'கிராஷ்ஜீரோ',
+  navHome: 'முகப்பு',
+  navMap: 'வரைபடம்',
+  navDashboard: 'டாஷ்போர்டு',
+  navComplaint: 'புகார்',
+  settings: 'அமைப்புகள்',
+  language: 'மொழி',
+  quickReport: 'சிக்கலை புகார் செய்',
+  quickAI: 'AI உதவியாளர்',
+  quickDashboard: 'டாஷ்போர்டு',
+  quickMap: 'வரைபடம் திற',
+  filterPanelTitle: 'வரைபட வடிகட்டிகள்',
+  searchPlaces: 'சாலைகள், இடங்கள், coordinates தேடு…',
+  locationIntelligenceTitle: 'இடம் intelligence',
+  langTamil: 'தமிழ்',
+}
+
+const allTranslations: Record<Language, TranslationDict> = {
+  en,
+  hi,
+  mr: { ...en, ...mrOverrides },
+  ta: { ...en, ...taOverrides },
+}
 
 export function getTranslation(language: Language, key: TranslationKey) {
-  return translations[language][key] ?? translations.en[key]
+  return allTranslations[language][key] ?? allTranslations.en[key]
 }
 
 export function useI18n() {

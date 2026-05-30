@@ -4,24 +4,17 @@ import { useId, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '../common/Button'
-import type { MapLayerFilter } from '../../lib/map/constants'
 import type { GeolocationStatus } from '../../hooks/useGeolocation'
 import { fadeInUp, scaleIn } from '../../lib/motion'
 import { routes } from '../../lib/routes'
 import { useMapStore } from '../../stores/mapStore'
 import { useI18n } from '../../lib/i18n'
 
-const getFilterOptions = (t: any): { value: MapLayerFilter; label: string }[] => [
-  { value: 'all', label: t('filterAll') },
-  { value: 'roads', label: t('filterRoads') },
-  { value: 'complaints', label: t('filterComplaints') },
-]
-
 export type MapSearchResult = {
   id: string
   label: string
   description: string
-  kind: 'road' | 'complaint'
+  kind: 'road' | 'complaint' | 'place'
   lat: number
   lng: number
 }
@@ -31,9 +24,8 @@ export type MapFloatingControlsProps = {
   searchQuery: string
   onSearchQueryChange: (value: string) => void
   searchResults: MapSearchResult[]
+  searchLoading?: boolean
   onSearchResultSelect: (result: MapSearchResult) => void
-  filter: MapLayerFilter
-  onFilterChange: (filter: MapLayerFilter) => void
   filterOpen: boolean
   onFilterOpenChange: (open: boolean) => void
   onLocate: () => void
@@ -49,9 +41,8 @@ export function MapFloatingControls({
   searchQuery,
   onSearchQueryChange,
   searchResults,
+  searchLoading = false,
   onSearchResultSelect,
-  filter,
-  onFilterChange,
   filterOpen,
   onFilterOpenChange,
   onLocate,
@@ -66,10 +57,9 @@ export function MapFloatingControls({
   const persistForNavigation = useMapStore((state) => state.persistForNavigation)
   const prefersReducedMotion = useReducedMotion()
   const searchId = useId()
-  const showResults = searchQuery.trim().length > 0 && mode === 'expanded'
+  const showResults = mode === 'expanded' && (searchQuery.trim().length > 0 || searchResults.length > 0)
   const controlsEnabled = mode === 'expanded'
   const locating = locateStatus === 'loading' || locateStatus === 'refreshing'
-  const filterOptions = getFilterOptions(t)
   const openLocationHelp = () => {
     const ua = navigator.userAgent.toLowerCase()
     const helpUrl = ua.includes('edg')
@@ -108,19 +98,19 @@ export function MapFloatingControls({
         initial={prefersReducedMotion ? false : 'hidden'}
         animate={prefersReducedMotion ? undefined : 'visible'}
         role="search"
-        aria-label="Search roads and complaints"
+        aria-label={t('searchPlaces')}
       >
         <Search className="size-5 shrink-0 text-[var(--st-primary)]" aria-hidden="true" />
         <span className="hidden font-serif text-lg text-[var(--st-primary)] sm:inline">{t('appName')}</span>
         <label htmlFor={searchId} className="sr-only">
-          {t('searchRoadsComplaints')}
+          {t('searchPlaces')}
         </label>
         <input
           id={searchId}
           type="search"
           value={searchQuery}
           onChange={(event) => onSearchQueryChange(event.target.value)}
-          placeholder={t('searchRoadsComplaints')}
+          placeholder={t('searchPlaces')}
           className="min-w-0 flex-1 bg-transparent text-sm text-[var(--rw-text-primary)] outline-none placeholder:text-[var(--rw-text-tertiary)]"
           autoComplete="off"
         />
@@ -140,32 +130,44 @@ export function MapFloatingControls({
         <motion.ul
           className="pointer-events-auto rw-map-glass mx-auto max-h-52 w-full max-w-xl overflow-y-auto rounded-[1.25rem] p-2 shadow-[0_20px_60px_-24px_rgb(0_0_0/0.45)] backdrop-blur-2xl"
           role="listbox"
-          aria-label="Search results"
+          aria-label={t('searchResults')}
           variants={prefersReducedMotion ? undefined : fadeInUp}
           initial={prefersReducedMotion ? false : 'hidden'}
           animate={prefersReducedMotion ? undefined : 'visible'}
         >
-          {searchResults.length === 0 ? (
+          {searchLoading ? (
+            <li className="flex items-center justify-center gap-2 px-3 py-4 text-sm text-[var(--rw-text-secondary)]">
+              <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              {t('searchingPlaces')}
+            </li>
+          ) : searchResults.length === 0 ? (
             <li className="px-3 py-4 text-center text-sm text-[var(--rw-text-secondary)]">
               {t('noMatchingRecords')}
             </li>
           ) : (
-            searchResults.map((result) => (
-              <li key={`${result.kind}-${result.id}`} role="option">
-                <button
-                  type="button"
-                  onClick={() => onSearchResultSelect(result)}
-                  className="flex w-full flex-col gap-0.5 rounded-xl px-3 py-2.5 text-left transition-[background-color,transform] duration-200 hover:bg-[var(--rw-surface-muted)] active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rw-ring)]"
-                >
-                  <span className="text-sm font-medium text-[var(--rw-text-primary)]">
-                    {result.label}
-                  </span>
-                  <span className="text-xs text-[var(--rw-text-secondary)]">
-                    {result.description}
-                  </span>
-                </button>
-              </li>
-            ))
+            <>
+              {!searchQuery.trim() ? (
+                <li className="px-3 py-1 text-xs font-medium uppercase tracking-wide text-[var(--rw-text-tertiary)]">
+                  {t('recentSearches')}
+                </li>
+              ) : null}
+              {searchResults.map((result) => (
+                <li key={`${result.kind}-${result.id}`} role="option">
+                  <button
+                    type="button"
+                    onClick={() => onSearchResultSelect(result)}
+                    className="flex w-full flex-col gap-0.5 rounded-xl px-3 py-2.5 text-left transition-[background-color,transform] duration-200 hover:bg-[var(--rw-surface-muted)] active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rw-ring)]"
+                  >
+                    <span className="text-sm font-medium text-[var(--rw-text-primary)]">
+                      {result.label}
+                    </span>
+                    <span className="text-xs text-[var(--rw-text-secondary)]">
+                      {result.description}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </>
           )}
         </motion.ul>
       ) : null}
@@ -178,7 +180,7 @@ export function MapFloatingControls({
             className="rw-map-glass inline-flex h-[var(--rw-input-height)] w-[var(--rw-input-height)] items-center justify-center rounded-full shadow-[0_18px_50px_-22px_rgb(0_0_0/0.45)] transition-[background-color,transform] duration-200 hover:bg-[var(--rw-surface-muted)] active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rw-ring)]"
             aria-expanded={filterOpen}
             aria-controls="map-layer-filters"
-            aria-label="Map layer filters"
+            aria-label={t('filterPanelTitle')}
             variants={prefersReducedMotion ? undefined : scaleIn}
             initial={prefersReducedMotion ? false : 'hidden'}
             animate={prefersReducedMotion ? undefined : 'visible'}
@@ -187,38 +189,6 @@ export function MapFloatingControls({
           >
             <Filter className="size-5 text-[var(--rw-text-primary)]" aria-hidden="true" />
           </motion.button>
-
-          {filterOpen ? (
-            <motion.div
-              id="map-layer-filters"
-              className="rw-map-glass absolute left-0 top-full z-10 mt-2 min-w-44 rounded-[1.25rem] p-2 shadow-[0_18px_50px_-22px_rgb(0_0_0/0.45)] backdrop-blur-2xl"
-              role="group"
-              aria-label="Layer filters"
-              variants={prefersReducedMotion ? undefined : fadeInUp}
-              initial={prefersReducedMotion ? false : 'hidden'}
-              animate={prefersReducedMotion ? undefined : 'visible'}
-            >
-              {filterOptions.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => {
-                    onFilterChange(option.value)
-                    onFilterOpenChange(false)
-                  }}
-                  className={twMerge(
-                    'flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm transition-[background-color,transform] duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rw-ring)]',
-                    filter === option.value
-                      ? 'bg-[var(--rw-primary)] font-medium text-[var(--rw-primary-foreground)]'
-                      : 'text-[var(--rw-text-primary)] hover:bg-[var(--rw-surface-muted)] active:scale-[0.99]',
-                  )}
-                  aria-pressed={filter === option.value}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </motion.div>
-          ) : null}
         </div>
 
         <div className="pointer-events-auto flex flex-col items-end gap-2">

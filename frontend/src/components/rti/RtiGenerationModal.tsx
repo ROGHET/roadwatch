@@ -8,9 +8,12 @@ import { Textarea } from '../common/Textarea'
 import {
   buildRtiDocument,
   createRtiPdfBlob,
+  inferStatePwdAuthority,
   RTI_PUBLIC_AUTHORITIES,
+  STATE_PWD_AUTHORITIES,
   type RtiDocument,
 } from '../../lib/rti/rtiDocument'
+import { useMapStore } from '../../stores/mapStore'
 
 export type RtiGenerationModalProps = {
   open: boolean
@@ -28,16 +31,31 @@ export function RtiGenerationModal({
   const [informationSought, setInformationSought] = useState(defaultInformation)
   const [publicAuthority, setPublicAuthority] = useState(defaultAuthority)
   const [applicantName, setApplicantName] = useState('')
+  const [applicantAddress, setApplicantAddress] = useState('')
+  const [applicantState, setApplicantState] = useState('')
+  const selection = useMapStore((state) => state.selection)
+  const center = useMapStore((state) => state.center)
   const [generated, setGenerated] = useState<RtiDocument | null>(null)
   const [copyMessage, setCopyMessage] = useState<string | null>(null)
 
   useEffect(() => {
     if (!open) return
     setInformationSought(defaultInformation)
-    setPublicAuthority(defaultAuthority)
+    const inferredState =
+      selection?.kind === 'location'
+        ? selection.intelligence.state
+        : selection?.kind === 'complaint'
+          ? undefined
+          : undefined
+    const authority =
+      defaultAuthority === 'State PWD'
+        ? inferStatePwdAuthority(inferredState)
+        : defaultAuthority
+    setPublicAuthority(authority)
+    setApplicantState(inferredState ?? '')
     setGenerated(null)
     setCopyMessage(null)
-  }, [defaultAuthority, defaultInformation, open])
+  }, [center.lat, center.lng, defaultAuthority, defaultInformation, open, selection])
 
   if (!open) return null
 
@@ -45,8 +63,13 @@ export function RtiGenerationModal({
     setGenerated(
       buildRtiDocument({
         informationSought,
-        publicAuthority,
+        publicAuthority:
+          publicAuthority === 'State PWD'
+            ? inferStatePwdAuthority(applicantState.trim() || undefined)
+            : publicAuthority,
         applicantName: applicantName.trim() || undefined,
+        applicantAddress: applicantAddress.trim() || undefined,
+        state: applicantState.trim() || undefined,
       }),
     )
     setCopyMessage(null)
@@ -130,7 +153,7 @@ export function RtiGenerationModal({
                     value={publicAuthority}
                     onChange={(event) => setPublicAuthority(event.target.value)}
                   >
-                    {RTI_PUBLIC_AUTHORITIES.map((authority) => (
+                    {[...new Set([...RTI_PUBLIC_AUTHORITIES, ...STATE_PWD_AUTHORITIES])].map((authority) => (
                       <option key={authority} value={authority}>
                         {authority}
                       </option>
@@ -144,6 +167,27 @@ export function RtiGenerationModal({
                     value={applicantName}
                     onChange={(event) => setApplicantName(event.target.value)}
                     placeholder="Full name"
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="rti-address">Applicant Address (optional)</Label>
+                  <Input
+                    id="rti-address"
+                    value={applicantAddress}
+                    onChange={(event) => setApplicantAddress(event.target.value)}
+                    placeholder="House no., street, city, PIN"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="rti-state">State (for State PWD routing)</Label>
+                  <Input
+                    id="rti-state"
+                    value={applicantState}
+                    onChange={(event) => setApplicantState(event.target.value)}
+                    placeholder="e.g. Maharashtra"
                   />
                 </div>
               </div>

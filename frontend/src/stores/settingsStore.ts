@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 export type FontSize = 'small' | 'medium' | 'large'
-export type Language = 'en' | 'hi'
+export type Language = 'en' | 'hi' | 'mr' | 'ta'
 
 type SettingsState = {
   fontSize: FontSize

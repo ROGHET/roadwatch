@@ -13,7 +13,7 @@ console.log("API KEY FOUND:", !!process.env.GEMINI_API_KEY);
 
 const app = express();
 const port = process.env.PORT || 3000;
-const payloadLimit = '15mb';
+const payloadLimit = '20mb';
 
 app.use(cors());
 app.use(express.json({ limit: payloadLimit }));
@@ -41,7 +41,7 @@ app.use(
   ) => {
     if (error.type === 'entity.too.large' || error.status === 413) {
       return res.status(413).json({
-        error: 'Uploaded image is too large. Please attach an image up to 10 MB.',
+        error: 'Payload too large. Maximum upload size is 20 MB.',
       });
     }
 

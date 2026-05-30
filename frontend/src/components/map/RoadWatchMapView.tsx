@@ -5,17 +5,21 @@ import '../../lib/map/leafletDefaults'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MapContainer, ZoomControl } from 'react-leaflet'
+import { Marker } from 'react-leaflet'
+import L from 'leaflet'
 import { mapRoadMarkers } from '../../data/mapMarkers'
 import { getMergedComplaintMarkers } from '../../lib/complaints/mergedComplaints'
 import { useGeolocation } from '../../hooks/useGeolocation'
 import { inferPlaceFromCoordinates } from '../../lib/map/inferPlace'
 import { fetchLocationIntelligence } from '../../lib/map/locationIntelligence'
+import {
+  getRecentNominatimSearches,
+  searchNominatim,
+  type NominatimSearchResult,
+} from '../../lib/map/nominatimSearch'
 import { routes } from '../../lib/routes'
 import { fetchComplaints } from '../../lib/api/complaints'
 import {
-  INDIA_MAP_MAX_BOUNDS,
-  MAP_MAX_BOUNDS_VISCOSITY,
   MAP_MAX_ZOOM,
   MAP_MIN_ZOOM,
   PREVIEW_ZOOM,
@@ -29,6 +33,7 @@ import { buildStoredSubmittedComplaint, useComplaintStore } from '../../stores/c
 import { getInitialMapViewport, useMapStore } from '../../stores/mapStore'
 import { MapClickHandler } from './MapClickHandler'
 import { MapDetailOverlay } from './MapDetailOverlay'
+import { MapFilterPanel } from './MapFilterPanel'
 import { MapFlyTo } from './MapFlyTo'
 import {
   MapFloatingControls,
@@ -40,6 +45,7 @@ import { MapRouteLayer } from './MapRouteLayer'
 import { MapResizeHandler } from './MapResizeHandler'
 import { MapThemeTileLayer } from './MapThemeTileLayer'
 import { MapViewportSync } from './MapViewportSync'
+import { MapContainer, ZoomControl } from 'react-leaflet'
 
 export type RoadWatchMapViewProps = {
   mode?: MapDisplayMode
@@ -78,15 +84,25 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
   }, [mode, setSubmittedComplaints])
 
   const filter = useMapStore((state) => state.filter)
+  const severityFilters = useMapStore((state) => state.severityFilters)
+  const roadTypeFilters = useMapStore((state) => state.roadTypeFilters)
   const selection = useMapStore((state) => state.selection)
   const routePreview = useMapStore((state) => state.routePreview)
   const center = useMapStore((state) => state.center)
   const hasUserViewport = useMapStore((state) => state.hasUserViewport)
   const setFilter = useMapStore((state) => state.setFilter)
+  const setSeverityFilters = useMapStore((state) => state.setSeverityFilters)
+  const setRoadTypeFilters = useMapStore((state) => state.setRoadTypeFilters)
+  const toggleSeverityFilter = useMapStore((state) => state.toggleSeverityFilter)
+  const toggleRoadTypeFilter = useMapStore((state) => state.toggleRoadTypeFilter)
   const setSelection = useMapStore((state) => state.setSelection)
   const clearSelection = useMapStore((state) => state.clearSelection)
   const [filterOpen, setFilterOpen] = useState(false)
+  const [roadTypeQuery, setRoadTypeQuery] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
+  const [nominatimResults, setNominatimResults] = useState<NominatimSearchResult[]>([])
+  const [searchLoading, setSearchLoading] = useState(false)
+  const [searchPin, setSearchPin] = useState<{ lat: number; lng: number } | null>(null)
   const [intelLoading, setIntelLoading] = useState(false)
   const [flyTarget, setFlyTarget] = useState<{
     lat: number
@@ -119,7 +135,14 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
     if (mode !== 'expanded') return []
 
     const query = searchQuery.trim().toLowerCase()
-    if (!query) return []
+    if (!query) return getRecentNominatimSearches().map((item) => ({
+      id: item.id,
+      kind: item.kind === 'coordinates' ? 'place' as const : item.kind,
+      label: item.label,
+      description: item.description,
+      lat: item.lat,
+      lng: item.lng,
+    }))
 
     const roadResults: MapSearchResult[] = mapRoadMarkers
       .filter(
@@ -153,8 +176,43 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
         lng: complaint.lng,
       }))
 
-    return [...roadResults, ...complaintResults].slice(0, 8)
-  }, [complaintMarkers, mode, searchQuery])
+    const placeResults: MapSearchResult[] = nominatimResults.map((item) => ({
+      id: item.id,
+      kind: 'place' as const,
+      label: item.label,
+      description: item.description,
+      lat: item.lat,
+      lng: item.lng,
+    }))
+
+    return [...placeResults, ...roadResults, ...complaintResults].slice(0, 10)
+  }, [complaintMarkers, mode, nominatimResults, searchQuery])
+
+  useEffect(() => {
+    if (mode !== 'expanded') return
+    const query = searchQuery.trim()
+    if (query.length < 2) {
+      setNominatimResults([])
+      return
+    }
+
+    let cancelled = false
+    const timer = window.setTimeout(() => {
+      setSearchLoading(true)
+      void searchNominatim(query)
+        .then((results) => {
+          if (!cancelled) setNominatimResults(results)
+        })
+        .finally(() => {
+          if (!cancelled) setSearchLoading(false)
+        })
+    }, 350)
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [mode, searchQuery])
 
   useEffect(() => {
     if (mode === 'expanded') {
@@ -212,16 +270,26 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
     }
   }
 
-  const handleSearchResultSelect = (result: MapSearchResult) => {
+  const handleSearchResultSelect = async (result: MapSearchResult) => {
     focusOn(result.lat, result.lng, ROAD_FOCUS_ZOOM)
+    setSearchPin({ lat: result.lat, lng: result.lng })
     if (result.kind === 'road') {
       const road = mapRoadMarkers.find((record) => record.id === result.id)
       if (road) handleSelectRoad(road)
-    } else {
+    } else if (result.kind === 'complaint') {
       const complaint = complaintMarkers.find((record) => record.id === result.id)
       if (complaint) handleSelectComplaint(complaint)
+    } else {
+      setIntelLoading(true)
+      try {
+        const intelligence = await fetchLocationIntelligence(result.lat, result.lng)
+        setSelection({ kind: 'location', lat: result.lat, lng: result.lng, intelligence })
+      } finally {
+        setIntelLoading(false)
+      }
     }
     setSearchQuery('')
+    setNominatimResults([])
   }
 
   const handleLocate = useCallback(async () => {
@@ -259,8 +327,6 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
         zoomControl={false}
         minZoom={MAP_MIN_ZOOM}
         maxZoom={MAP_MAX_ZOOM}
-        maxBounds={INDIA_MAP_MAX_BOUNDS}
-        maxBoundsViscosity={MAP_MAX_BOUNDS_VISCOSITY}
         worldCopyJump={true}
         attributionControl={mode === 'expanded'}
         scrollWheelZoom={false}
@@ -279,11 +345,24 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
         />
         <MapMarkerLayers
           filter={filter}
+          severityFilters={severityFilters}
+          roadTypeFilters={roadTypeFilters}
           complaintMarkers={complaintMarkers}
           userPosition={mode === 'expanded' ? userPosition : null}
           onSelectRoad={handleSelectRoad}
           onSelectComplaint={handleSelectComplaint}
         />
+        {searchPin ? (
+          <Marker
+            position={[searchPin.lat, searchPin.lng]}
+            icon={L.divIcon({
+              className: '',
+              html: '<div class="rw-search-pin size-4 rounded-full border-2 border-white bg-[var(--st-primary)] shadow-lg"></div>',
+              iconSize: [16, 16],
+              iconAnchor: [8, 8],
+            })}
+          />
+        ) : null}
       <MapRouteLayer route={routePreview} />
       </MapContainer>
 
@@ -310,9 +389,8 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
         searchQuery={searchQuery}
         onSearchQueryChange={setSearchQuery}
         searchResults={searchResults}
+        searchLoading={searchLoading}
         onSearchResultSelect={handleSearchResultSelect}
-        filter={filter}
-        onFilterChange={setFilter}
         filterOpen={filterOpen}
         onFilterOpenChange={setFilterOpen}
         onLocate={handleLocate}
@@ -320,6 +398,24 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
         locateMessage={errorMessage}
         locatePermissionState={permissionState}
         locatePolicyBlockReason={policyBlockReason}
+      />
+
+      <MapFilterPanel
+        open={filterOpen && mode === 'expanded'}
+        filter={filter}
+        severityFilters={severityFilters}
+        roadTypeFilters={roadTypeFilters}
+        onFilterChange={setFilter}
+        onToggleSeverity={toggleSeverityFilter}
+        onToggleRoadType={toggleRoadTypeFilter}
+        onClearFilters={() => {
+          setFilter('all')
+          setSeverityFilters([])
+          setRoadTypeFilters([])
+        }}
+        onClose={() => setFilterOpen(false)}
+        roadTypeQuery={roadTypeQuery}
+        onRoadTypeQueryChange={setRoadTypeQuery}
       />
 
       <MapDetailOverlay

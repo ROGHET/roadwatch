@@ -62,7 +62,7 @@ export function AnalyticsDashboardSections() {
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
-      <Card>
+      <Card className="rw-glass-panel rw-glass-edge shadow-[0_20px_60px_-30px_rgb(0_0_0/0.35)]">
         <CardHeader>
           <CardTitle className="text-base">Complaint Categories</CardTitle>
           <CardDescription>Open complaints grouped by issue type.</CardDescription>
@@ -80,14 +80,14 @@ export function AnalyticsDashboardSections() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rw-glass-panel rw-glass-edge shadow-[0_20px_60px_-30px_rgb(0_0_0/0.35)]">
         <CardHeader>
           <CardTitle className="text-base">Resolution Status</CardTitle>
           <CardDescription>Distribution of complaint lifecycle states.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-          <div className="relative mx-auto h-48 w-full max-w-[220px]">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="relative mx-auto min-h-[12rem] w-full min-w-0">
+            <ResponsiveContainer width="100%" height={192} minWidth={0}>
               <PieChart>
                 <Pie
                   data={statuses}
@@ -129,7 +129,7 @@ export function AnalyticsDashboardSections() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rw-glass-panel rw-glass-edge shadow-[0_20px_60px_-30px_rgb(0_0_0/0.35)]">
         <CardHeader>
           <CardTitle className="text-base">Monthly Trends</CardTitle>
           <CardDescription>Complaint volume by reporting month.</CardDescription>
@@ -147,7 +147,7 @@ export function AnalyticsDashboardSections() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rw-glass-panel rw-glass-edge shadow-[0_20px_60px_-30px_rgb(0_0_0/0.35)]">
         <CardHeader>
           <CardTitle className="text-base">Budget Utilization</CardTitle>
           <CardDescription>Aggregated sanctioned and spent road budgets.</CardDescription>

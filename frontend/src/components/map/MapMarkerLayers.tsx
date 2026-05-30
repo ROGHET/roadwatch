@@ -3,8 +3,10 @@ import L from 'leaflet'
 import { Marker } from 'react-leaflet'
 import MarkerClusterGroup from 'react-leaflet-cluster'
 import { mapRoadMarkers } from '../../data/mapMarkers'
+import type { ComplaintSeverity } from '../complaints/ComplaintCard'
 import { createComplaintMarkerIcon, createRoadMarkerIcon } from '../../lib/map/icons'
 import type { MapLayerFilter } from '../../lib/map/constants'
+import type { MapRoadTypeFilter } from '../../lib/map/nominatimSearch'
 import type { GeolocationPosition } from '../../hooks/useGeolocation'
 import type { MapComplaintMarker } from '../../lib/map/types'
 import type { MockRoad } from '../../data/roads'
@@ -20,14 +22,24 @@ const clusterGroupProps = {
 
 export type MapMarkerLayersProps = {
   filter: MapLayerFilter
+  severityFilters: ComplaintSeverity[]
+  roadTypeFilters: MapRoadTypeFilter[]
   complaintMarkers: MapComplaintMarker[]
   userPosition: GeolocationPosition | null
   onSelectRoad: (road: MockRoad) => void
   onSelectComplaint: (complaint: MapComplaintMarker) => void
 }
 
+function matchesRoadTypeFilter(roadType: string | undefined, filters: MapRoadTypeFilter[]) {
+  if (filters.length === 0) return true
+  if (!roadType) return false
+  return filters.some((filter) => roadType.toLowerCase().includes(filter.toLowerCase()))
+}
+
 export function MapMarkerLayers({
   filter,
+  severityFilters,
+  roadTypeFilters,
   complaintMarkers,
   userPosition,
   onSelectRoad,
@@ -41,9 +53,27 @@ export function MapMarkerLayers({
   const showRoads = filter === 'all' || filter === 'roads'
   const showComplaints = filter === 'all' || filter === 'complaints'
 
+  const filteredRoads = useMemo(
+    () =>
+      mapRoadMarkers.filter((road) => matchesRoadTypeFilter(road.roadType, roadTypeFilters)),
+    [roadTypeFilters],
+  )
+
+  const filteredComplaints = useMemo(
+    () =>
+      complaintMarkers.filter((complaint) => {
+        const severityMatch =
+          severityFilters.length === 0 ||
+          severityFilters.includes((complaint.severity ?? 'medium') as ComplaintSeverity)
+        const roadTypeMatch = matchesRoadTypeFilter(complaint.roadType, roadTypeFilters)
+        return severityMatch && roadTypeMatch
+      }),
+    [complaintMarkers, roadTypeFilters, severityFilters],
+  )
+
   const roadMarkers = useMemo(
     () =>
-      mapRoadMarkers.map((road) => (
+      filteredRoads.map((road) => (
         <Marker
           key={road.id}
           position={[road.lat, road.lng]}
@@ -58,12 +88,12 @@ export function MapMarkerLayers({
           }}
         />
       )),
-    [],
+    [filteredRoads],
   )
 
   const complaintMarkerNodes = useMemo(
     () =>
-      complaintMarkers.map((complaint) => (
+      filteredComplaints.map((complaint) => (
         <Marker
           key={[
             complaint.referenceId ?? complaint.id,
@@ -83,7 +113,7 @@ export function MapMarkerLayers({
           }}
         />
       )),
-    [complaintMarkers],
+    [filteredComplaints],
   )
 
   return (
