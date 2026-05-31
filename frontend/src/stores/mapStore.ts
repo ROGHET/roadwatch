@@ -54,7 +54,7 @@ type MapStoreState = {
 const defaultLayerToggles: MapLayerToggles = {
   roads: true,
   complaints: true,
-  tollPlazas: true,
+  tollPlazas: false,
 }
 
 export const useMapStore = create<MapStoreState>((set) => ({

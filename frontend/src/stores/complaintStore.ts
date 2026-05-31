@@ -105,7 +105,12 @@ function mapSeverity(severity: string): ComplaintSeverity {
 function mapStatus(status: string): ComplaintStatus {
   const normalized = status.toLowerCase()
   if (normalized === 'routed') return 'routed'
-  if (normalized === 'in_progress' || normalized === 'in progress') return 'in_review'
+  if (
+    normalized === 'in_progress' ||
+    normalized === 'in progress' ||
+    normalized === 'in_review'
+  )
+    return 'in_review'
   if (normalized === 'resolved') return 'resolved'
   if (normalized === 'rejected') return 'rejected'
   return 'pending'

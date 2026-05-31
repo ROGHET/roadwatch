@@ -81,7 +81,7 @@ export default function HomePage() {
       </motion.div>
 
       <motion.section
-        className="hidden md:block"
+        className="flex flex-col gap-[var(--st-stack-sm)]"
         variants={prefersReducedMotion ? undefined : fadeInUp}
         initial={prefersReducedMotion ? false : 'hidden'}
         whileInView={prefersReducedMotion ? undefined : 'visible'}

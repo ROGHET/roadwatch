@@ -173,5 +173,5 @@ export function resolveWeatherProvider(env: ImportMetaEnv): WeatherProvider {
     return createOpenWeatherProvider(openWeatherKey)
   }
 
-  return mockWeatherProvider
+  return createOpenMeteoProvider()
 }

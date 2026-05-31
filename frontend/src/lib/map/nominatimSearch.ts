@@ -7,34 +7,6 @@ export type NominatimSearchResult = {
   kind: 'place' | 'road' | 'coordinates'
 }
 
-const CACHE_KEY = 'rw-nominatim-recent'
-const MAX_CACHE = 12
-
-type CachedSearch = NominatimSearchResult & { searchedAt: string }
-
-function readCache(): CachedSearch[] {
-  try {
-    const raw = localStorage.getItem(CACHE_KEY)
-    if (!raw) return []
-    const parsed = JSON.parse(raw) as CachedSearch[]
-    return Array.isArray(parsed) ? parsed : []
-  } catch {
-    return []
-  }
-}
-
-function writeCache(entry: NominatimSearchResult) {
-  const next: CachedSearch[] = [
-    { ...entry, searchedAt: new Date().toISOString() },
-    ...readCache().filter((item) => item.id !== entry.id),
-  ].slice(0, MAX_CACHE)
-  localStorage.setItem(CACHE_KEY, JSON.stringify(next))
-}
-
-export function getRecentNominatimSearches(): NominatimSearchResult[] {
-  return readCache()
-}
-
 function parseCoordinates(query: string): { lat: number; lng: number } | null {
   const match = query.trim().match(/^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/)
   if (!match) return null
@@ -59,7 +31,6 @@ export async function searchNominatim(query: string): Promise<NominatimSearchRes
       lng: coords.lng,
       kind: 'coordinates',
     }
-    writeCache(result)
     return [result]
   }
 
@@ -121,7 +92,6 @@ export async function searchNominatim(query: string): Promise<NominatimSearchRes
       } satisfies NominatimSearchResult
     })
 
-  if (results[0]) writeCache(results[0])
   return results
 }
 

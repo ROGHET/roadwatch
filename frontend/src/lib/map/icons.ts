@@ -79,14 +79,32 @@ const highwayBadgeSvg = `
   <path d="M12 2 4 22h4l1-4h6l1 4h4L12 2z"/>
 </svg>`
 
-export function createTollPlazaIcon() {
+export function createTollClusterSummaryIcon(count: number) {
+  const label = count >= 1000 ? `${Math.round(count / 100) / 10}k` : String(count)
   return L.divIcon({
     className: 'rw-map-marker-root',
-    html: `<div class="rw-map-marker-pin">
+    html: `<div class="rw-map-marker-pin rw-map-marker-pin-toll">
+      <div class="rw-map-marker rw-map-marker-toll rw-map-marker-toll-cluster">
+        ${tollPlazaSvg}
+      </div>
+      <span class="rw-map-marker-toll-count">${label} plazas</span>
+    </div>`,
+    iconSize: [72, 52],
+    iconAnchor: [36, 48],
+    popupAnchor: [0, -48],
+  })
+}
+
+export function createTollPlazaIcon(label = 'TOLL') {
+  const safeLabel = label.slice(0, 8)
+  return L.divIcon({
+    className: 'rw-map-marker-root',
+    html: `<div class="rw-map-marker-pin rw-map-marker-pin-toll">
       <div class="rw-map-marker rw-map-marker-toll">
         ${tollPlazaSvg}
         <span class="rw-map-marker-toll-badge" aria-hidden="true">${highwayBadgeSvg}</span>
       </div>
+      <span class="rw-map-marker-toll-count" aria-hidden="true">${safeLabel}</span>
       <span class="rw-map-marker-tail rw-map-marker-tail-toll" aria-hidden="true"></span>
     </div>`,
     iconSize: [44, 52],

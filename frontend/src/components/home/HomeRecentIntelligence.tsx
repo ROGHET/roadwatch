@@ -1,9 +1,7 @@
 import { AlertTriangle, LightbulbOff, Sparkles } from 'lucide-react'
-import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { fetchComplaints } from '../../lib/api/complaints'
 import { getRecentIntelligenceItems } from '../../lib/complaints/mergedComplaints'
-import { buildStoredSubmittedComplaint, useComplaintStore } from '../../stores/complaintStore'
+import { useComplaintStore } from '../../stores/complaintStore'
 import { GlassPanel, StitchSectionHeader } from '../stitch'
 import { useI18n } from '../../lib/i18n'
 import { routes } from '../../lib/routes'
@@ -37,29 +35,9 @@ const toneBySeverity = {
 
 export function HomeRecentIntelligence() {
   const submittedComplaints = useComplaintStore((state) => state.submittedComplaints)
-  const setSubmittedComplaints = useComplaintStore((state) => state.setSubmittedComplaints)
   const items = getRecentIntelligenceItems(submittedComplaints, 3)
   const { t } = useI18n()
   const navigate = useNavigate()
-
-  useEffect(() => {
-    let cancelled = false
-
-    async function loadComplaints() {
-      try {
-        const complaints = await fetchComplaints()
-        if (cancelled) return
-        setSubmittedComplaints(complaints.map((complaint) => buildStoredSubmittedComplaint(complaint)))
-      } catch {
-        // Keep existing local/mock summaries if the API is unavailable.
-      }
-    }
-
-    void loadComplaints()
-    return () => {
-      cancelled = true
-    }
-  }, [setSubmittedComplaints])
 
   return (
     <section className="flex flex-col gap-[var(--st-stack-sm)]">

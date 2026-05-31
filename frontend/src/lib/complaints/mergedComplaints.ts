@@ -1,6 +1,10 @@
-import type { ComplaintListItem } from '../../components/complaints/ComplaintListSection'
 import type { MapComplaintMarker } from '../map/types'
 import type { StoredSubmittedComplaint } from '../../stores/complaintStore'
+import {
+  selectRecentIntelligenceItems,
+  type ComplaintHistoryFilters,
+  selectComplaintHistoryItems,
+} from './complaintSelectors'
 
 export function getMergedComplaintMarkers(
   submitted: StoredSubmittedComplaint[],
@@ -8,10 +12,5 @@ export function getMergedComplaintMarkers(
   return submitted.map((entry) => entry.marker)
 }
 
-export function getRecentIntelligenceItems(
-  submitted: StoredSubmittedComplaint[],
-  limit = 3,
-): ComplaintListItem[] {
-  const submittedItems = submitted.map((entry) => entry.intelligenceItem)
-  return submittedItems.slice(0, limit)
-}
+export { selectRecentIntelligenceItems as getRecentIntelligenceItems }
+export { selectComplaintHistoryItems, type ComplaintHistoryFilters }

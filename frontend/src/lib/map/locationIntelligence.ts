@@ -1,6 +1,7 @@
 import { getAqiProvider, getTrafficProvider, getWeatherProvider } from './providers/registry'
 import { inferPlaceFromCoordinates } from './inferPlace'
 import { mapRoadMarkers } from '../../data/mapMarkers'
+import { getCachedIntelligence, setCachedIntelligence } from './intelligenceCache'
 
 /** Snapshot for map location intelligence (weather + air quality + traffic). */
 export type LocationWeatherSnapshot = {
@@ -31,6 +32,8 @@ export interface LocationIntelligenceProvider {
   getSnapshot(request: LocationIntelligenceRequest): Promise<LocationWeatherSnapshot>
 }
 
+const WEATHER_UNAVAILABLE = 'Weather service temporarily unavailable'
+
 function buildUnavailableSnapshot(lat: number, lng: number): LocationWeatherSnapshot {
   const place = inferPlaceFromCoordinates(lat, lng)
 
@@ -38,16 +41,16 @@ function buildUnavailableSnapshot(lat: number, lng: number): LocationWeatherSnap
     locationName: `${place.label} (${lat.toFixed(3)}, ${lng.toFixed(3)})`,
     city: place.city,
     state: place.state,
-    temperatureC: 'Data unavailable',
-    condition: 'Data unavailable',
-    aqi: 'Data unavailable',
-    aqiLabel: 'Data unavailable',
-    humidityPercent: 'Data unavailable',
-    windSpeedKph: 'Data unavailable',
-    visibilityKm: 'Data unavailable',
-    rainProbabilityPercent: 'Data unavailable',
+    temperatureC: WEATHER_UNAVAILABLE,
+    condition: WEATHER_UNAVAILABLE,
+    aqi: WEATHER_UNAVAILABLE,
+    aqiLabel: WEATHER_UNAVAILABLE,
+    humidityPercent: WEATHER_UNAVAILABLE,
+    windSpeedKph: WEATHER_UNAVAILABLE,
+    visibilityKm: WEATHER_UNAVAILABLE,
+    rainProbabilityPercent: WEATHER_UNAVAILABLE,
     trafficCondition: 'moderate',
-    trafficDescription: 'Data unavailable',
+    trafficDescription: WEATHER_UNAVAILABLE,
     roadType: findNearestRoadType(lat, lng),
     observedAt: new Date().toISOString(),
   }
@@ -115,13 +118,28 @@ export function setLocationIntelligenceProvider(provider: LocationIntelligencePr
   activeProvider = provider
 }
 
+function isUnavailableValue(value: number | string): boolean {
+  return typeof value === 'string' && /data unavailable|temporarily unavailable/i.test(value)
+}
+
+function snapshotHasLiveWeather(snapshot: LocationWeatherSnapshot): boolean {
+  return !isUnavailableValue(snapshot.temperatureC) && !isUnavailableValue(snapshot.condition)
+}
+
 export async function fetchLocationIntelligence(
   lat: number,
   lng: number,
 ): Promise<LocationWeatherSnapshot> {
+  const cached = getCachedIntelligence<LocationWeatherSnapshot>(lat, lng, 'location')
+  if (cached) return cached
+
   try {
-    return await getLocationIntelligenceProvider().getSnapshot({ lat, lng })
+    const snapshot = await getLocationIntelligenceProvider().getSnapshot({ lat, lng })
+    if (snapshotHasLiveWeather(snapshot)) {
+      return setCachedIntelligence(lat, lng, 'location', snapshot)
+    }
+    return setCachedIntelligence(lat, lng, 'location', buildUnavailableSnapshot(lat, lng))
   } catch {
-    return buildUnavailableSnapshot(lat, lng)
+    return setCachedIntelligence(lat, lng, 'location', buildUnavailableSnapshot(lat, lng))
   }
 }

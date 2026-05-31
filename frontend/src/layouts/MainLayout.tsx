@@ -3,6 +3,8 @@ import { motion, useReducedMotion } from 'framer-motion'
 import { useCallback, useEffect, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { AnimatedOutlet } from '../components/common/AnimatedOutlet'
+import { useHydrateComplaints } from '../hooks/useHydrateComplaints'
+import { logContractorCoverageReport } from '../lib/contractors/coverageReport'
 import { OfflineBanner } from '../components/common/OfflineBanner'
 import { CommandPalette } from '../components/command/CommandPalette'
 import { RtiGenerationModal } from '../components/rti/RtiGenerationModal'
@@ -49,6 +51,10 @@ function FloatingNavLink({
 }
 
 export default function MainLayout() {
+  useHydrateComplaints()
+  useEffect(() => {
+    logContractorCoverageReport()
+  }, [])
   const prefersReducedMotion = useReducedMotion()
   const location = useLocation()
   const isMapRoute = location.pathname === routes.map

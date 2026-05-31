@@ -4,6 +4,10 @@ import { datasetUrl } from './datasetPaths'
 import { lineCentroid } from './geoMath'
 import { mapHighwayType } from '../analytics/riskEngine'
 
+export const MIN_ROAD_RENDER_ZOOM = 10
+export const MAX_VISIBLE_ROAD_FEATURES = 2000
+const SIMPLIFY_MAX_POINTS = 14
+
 export type GeoRoadFeature = {
   id: string
   osmId: string
@@ -18,20 +22,18 @@ export type GeoRoadFeature = {
 export type RoadDatasetRegion = {
   id: string
   filename: string
-  /** [minLat, minLng, maxLat, maxLng] */
   bbox: [number, number, number, number]
   minZoom: number
   label: string
   sizeMb: number
 }
 
-/** Audited road GeoJSON sources — loaded on demand when the viewport intersects. */
 export const ROAD_DATASET_REGIONS: RoadDatasetRegion[] = [
   {
     id: 'mumbai-export',
     filename: 'export.geojson',
     bbox: [18.5, 72.5, 19.5, 73.2],
-    minZoom: 0,
+    minZoom: MIN_ROAD_RENDER_ZOOM,
     label: 'Mumbai corridor',
     sizeMb: 4.6,
   },
@@ -39,7 +41,7 @@ export const ROAD_DATASET_REGIONS: RoadDatasetRegion[] = [
     id: 'maharashtra',
     filename: 'Maharashtra export.geojson',
     bbox: [15.5, 72.5, 22.5, 80.5],
-    minZoom: 6,
+    minZoom: MIN_ROAD_RENDER_ZOOM,
     label: 'Maharashtra',
     sizeMb: 102.4,
   },
@@ -47,7 +49,7 @@ export const ROAD_DATASET_REGIONS: RoadDatasetRegion[] = [
     id: 'madhya-pradesh',
     filename: 'Madhya Pradesh.geojson',
     bbox: [21.0, 74.0, 26.9, 82.1],
-    minZoom: 6,
+    minZoom: MIN_ROAD_RENDER_ZOOM,
     label: 'Madhya Pradesh',
     sizeMb: 64.6,
   },
@@ -55,48 +57,48 @@ export const ROAD_DATASET_REGIONS: RoadDatasetRegion[] = [
     id: 'zone-a',
     filename: 'A.geojson',
     bbox: [16.0, 70.0, 30.5, 80.5],
-    minZoom: 7,
-    label: 'Zone A (west / central)',
+    minZoom: MIN_ROAD_RENDER_ZOOM,
+    label: 'Zone A',
     sizeMb: 187.2,
   },
   {
     id: 'zone-b',
     filename: 'B.geojson',
     bbox: [27.0, 74.0, 35.0, 80.5],
-    minZoom: 7,
-    label: 'Zone B (north-west)',
+    minZoom: MIN_ROAD_RENDER_ZOOM,
+    label: 'Zone B',
     sizeMb: 88.8,
   },
   {
     id: 'zone-c',
     filename: 'C.geojson',
     bbox: [17.0, 77.0, 30.5, 90.0],
-    minZoom: 7,
-    label: 'Zone C (east / north-east)',
+    minZoom: MIN_ROAD_RENDER_ZOOM,
+    label: 'Zone C',
     sizeMb: 139.3,
   },
   {
     id: 'zone-d',
     filename: 'D.geojson',
     bbox: [8.0, 74.0, 18.0, 80.5],
-    minZoom: 7,
-    label: 'Zone D (south)',
+    minZoom: MIN_ROAD_RENDER_ZOOM,
+    label: 'Zone D',
     sizeMb: 131.6,
   },
   {
     id: 'zone-e',
     filename: 'E.geojson',
     bbox: [8.0, 74.5, 28.5, 96.0],
-    minZoom: 7,
-    label: 'Zone E (south / east span)',
+    minZoom: MIN_ROAD_RENDER_ZOOM,
+    label: 'Zone E',
     sizeMb: 90.6,
   },
   {
     id: 'zone-f',
     filename: 'F.geojson',
     bbox: [12.5, 76.5, 20.0, 85.0],
-    minZoom: 7,
-    label: 'Zone F (south-central)',
+    minZoom: MIN_ROAD_RENDER_ZOOM,
+    label: 'Zone F',
     sizeMb: 112.4,
   },
 ]
@@ -107,13 +109,43 @@ type RoadGeoProperties = {
   name?: string
   'name:hi'?: string
   'name:mr'?: string
+  _rwBBox?: [number, number, number, number]
 }
+
+const loadedRegionIds = new Set<string>()
+const loadingPromises = new Map<string, Promise<void>>()
+const featureById = new Map<string, GeoRoadFeature>()
+const regionRenderFeatures = new Map<string, Feature<LineString | MultiLineString>[]>()
+const listeners = new Set<() => void>()
 
 function slugify(value: string) {
   return value
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
+}
+
+function scheduleIdle(task: () => void) {
+  if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+    window.requestIdleCallback(() => task(), { timeout: 2500 })
+  } else {
+    setTimeout(task, 0)
+  }
+}
+
+function simplifyCoordinates(coordinates: number[][]): number[][] {
+  if (coordinates.length <= SIMPLIFY_MAX_POINTS) return coordinates
+  const step = Math.ceil(coordinates.length / SIMPLIFY_MAX_POINTS)
+  const simplified: number[][] = []
+  for (let index = 0; index < coordinates.length; index += step) {
+    simplified.push(coordinates[index])
+  }
+  const last = coordinates[coordinates.length - 1]
+  const tail = simplified[simplified.length - 1]
+  if (!tail || tail[0] !== last[0] || tail[1] !== last[1]) {
+    simplified.push(last)
+  }
+  return simplified
 }
 
 function extractLines(geometry: LineString | MultiLineString): number[][][] {
@@ -130,7 +162,8 @@ function toGeoRoadFeature(
   const lines = extractLines(feature.geometry)
   const primary = lines[0]
   if (!primary || primary.length < 2) return null
-  const centroid = lineCentroid(primary)
+  const simplified = simplifyCoordinates(primary)
+  const centroid = lineCentroid(simplified)
   if (!centroid) return null
 
   const name = props.name?.trim() || props['name:hi']?.trim() || `Road segment ${index + 1}`
@@ -142,7 +175,7 @@ function toGeoRoadFeature(
   let maxLat = -Infinity
   let minLng = Infinity
   let maxLng = -Infinity
-  for (const [lng, lat] of primary) {
+  for (const [lng, lat] of simplified) {
     minLat = Math.min(minLat, lat)
     maxLat = Math.max(maxLat, lat)
     minLng = Math.min(minLng, lng)
@@ -155,9 +188,28 @@ function toGeoRoadFeature(
     name,
     highway,
     roadType: mapHighwayType(highway),
-    coordinates: primary,
+    coordinates: simplified,
     centroid,
     bbox: [minLat, minLng, maxLat, maxLng],
+  }
+}
+
+function toRenderFeature(
+  source: Feature<LineString | MultiLineString>,
+  parsed: GeoRoadFeature,
+): Feature<LineString> {
+  return {
+    type: 'Feature',
+    properties: {
+      ...(source.properties as Record<string, unknown>),
+      '@id': parsed.osmId,
+      name: parsed.name,
+      _rwBBox: parsed.bbox,
+    },
+    geometry: {
+      type: 'LineString',
+      coordinates: parsed.coordinates,
+    },
   }
 }
 
@@ -172,22 +224,10 @@ function bboxIntersectsViewport(
   return !(maxLat < south || minLat > north || maxLng < west || minLng > east)
 }
 
-const loadedRegionIds = new Set<string>()
-const loadingPromises = new Map<string, Promise<void>>()
-const featureById = new Map<string, GeoRoadFeature>()
-const geoJsonFeatures: Feature[] = []
-let mergedCollection: FeatureCollection = { type: 'FeatureCollection', features: [] }
-const listeners = new Set<() => void>()
-
 function notifyListeners() {
   for (const listener of listeners) {
     listener()
   }
-}
-
-function mergeCollection(features: Feature[]) {
-  geoJsonFeatures.push(...features)
-  mergedCollection = { type: 'FeatureCollection', features: geoJsonFeatures }
 }
 
 async function loadRegion(region: RoadDatasetRegion): Promise<void> {
@@ -195,30 +235,35 @@ async function loadRegion(region: RoadDatasetRegion): Promise<void> {
   const existing = loadingPromises.get(region.id)
   if (existing) return existing
 
-  const promise = fetch(datasetUrl(region.filename))
-    .then(async (response) => {
-      if (!response.ok) throw new Error(`Failed to load ${region.filename}`)
-      const collection = (await response.json()) as FeatureCollection
-      const parsed: GeoRoadFeature[] = []
-      for (let index = 0; index < collection.features.length; index += 1) {
-        const feature = collection.features[index] as Feature<LineString | MultiLineString>
-        const parsedFeature = toGeoRoadFeature(feature, index, region.id)
-        if (!parsedFeature || featureById.has(parsedFeature.id)) continue
-        featureById.set(parsedFeature.id, parsedFeature)
-        parsed.push(parsedFeature)
-      }
-      mergeCollection(collection.features)
-      loadedRegionIds.add(region.id)
-      notifyListeners()
-      return parsed
+  const promise = new Promise<void>((resolve) => {
+    scheduleIdle(() => {
+      void fetch(datasetUrl(region.filename))
+        .then(async (response) => {
+          if (!response.ok) throw new Error(`Failed to load ${region.filename}`)
+          const collection = (await response.json()) as FeatureCollection
+          const renderFeatures: Feature<LineString | MultiLineString>[] = []
+
+          for (let index = 0; index < collection.features.length; index += 1) {
+            const feature = collection.features[index] as Feature<LineString | MultiLineString>
+            const parsedFeature = toGeoRoadFeature(feature, index, region.id)
+            if (!parsedFeature || featureById.has(parsedFeature.id)) continue
+            featureById.set(parsedFeature.id, parsedFeature)
+            renderFeatures.push(toRenderFeature(feature, parsedFeature))
+          }
+
+          regionRenderFeatures.set(region.id, renderFeatures)
+          loadedRegionIds.add(region.id)
+          notifyListeners()
+        })
+        .catch((error) => {
+          console.warn(`[RoadWatch] Road dataset unavailable: ${region.filename}`, error)
+        })
+        .finally(() => {
+          loadingPromises.delete(region.id)
+          resolve()
+        })
     })
-    .catch((error) => {
-      console.warn(`[RoadWatch] Road dataset unavailable: ${region.filename}`, error)
-    })
-    .finally(() => {
-      loadingPromises.delete(region.id)
-    })
-    .then(() => undefined)
+  })
 
   loadingPromises.set(region.id, promise)
   return promise
@@ -229,16 +274,42 @@ export function subscribeRoadDatasetUpdates(listener: () => void): () => void {
   return () => listeners.delete(listener)
 }
 
-export function getMergedRoadCollection(): FeatureCollection {
-  return mergedCollection
-}
-
 export function getLoadedGeoRoadFeatures(): GeoRoadFeature[] {
   return Array.from(featureById.values())
 }
 
 export function getLoadedRegionIds(): string[] {
   return Array.from(loadedRegionIds)
+}
+
+export function getVisibleRoadCollection(bounds: LatLngBounds, zoom: number): FeatureCollection {
+  if (zoom < MIN_ROAD_RENDER_ZOOM) {
+    return { type: 'FeatureCollection', features: [] }
+  }
+
+  const south = bounds.getSouth()
+  const west = bounds.getWest()
+  const north = bounds.getNorth()
+  const east = bounds.getEast()
+  const visible: Feature[] = []
+
+  for (const features of regionRenderFeatures.values()) {
+    for (const feature of features) {
+      const bbox = (feature.properties as RoadGeoProperties)._rwBBox
+      if (bbox && !bboxIntersectsViewport(bbox, south, west, north, east)) continue
+      visible.push(feature)
+      if (visible.length >= MAX_VISIBLE_ROAD_FEATURES) {
+        return { type: 'FeatureCollection', features: visible }
+      }
+    }
+  }
+
+  return { type: 'FeatureCollection', features: visible }
+}
+
+/** @deprecated Use getVisibleRoadCollection — returns empty when below zoom threshold */
+export function getMergedRoadCollection(): FeatureCollection {
+  return { type: 'FeatureCollection', features: [] }
 }
 
 export async function ensureStartupRoadDataset(): Promise<GeoRoadFeature[]> {
@@ -252,6 +323,8 @@ export async function ensureRoadDatasetsForViewport(
   bounds: LatLngBounds,
   zoom: number,
 ): Promise<void> {
+  if (zoom < MIN_ROAD_RENDER_ZOOM) return
+
   const south = bounds.getSouth()
   const west = bounds.getWest()
   const north = bounds.getNorth()
@@ -264,9 +337,6 @@ export async function ensureRoadDatasetsForViewport(
       bboxIntersectsViewport(region.bbox, south, west, north, east),
   )
 
-  if (candidates.length === 0) return
-
-  // Load one regional file at a time to avoid memory spikes.
   for (const region of candidates) {
     await loadRegion(region)
   }

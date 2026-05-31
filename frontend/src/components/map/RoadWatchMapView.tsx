@@ -16,25 +16,23 @@ import {
   geoRoadToMockRoad,
   getGeoRoadFeaturesSnapshot,
   loadGeoRoadFeatures,
-  subscribeGeoRoadFeatures,
 } from '../../lib/gis/geoRoadIndex'
-import { findNearestTollPlaza, type TollPlazaRecord } from '../../data/tollPlazas'
+import type { TollPlazaRecord } from '../../data/tollPlazas'
+import { contractAwardRecords } from '../../data/contractAwards'
+import { CITIES_BY_STATE, INDIAN_STATES } from '../../data/indianStates'
 import { MapGeoLayers } from './MapGeoLayers'
 import { MapClusterZoomHandler } from './MapClusterZoomHandler'
 import { MapLayerLegend } from './MapLayerLegend'
-import { MapRoadViewportLoader } from './MapRoadViewportLoader'
 import { fetchExtendedWeatherIntelligence, toWeatherRiskInput } from '../../lib/map/weatherIntelligence'
 import { getMergedComplaintMarkers } from '../../lib/complaints/mergedComplaints'
 import { useGeolocation } from '../../hooks/useGeolocation'
 import { inferPlaceFromCoordinates } from '../../lib/map/inferPlace'
 import { fetchLocationIntelligence } from '../../lib/map/locationIntelligence'
 import {
-  getRecentNominatimSearches,
   searchNominatim,
   type NominatimSearchResult,
 } from '../../lib/map/nominatimSearch'
 import { routes } from '../../lib/routes'
-import { fetchComplaints } from '../../lib/api/complaints'
 import {
   MAP_MAX_ZOOM,
   MAP_MIN_ZOOM,
@@ -45,7 +43,7 @@ import {
 } from '../../lib/map/constants'
 import type { MapComplaintMarker } from '../../lib/map/types'
 import type { MockRoad } from '../../data/roads'
-import { buildStoredSubmittedComplaint, useComplaintStore } from '../../stores/complaintStore'
+import { useComplaintStore } from '../../stores/complaintStore'
 import { getInitialMapViewport, useMapStore } from '../../stores/mapStore'
 import { MapClickHandler } from './MapClickHandler'
 import { MapDetailOverlay } from './MapDetailOverlay'
@@ -70,7 +68,6 @@ export type RoadWatchMapViewProps = {
 export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapViewProps) {
   const navigate = useNavigate()
   const submittedComplaints = useComplaintStore((state) => state.submittedComplaints)
-  const setSubmittedComplaints = useComplaintStore((state) => state.setSubmittedComplaints)
   const complaintPickMode = useComplaintStore((state) => state.complaintPickMode)
   const locationPickPending = useComplaintStore((state) => state.locationPickPending)
   const completeLocationPick = useComplaintStore((state) => state.completeLocationPick)
@@ -103,14 +100,8 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
       syncRoadCatalog(features)
     })
 
-    const unsubscribe = subscribeGeoRoadFeatures(() => {
-      if (cancelled) return
-      syncRoadCatalog(getGeoRoadFeaturesSnapshot())
-    })
-
     return () => {
       cancelled = true
-      unsubscribe()
     }
   }, [mode])
 
@@ -119,28 +110,19 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
     [geocodedComplaintMarkers, submittedComplaints],
   )
 
+  const filter = useMapStore((state) => state.filter)
+  const layerToggles = useMapStore((state) => state.layerToggles)
+
   useEffect(() => {
-    if (mode !== 'expanded') return
+    if (!layerToggles.tollPlazas) return
     let cancelled = false
-
-    async function loadComplaints() {
-      try {
-        const complaints = await fetchComplaints()
-        if (cancelled) return
-        setSubmittedComplaints(complaints.map((complaint) => buildStoredSubmittedComplaint(complaint)))
-      } catch {
-        // Keep existing mock/local markers if the API is unavailable.
-      }
-    }
-
-    void loadComplaints()
+    void import('../../data/tollPlazas').then((module) => {
+      if (!cancelled) setTollSearchRecords(module.tollPlazaRecords)
+    })
     return () => {
       cancelled = true
     }
-  }, [mode, setSubmittedComplaints])
-
-  const filter = useMapStore((state) => state.filter)
-  const layerToggles = useMapStore((state) => state.layerToggles)
+  }, [layerToggles.tollPlazas])
   const severityFilters = useMapStore((state) => state.severityFilters)
   const roadTypeFilters = useMapStore((state) => state.roadTypeFilters)
   const selection = useMapStore((state) => state.selection)
@@ -161,6 +143,7 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
   const [searchLoading, setSearchLoading] = useState(false)
   const [searchPin, setSearchPin] = useState<{ lat: number; lng: number } | null>(null)
   const [intelLoading, setIntelLoading] = useState(false)
+  const [tollSearchRecords, setTollSearchRecords] = useState<TollPlazaRecord[]>([])
   const [flyTarget, setFlyTarget] = useState<{
     lat: number
     lng: number
@@ -191,15 +174,9 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
   const searchResults = useMemo<MapSearchResult[]>(() => {
     if (mode !== 'expanded') return []
 
-    const query = searchQuery.trim().toLowerCase()
-    if (!query) return getRecentNominatimSearches().map((item) => ({
-      id: item.id,
-      kind: item.kind === 'coordinates' ? 'place' as const : item.kind,
-      label: item.label,
-      description: item.description,
-      lat: item.lat,
-      lng: item.lng,
-    }))
+    const rawQuery = searchQuery.trim()
+    const query = rawQuery.toLowerCase()
+    if (query.length < 2) return []
 
     const roadResults: MapSearchResult[] = mapRoadMarkers
       .filter(
@@ -242,8 +219,93 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
       lng: item.lng,
     }))
 
-    return [...placeResults, ...roadResults, ...complaintResults].slice(0, 10)
-  }, [complaintMarkers, mode, nominatimResults, searchQuery])
+    const tollResults: MapSearchResult[] = tollSearchRecords
+      .filter(
+        (toll) =>
+          toll.name.toLowerCase().includes(query) ||
+          toll.state?.toLowerCase().includes(query) ||
+          toll.nhNumber?.toLowerCase().includes(query),
+      )
+      .slice(0, 5)
+      .map((toll) => ({
+        id: toll.id,
+        kind: 'toll' as const,
+        label: toll.name,
+        description: toll.state ? `Toll plaza • ${toll.state}` : 'Toll plaza',
+        lat: toll.lat,
+        lng: toll.lng,
+      }))
+
+    const contractorResults: MapSearchResult[] = contractAwardRecords
+      .filter(
+        (row) =>
+          row.contractor.toLowerCase().includes(query) ||
+          row.project.toLowerCase().includes(query),
+      )
+      .slice(0, 5)
+      .map((row, index) => ({
+        id: `${row.id}-${index}`,
+        kind: 'contractor' as const,
+        label: row.contractor,
+        description: row.project || 'Contract award',
+        lat: 20.5937,
+        lng: 78.9629,
+      }))
+
+    const stateResults: MapSearchResult[] = INDIAN_STATES.filter((state) =>
+      state.toLowerCase().includes(query),
+    )
+      .slice(0, 4)
+      .map((state) => ({
+        id: state,
+        kind: 'state' as const,
+        label: state,
+        description: 'State',
+        lat: 22.5,
+        lng: 78.5,
+      }))
+
+    const districtResults: MapSearchResult[] = Object.entries(CITIES_BY_STATE)
+      .flatMap(([state, cities]) =>
+        cities
+          .filter((city) => city.toLowerCase().includes(query))
+          .map((city) => ({ state, city })),
+      )
+      .slice(0, 4)
+      .map(({ state, city }) => ({
+        id: `${state}-${city}`,
+        kind: 'district' as const,
+        label: city,
+        description: `${city}, ${state}`,
+        lat: 22.5,
+        lng: 78.5,
+      }))
+
+    const coordMatch = rawQuery.match(/^(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)$/)
+    const coordinateResults: MapSearchResult[] = coordMatch
+      ? [
+          {
+            id: 'coordinates',
+            kind: 'place' as const,
+            label: `${coordMatch[1]}, ${coordMatch[2]}`,
+            description: 'Coordinates',
+            lat: Number(coordMatch[1]),
+            lng: Number(coordMatch[2]),
+          },
+        ]
+      : []
+
+    return [
+      ...coordinateResults,
+      ...placeResults,
+      ...roadResults,
+      ...complaintResults,
+      ...tollResults,
+      ...contractorResults,
+      ...stateResults,
+      ...districtResults,
+    ].slice(0, 12)
+  }, [complaintMarkers, mode, nominatimResults, searchQuery, tollSearchRecords])
 
   useEffect(() => {
     if (mode !== 'expanded') return
@@ -327,10 +389,13 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
         }
       }
 
-      const nearestToll = findNearestTollPlaza(lat, lng, 8)
-      if (nearestToll && !nearestRoad) {
-        setSelection({ kind: 'toll', toll: nearestToll })
-        return
+      if (layerToggles.tollPlazas) {
+        const tollModule = await import('../../data/tollPlazas')
+        const tollHit = tollModule.findTollPlazaAtPoint(lat, lng, tollModule.tollPlazaRecords)
+        if (tollHit) {
+          setSelection({ kind: 'toll', toll: tollHit })
+          return
+        }
       }
 
       if (complaintPickMode && locationPickPending) {
@@ -356,6 +421,7 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
     intelLoading,
     locationPickPending,
     mode,
+    layerToggles.tollPlazas,
     navigate,
     setSelection,
   ])
@@ -369,6 +435,9 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
     } else if (result.kind === 'complaint') {
       const complaint = complaintMarkers.find((record) => record.id === result.id)
       if (complaint) handleSelectComplaint(complaint)
+    } else if (result.kind === 'toll') {
+      const toll = tollSearchRecords.find((record) => record.id === result.id)
+      if (toll) handleSelectToll(toll)
     } else {
       setIntelLoading(true)
       try {
@@ -429,6 +498,7 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
         worldCopyJump={true}
         attributionControl={mode === 'expanded'}
         scrollWheelZoom={false}
+        preferCanvas
       >
         <MapThemeTileLayer />
         {mode === 'expanded' ? <ZoomControl position="bottomleft" /> : null}
@@ -444,14 +514,8 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
         />
         {mode === 'expanded' ? (
           <>
-            <MapRoadViewportLoader />
             <MapClusterZoomHandler />
-            <MapGeoLayers
-              showRoads={layerToggles.roads}
-              showTolls={layerToggles.tollPlazas}
-              onSelectRoad={handleSelectRoad}
-              onSelectToll={handleSelectToll}
-            />
+            <MapGeoLayers showTolls={layerToggles.tollPlazas} onSelectToll={handleSelectToll} />
           </>
         ) : null}
         <MapMarkerLayers

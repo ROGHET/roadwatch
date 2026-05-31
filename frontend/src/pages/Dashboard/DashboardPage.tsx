@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { AlertTriangle, CheckCircle2, ClipboardList, Clock } from 'lucide-react'
 import { MetricCard } from '../../components/charts/MetricCard'
 import { StatGrid } from '../../components/charts/StatGrid'
@@ -10,10 +10,10 @@ import { ComplaintListSection } from '../../components/complaints/ComplaintListS
 import { AnalyticsDashboardSections } from '../../components/dashboard/AnalyticsDashboardSections'
 import { DashboardSection } from '../../components/dashboard/DashboardSection'
 import { dashboardPageCopy } from '../../data/dashboard'
-import { fetchComplaints } from '../../lib/api/complaints'
+import { selectComplaintMetrics } from '../../lib/complaints/complaintSelectors'
 import { getRecentIntelligenceItems } from '../../lib/complaints/mergedComplaints'
 import { routes } from '../../lib/routes'
-import { buildStoredSubmittedComplaint, useComplaintStore } from '../../stores/complaintStore'
+import { useComplaintStore } from '../../stores/complaintStore'
 import { useMapStore } from '../../stores/mapStore'
 import type { ComplaintSeverity } from '../../components/complaints/ComplaintCard'
 
@@ -23,9 +23,9 @@ function matchesSeverityFilter(severity: ComplaintSeverity | undefined, filters:
 }
 
 export default function DashboardPage() {
+  const location = useLocation()
   const navigate = useNavigate()
   const submittedComplaints = useComplaintStore((state) => state.submittedComplaints)
-  const setSubmittedComplaints = useComplaintStore((state) => state.setSubmittedComplaints)
   const severityFilters = useMapStore((state) => state.severityFilters)
   const filteredComplaints = useMemo(
     () =>
@@ -35,66 +35,49 @@ export default function DashboardPage() {
     [severityFilters, submittedComplaints],
   )
   const recentComplaints = getRecentIntelligenceItems(filteredComplaints, 6)
-  const dashboardMetrics = useMemo(
-    () => [
+  const dashboardMetrics = useMemo(() => {
+    const metrics = selectComplaintMetrics(submittedComplaints)
+    return [
       {
         id: 'total-complaints',
         label: 'Total Complaints',
-        value: filteredComplaints.length,
+        value: metrics.total,
         icon: ClipboardList,
         hint: 'Stored complaint records',
         href: routes.complaintHistory,
       },
       {
-        id: 'pending-complaints',
-        label: 'Pending',
-        value: filteredComplaints.filter((entry) =>
-          ['pending', 'routed', 'in_review'].includes(entry.marker.status),
-        ).length,
-        icon: Clock,
-        hint: 'Awaiting authority action',
-        href: `${routes.complaintHistory}?status=pending`,
+        id: 'closed-complaints',
+        label: 'Closed',
+        value: metrics.closed,
+        icon: CheckCircle2,
+        hint: `${metrics.closedPercent}% closed`,
+        href: `${routes.complaintHistory}?status=resolved`,
       },
       {
-        id: 'resolved-complaints',
-        label: 'Resolved',
-        value: filteredComplaints.filter((entry) => entry.marker.status === 'resolved').length,
-        icon: CheckCircle2,
-        hint: 'Closed complaint records',
-        href: `${routes.complaintHistory}?status=resolved`,
+        id: 'in-progress-complaints',
+        label: 'In Progress',
+        value: metrics.inProgress,
+        icon: Clock,
+        hint: `${metrics.inProgressPercent}% in progress`,
+        href: `${routes.complaintHistory}?status=in_review`,
       },
       {
         id: 'critical-open',
         label: 'Critical Open',
-        value: filteredComplaints.filter(
-          (entry) => entry.marker.severity === 'critical' && entry.marker.status !== 'resolved',
-        ).length,
+        value: metrics.critical,
         icon: AlertTriangle,
-        hint: 'Immediate safety risk',
+        hint: `${metrics.pendingPercent}% pending`,
         href: `${routes.complaintHistory}?severity=critical`,
       },
-    ],
-    [filteredComplaints],
-  )
+    ]
+  }, [submittedComplaints])
 
   useEffect(() => {
-    let cancelled = false
-
-    async function loadComplaints() {
-      try {
-        const complaints = await fetchComplaints()
-        if (cancelled) return
-        setSubmittedComplaints(complaints.map((complaint) => buildStoredSubmittedComplaint(complaint)))
-      } catch {
-        // Keep current dashboard data if the API is unavailable.
-      }
-    }
-
-    void loadComplaints()
-    return () => {
-      cancelled = true
-    }
-  }, [setSubmittedComplaints])
+    if (!location.hash) return
+    const target = document.querySelector(location.hash)
+    target?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [location.hash])
 
   return (
     <PageContainer className="gap-8">

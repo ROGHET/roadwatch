@@ -49,6 +49,11 @@ export type ComplaintFormPrefill = {
   issueType?: string
   roadId?: string
   roadName?: string
+  roadType?: string
+  contractor?: string
+  authority?: string
+  department?: string
+  district?: string
   title?: string
   locationLabel?: string
   city?: string
@@ -158,6 +163,11 @@ export default function ComplaintPage() {
       setStateName(prefill.state ?? '')
       setRoadId(prefill.roadId)
       setRoadName(prefill.roadName)
+      if (prefill.roadType) {
+        const detected = detectRoadTypeFromText(prefill.roadType) ?? (prefill.roadType as RoadType)
+        setRoadType(detected)
+        setAutoDetectedRoadType(detected)
+      }
       const normalizedIssue = normalizeIssueTypeForForm(prefill.issueType)
       if (normalizedIssue) setIssueType(normalizedIssue)
       const detectedRoadType = detectRoadTypeFromText(

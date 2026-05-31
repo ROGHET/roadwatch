@@ -1,6 +1,7 @@
 import tollsJson from '../../../datasets/tolls-latest.json'
 import nhaiTollCsv from '../../../datasets/india-tollplaza-data-nhai.csv?raw'
 import { datasetUrl } from '../lib/gis/datasetPaths'
+import { extractTollState } from '../lib/tolls/tollState'
 
 export type TollPlazaRecord = {
   id: string
@@ -30,7 +31,10 @@ type RawToll = {
   tollplaza_id?: number
   tollplaza_name?: string
   tollplaza_code?: string
+  state?: string | null
   state_name?: string | null
+  plaza_state?: string | null
+  address?: string | null
   latitude?: string
   longitude?: string
   nh_no?: string
@@ -101,7 +105,14 @@ const apiTolls: TollPlazaRecord[] = rawTolls.flatMap((row, index) => {
     code: row.tollplaza_code ?? '',
     lat,
     lng,
-    state: row.state_name ?? null,
+    state: extractTollState({
+      state: row.state,
+      state_name: row.state_name,
+      plaza_state: row.plaza_state,
+      location: row.location,
+      address: row.address,
+      name: row.tollplaza_name,
+    }),
     nhNumber: row.nh_no ?? null,
     location: row.location ?? null,
     projectType: row.project_type ?? null,
@@ -139,7 +150,11 @@ for (const row of nhaiRows) {
     code: '',
     lat,
     lng,
-    state: null,
+    state: extractTollState({
+      location: row[0],
+      address: row[0],
+      name: row[0],
+    }),
     nhNumber: null,
     location: row[0] ?? null,
     projectType: row[3] ?? null,
@@ -156,6 +171,31 @@ for (const row of nhaiRows) {
     carSingle: row[4] ?? null,
     source: 'nhai-csv',
   })
+}
+
+/** Hit-test for map clicks when toll layer is enabled (meters). */
+export function findTollPlazaAtPoint(
+  lat: number,
+  lng: number,
+  records: TollPlazaRecord[],
+  radiusMeters = 400,
+): TollPlazaRecord | null {
+  let nearest: TollPlazaRecord | null = null
+  let bestMeters = Infinity
+  const metersPerDegLat = 111_320
+  const cosLat = Math.cos((lat * Math.PI) / 180)
+
+  for (const toll of records) {
+    const dLat = (lat - toll.lat) * metersPerDegLat
+    const dLng = (lng - toll.lng) * metersPerDegLat * cosLat
+    const meters = Math.hypot(dLat, dLng)
+    if (meters < bestMeters) {
+      bestMeters = meters
+      nearest = toll
+    }
+  }
+
+  return nearest && bestMeters <= radiusMeters ? nearest : null
 }
 
 export function findNearestTollPlaza(lat: number, lng: number, maxKm = 25): TollPlazaRecord | null {

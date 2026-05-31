@@ -1,40 +1,15 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react'
-import { GeoJSON, Marker, Popup } from 'react-leaflet'
+import { Marker, Popup, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
-import type { Feature, LineString, MultiLineString } from 'geojson'
 import MarkerClusterGroup from 'react-leaflet-cluster'
-import {
-  geoRoadToMockRoad,
-  getGeoRoadFeaturesSnapshot,
-  loadGeoRoadFeatures,
-  subscribeGeoRoadFeatures,
-  type GeoRoadFeature,
-} from '../../lib/gis/geoRoadIndex'
-import { getMergedRoadCollection } from '../../lib/gis/roadDatasetManager'
-import type { MockRoad } from '../../data/roads'
+import { INDIA_CENTER } from '../../lib/map/constants'
+import { createTollClusterSummaryIcon, createTollPlazaIcon } from '../../lib/map/icons'
 import type { TollPlazaRecord } from '../../data/tollPlazas'
-import { tollPlazaRecords } from '../../data/tollPlazas'
-import { createTollPlazaIcon } from '../../lib/map/icons'
-import { fetchExtendedWeatherIntelligence, toWeatherRiskInput } from '../../lib/map/weatherIntelligence'
 
-const roadStyle = {
-  color: '#38bdf8',
-  weight: 2,
-  opacity: 0.65,
-}
-
-const tollClusterProps = {
-  chunkedLoading: true,
-  showCoverageOnHover: false,
-  disableClusteringAtZoom: 13,
-  maxClusterRadius: 48,
-  spiderfyOnMaxZoom: true,
-} as const
+const TOLL_DETAIL_ZOOM = 8
 
 export type MapGeoLayersProps = {
-  showRoads?: boolean
   showTolls?: boolean
-  onSelectRoad: (road: MockRoad) => void
   onSelectToll: (toll: TollPlazaRecord) => void
 }
 
@@ -56,7 +31,7 @@ const TollMarker = memo(function TollMarker({
   return (
     <Marker
       position={[toll.lat, toll.lng]}
-      icon={createTollPlazaIcon()}
+      icon={createTollPlazaIcon(toll.code || 'TOLL')}
       bubblingMouseEvents={false}
       eventHandlers={{ click: handleClick }}
     >
@@ -71,77 +46,70 @@ const TollMarker = memo(function TollMarker({
   )
 })
 
-export const MapGeoLayers = memo(function MapGeoLayers({
-  showRoads = true,
-  showTolls = true,
-  onSelectRoad,
+const TollLayerContent = memo(function TollLayerContent({
   onSelectToll,
-}: MapGeoLayersProps) {
-  const [roadCollection, setRoadCollection] = useState(() => getMergedRoadCollection())
-  const [geoFeatures, setGeoFeatures] = useState<GeoRoadFeature[]>([])
+}: {
+  onSelectToll: (toll: TollPlazaRecord) => void
+}) {
+  const map = useMap()
+  const [zoom, setZoom] = useState(() => map.getZoom())
+  const [tolls, setTolls] = useState<TollPlazaRecord[]>([])
+
+  useMapEvents({
+    zoomend: () => setZoom(map.getZoom()),
+  })
 
   useEffect(() => {
-    const refresh = () => {
-      setRoadCollection(getMergedRoadCollection())
-      setGeoFeatures(getGeoRoadFeaturesSnapshot())
+    let cancelled = false
+    void import('../../data/tollPlazas').then((module) => {
+      if (!cancelled) setTolls(module.tollPlazaRecords)
+    })
+    return () => {
+      cancelled = true
     }
-    void loadGeoRoadFeatures().then(refresh)
-    return subscribeGeoRoadFeatures(refresh)
   }, [])
 
-  const geoFeatureByOsmId = useMemo(() => {
-    const map = new Map<string, GeoRoadFeature>()
-    for (const feature of geoFeatures) {
-      map.set(feature.osmId, feature)
-    }
-    return map
-  }, [geoFeatures])
-
-  const handleRoadClick = useCallback(
-    async (feature: Feature<LineString | MultiLineString>, index: number) => {
-      const props = feature.properties as { '@id'?: string }
-      const match =
-        (props['@id'] ? geoFeatureByOsmId.get(props['@id']) : undefined) ??
-        geoFeatures[index] ??
-        null
-      if (!match) return
-      const intel = await fetchExtendedWeatherIntelligence({
-        lat: match.centroid.lat,
-        lng: match.centroid.lng,
-      })
-      onSelectRoad(geoRoadToMockRoad(match, { weather: toWeatherRiskInput(intel) }))
-    },
-    [geoFeatureByOsmId, geoFeatures, onSelectRoad],
-  )
-
-  const roadLayer = useMemo(() => {
-    if (!roadCollection.features.length || !showRoads) return null
-    return (
-      <GeoJSON
-        key={`road-network-${roadCollection.features.length}`}
-        data={roadCollection}
-        style={() => roadStyle}
-        onEachFeature={(feature, layer) => {
-          const props = feature.properties as { name?: string }
-          layer.bindTooltip(props?.name ?? 'Road segment', { sticky: true })
-          const index = roadCollection.features.indexOf(feature)
-          layer.on('click', () => {
-            void handleRoadClick(feature as Feature<LineString | MultiLineString>, index)
-          })
+  const summaryMarker = useMemo(
+    () => (
+      <Marker
+        position={[INDIA_CENTER.lat, INDIA_CENTER.lng]}
+        icon={createTollClusterSummaryIcon(tolls.length)}
+        eventHandlers={{
+          click: () => {
+            map.setView([INDIA_CENTER.lat, INDIA_CENTER.lng], TOLL_DETAIL_ZOOM)
+          },
         }}
-      />
-    )
-  }, [handleRoadClick, roadCollection, showRoads])
-
-  const tollMarkers = useMemo(
-    () => tollPlazaRecords.map((toll) => <TollMarker key={toll.id} toll={toll} onSelectToll={onSelectToll} />),
-    [onSelectToll],
+      >
+        <Popup closeButton={false}>
+          <p className="text-xs font-medium">
+            {tolls.length.toLocaleString('en-IN')} toll plazas — zoom in to view markers
+          </p>
+        </Popup>
+      </Marker>
+    ),
+    [map, tolls.length],
   )
+
+  if (tolls.length === 0) return null
+
+  if (zoom < TOLL_DETAIL_ZOOM) {
+    return summaryMarker
+  }
 
   return (
-    <>
-      {roadLayer}
-      {showTolls ? <MarkerClusterGroup {...tollClusterProps}>{tollMarkers}</MarkerClusterGroup> : null}
-    </>
+    <MarkerClusterGroup chunkedLoading disableClusteringAtZoom={9} maxClusterRadius={48}>
+      {tolls.map((toll) => (
+        <TollMarker key={toll.id} toll={toll} onSelectToll={onSelectToll} />
+      ))}
+    </MarkerClusterGroup>
   )
+})
+
+/** Toll plazas only — loaded when layer is enabled; clustered below zoom 8. */
+export const MapGeoLayers = memo(function MapGeoLayers({
+  showTolls = false,
+  onSelectToll,
+}: MapGeoLayersProps) {
+  if (!showTolls) return null
+  return <TollLayerContent onSelectToll={onSelectToll} />
 })

@@ -100,8 +100,8 @@ export function getMonthlyTrendStats(): MonthlyTrendStat[] {
 export function getBudgetUtilizationStats(): BudgetUtilizationStat {
   const totals = Object.values(roadBudgetById).reduce(
     (accumulator, entry) => ({
-      allocatedCr: accumulator.allocatedCr + parseCr(entry.sanctioned),
-      spentCr: accumulator.spentCr + parseCr(entry.spent),
+      allocatedCr: accumulator.allocatedCr + parseCr(entry.sanctioned ?? '0'),
+      spentCr: accumulator.spentCr + parseCr(entry.spent ?? entry.utilized ?? '0'),
     }),
     { allocatedCr: 0, spentCr: 0 },
   )

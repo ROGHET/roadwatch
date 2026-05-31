@@ -43,12 +43,6 @@ export const MapLayerLegend = memo(function MapLayerLegend() {
       </p>
       <div className="flex flex-col gap-2">
         <LegendToggle
-          label="Road"
-          checked={layerToggles.roads}
-          onChange={() => toggleLayer('roads')}
-          swatch={<span className="inline-block h-0.5 w-5 rounded bg-[#38bdf8]" aria-hidden="true" />}
-        />
-        <LegendToggle
           label="Complaint"
           checked={layerToggles.complaints}
           onChange={() => toggleLayer('complaints')}

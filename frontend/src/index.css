@@ -463,6 +463,19 @@
     border-top-color: #eab308;
   }
 
+  .rw-map-marker-pin-toll {
+    align-items: center;
+  }
+
+  .rw-map-marker-toll-count {
+    margin-top: 2px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #fef3c7;
+    text-shadow: 0 1px 2px rgb(0 0 0 / 0.45);
+  }
+
   .leaflet-popup.rw-toll-popup .leaflet-popup-content-wrapper {
     border-radius: 0.75rem;
     padding: 0.25rem 0.35rem;

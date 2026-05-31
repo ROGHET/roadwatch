@@ -1,7 +1,7 @@
 import { AlertTriangle, CheckCircle2, ClipboardList, Clock } from 'lucide-react'
 import { type ReactNode, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { mockComplaintRecords } from '../../data/complaints'
+import { selectComplaintMetrics } from '../../lib/complaints/complaintSelectors'
 import { useComplaintStore } from '../../stores/complaintStore'
 import { useMapStore } from '../../stores/mapStore'
 import { AnimatedCounter } from '../common/AnimatedCounter'
@@ -51,63 +51,51 @@ export function HomeMetricsRow() {
   const submittedComplaints = useComplaintStore((state) => state.submittedComplaints)
   const setSeverityFilters = useMapStore((state) => state.setSeverityFilters)
 
-  const metrics = useMemo(() => {
-    const datasetRecords = mockComplaintRecords
-    const apiRecords = submittedComplaints.map((entry) => entry.marker)
-    const source = apiRecords.length > 0 ? apiRecords : datasetRecords
-
-    return {
-      total: source.length,
-      resolved: source.filter((entry) => entry.status === 'resolved').length,
-      pending: source.filter((entry) =>
-        ['pending', 'routed', 'in_review'].includes(entry.status),
-      ).length,
-      critical: source.filter(
-        (entry) => entry.severity === 'critical' && entry.status !== 'resolved',
-      ).length,
-    }
-  }, [submittedComplaints])
+  const metrics = useMemo(
+    () => selectComplaintMetrics(submittedComplaints),
+    [submittedComplaints],
+  )
 
   return (
     <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
       <MetricTile
-        label="Infrastructure Reports"
+        label="Total Complaints"
         value={metrics.total}
         icon={ClipboardList}
-        description="Rajya Sabha road-work packages"
+        description="Citizen + infrastructure reports"
         onClick={() => {
           setSeverityFilters([])
           navigate(routes.dashboard)
         }}
       />
       <MetricTile
-        label="Resolved"
-        value={metrics.resolved}
+        label="Closed"
+        value={metrics.closed}
         accentClassName="text-[var(--st-tertiary)]"
         icon={CheckCircle2}
-        description="Closed in dataset"
+        description={`${metrics.closedPercent}% of total`}
         onClick={() => {
           setSeverityFilters([])
           navigate(routes.dashboard)
         }}
       />
       <MetricTile
-        label="Pending"
-        value={metrics.pending}
+        label="In Progress"
+        value={metrics.inProgress}
         accentClassName="text-[var(--st-secondary)]"
         icon={Clock}
-        description="Routed or in review"
+        description={`${metrics.inProgressPercent}% of total`}
         onClick={() => {
           setSeverityFilters([])
           navigate(routes.dashboard)
         }}
       />
       <MetricTile
-        label="Critical"
+        label="Critical Open"
         value={metrics.critical}
         accentClassName="text-[var(--st-error)]"
         icon={AlertTriangle}
-        description="High-cost / critical works"
+        description={`${metrics.pendingPercent}% pending`}
         onClick={() => {
           setSeverityFilters(['critical'])
           navigate(routes.dashboard)

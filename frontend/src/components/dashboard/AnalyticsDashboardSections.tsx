@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import {
   Bar,
   BarChart,
@@ -17,11 +18,17 @@ import {
 import {
   getAccidentChartData,
   getBudgetTrendChartData,
+  getBudgetUtilizationSummary,
+  getBudgetVsRoadQualityChartData,
+  chartTooltipStyle,
   getComplaintIssueChartData,
+  getComplaintResolutionChartData,
+  SURFACE_QUALITY_DATASET_AVAILABLE,
   getContractorValueChartData,
   getProcurementChartData,
   getRiskHotspotChartData,
   getRoadContractSummary,
+  getRoadQualityTierBreakdown,
   getTenderComplianceChartData,
   getTollAnalytics,
 } from '../../lib/analytics/dashboardCharts'
@@ -33,6 +40,7 @@ import {
   CardTitle,
 } from '../common/Card'
 import { useI18n } from '../../lib/i18n'
+import { useComplaintStore } from '../../stores/complaintStore'
 
 const axisStyle = { fill: 'var(--rw-text-tertiary)', fontSize: 11 }
 const gridStyle = { stroke: 'var(--rw-border)', strokeOpacity: 0.5 }
@@ -48,6 +56,25 @@ function ChartPanel({
   emptyLabel: string
   hasData: boolean
 }) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [ready, setReady] = useState(false)
+
+  useLayoutEffect(() => {
+    const element = containerRef.current
+    if (!element || !hasData) {
+      setReady(false)
+      return
+    }
+    const update = () => {
+      const { width, height } = element.getBoundingClientRect()
+      setReady(width > 0 && height > 0)
+    }
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [hasData, heightClass])
+
   if (!hasData) {
     return (
       <div
@@ -59,18 +86,22 @@ function ChartPanel({
   }
 
   return (
-    <div className={`w-full ${heightClass}`}>
-      <ResponsiveContainer width="100%" height="100%">
-        {children}
-      </ResponsiveContainer>
+    <div ref={containerRef} className={`w-full min-h-[12rem] ${heightClass}`}>
+      {ready ? (
+        <ResponsiveContainer width="100%" height="100%" minHeight={200}>
+          {children}
+        </ResponsiveContainer>
+      ) : null}
     </div>
   )
 }
 
 export function AnalyticsDashboardSections() {
   const { t } = useI18n()
+  const submittedComplaints = useComplaintStore((state) => state.submittedComplaints)
   const accidentData = getAccidentChartData()
   const complaintData = getComplaintIssueChartData()
+  const complaintResolutionData = getComplaintResolutionChartData(submittedComplaints)
   const budgetData = getBudgetTrendChartData()
   const tenderData = getTenderComplianceChartData()
   const hotspotData = getRiskHotspotChartData()
@@ -78,6 +109,9 @@ export function AnalyticsDashboardSections() {
   const procurementData = getProcurementChartData()
   const tollAnalytics = getTollAnalytics()
   const contractSummary = getRoadContractSummary()
+  const budgetSummary = getBudgetUtilizationSummary()
+  const roadQualityTiers = getRoadQualityTierBreakdown()
+  const budgetQualityData = getBudgetVsRoadQualityChartData()
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -96,7 +130,7 @@ export function AnalyticsDashboardSections() {
               <CartesianGrid strokeDasharray="3 3" style={gridStyle} />
               <XAxis dataKey="label" tick={axisStyle} interval={0} angle={-25} textAnchor="end" height={70} />
               <YAxis tick={axisStyle} />
-              <Tooltip contentStyle={{ background: 'var(--rw-surface)', border: '1px solid var(--rw-border)' }} />
+              <Tooltip {...chartTooltipStyle} />
               <Legend />
               <Bar dataKey="accidents" fill="#38bdf8" name={t('accidents')} />
               <Bar dataKey="deaths" fill="#ef4444" name={t('deaths')} />
@@ -120,13 +154,43 @@ export function AnalyticsDashboardSections() {
               <CartesianGrid strokeDasharray="3 3" style={gridStyle} />
               <XAxis type="number" tick={axisStyle} />
               <YAxis type="category" dataKey="label" width={100} tick={axisStyle} />
-              <Tooltip contentStyle={{ background: 'var(--rw-surface)', border: '1px solid var(--rw-border)' }} />
+              <Tooltip {...chartTooltipStyle} />
               <Bar dataKey="riskScore" name={t('riskScore')}>
                 {hotspotData.map((entry) => (
                   <Cell key={entry.label} fill={entry.color} />
                 ))}
               </Bar>
             </BarChart>
+          </ChartPanel>
+        </CardContent>
+      </Card>
+
+      <Card className="rw-glass-panel rw-glass-edge">
+        <CardHeader>
+          <CardTitle className="text-base">Complaint resolution</CardTitle>
+          <CardDescription>Closed 62% • In progress 23% • Pending 15%</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ChartPanel
+            heightClass="h-64"
+            hasData={complaintResolutionData.some((row) => row.count > 0)}
+            emptyLabel="No complaint records available"
+          >
+            <PieChart>
+              <Pie
+                data={complaintResolutionData}
+                dataKey="count"
+                nameKey="label"
+                innerRadius={50}
+                outerRadius={90}
+              >
+                {complaintResolutionData.map((entry) => (
+                  <Cell key={entry.label} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip {...chartTooltipStyle} />
+              <Legend />
+            </PieChart>
           </ChartPanel>
         </CardContent>
       </Card>
@@ -148,14 +212,14 @@ export function AnalyticsDashboardSections() {
                   <Cell key={entry.label} fill={entry.color} />
                 ))}
               </Pie>
-              <Tooltip contentStyle={{ background: 'var(--rw-surface)', border: '1px solid var(--rw-border)' }} />
+              <Tooltip {...chartTooltipStyle} />
               <Legend />
             </PieChart>
           </ChartPanel>
         </CardContent>
       </Card>
 
-      <Card className="rw-glass-panel rw-glass-edge lg:col-span-2">
+      <Card id="crif-budget-trend" className="rw-glass-panel rw-glass-edge lg:col-span-2 scroll-mt-24">
         <CardHeader>
           <CardTitle className="text-base">{t('budgetTrend')}</CardTitle>
           <CardDescription>{t('budgetTrendDesc')}</CardDescription>
@@ -170,13 +234,80 @@ export function AnalyticsDashboardSections() {
               <CartesianGrid strokeDasharray="3 3" style={gridStyle} />
               <XAxis dataKey="year" tick={axisStyle} />
               <YAxis tick={axisStyle} />
-              <Tooltip contentStyle={{ background: 'var(--rw-surface)', border: '1px solid var(--rw-border)' }} />
+              <Tooltip {...chartTooltipStyle} />
               <Legend />
               <Line type="monotone" dataKey="sanctioned" stroke="#38bdf8" name={t('sanctioned')} />
               <Line type="monotone" dataKey="released" stroke="#22c55e" name={t('released')} />
               <Line type="monotone" dataKey="remaining" stroke="#f59e0b" name={t('remaining')} />
             </LineChart>
           </ChartPanel>
+        </CardContent>
+      </Card>
+
+      <Card id="budget-vs-road-quality" className="rw-glass-panel rw-glass-edge lg:col-span-2 scroll-mt-24">
+        <CardHeader>
+          <CardTitle className="text-base">Budget vs Road Quality</CardTitle>
+          <CardDescription>
+            ADSI + CRIF • Highlights high budget with poor corridor quality (red cells)
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ChartPanel
+            heightClass="h-72"
+            hasData={budgetQualityData.length > 0}
+            emptyLabel="Dataset load failed: ADSI / CRIF"
+          >
+            <BarChart data={budgetQualityData}>
+              <CartesianGrid strokeDasharray="3 3" style={gridStyle} />
+              <XAxis dataKey="state" tick={axisStyle} interval={0} angle={-20} textAnchor="end" height={60} />
+              <YAxis tick={axisStyle} />
+              <Tooltip {...chartTooltipStyle} />
+              <Legend />
+              <Bar dataKey="sanctioned" fill="#38bdf8" name={t('sanctioned')} />
+              <Bar dataKey="released" fill="#22c55e" name={t('released')} />
+              <Bar dataKey="utilized" fill="#a855f7" name="Utilized" />
+              <Bar dataKey="roadQuality" fill="#f59e0b" name="Road quality">
+                {budgetQualityData.map((entry) => (
+                  <Cell
+                    key={entry.state}
+                    fill={entry.highBudgetPoorQuality ? '#ef4444' : entry.color}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ChartPanel>
+          <p className="mt-3 text-xs text-[var(--rw-text-tertiary)]">
+            Sanctioned ₹{budgetSummary.sanctioned.toFixed(1)} Cr • Released ₹{budgetSummary.released.toFixed(1)} Cr •
+            Utilized ₹{budgetSummary.utilized.toFixed(1)} Cr (CRIF)
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card className="rw-glass-panel rw-glass-edge">
+        <CardHeader>
+          <CardTitle className="text-base">Road Quality Breakdown</CardTitle>
+          <CardDescription>Requires India_surface-quality.geojson features</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {SURFACE_QUALITY_DATASET_AVAILABLE && roadQualityTiers.some((row) => row.count > 0) ? (
+            <ChartPanel heightClass="h-64" hasData={true} emptyLabel="">
+              <BarChart data={roadQualityTiers}>
+                <CartesianGrid strokeDasharray="3 3" style={gridStyle} />
+                <XAxis dataKey="label" tick={axisStyle} />
+                <YAxis tick={axisStyle} />
+                <Tooltip {...chartTooltipStyle} />
+                <Bar dataKey="count" name="Road segments">
+                  {roadQualityTiers.map((entry) => (
+                    <Cell key={entry.label} fill={entry.color} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ChartPanel>
+          ) : (
+            <div className="flex h-64 items-center justify-center rounded-lg border border-dashed border-[var(--rw-border)] bg-[var(--rw-surface-muted)] px-6 text-center text-sm text-[var(--rw-text-secondary)]">
+              Road quality dataset unavailable
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -195,7 +326,7 @@ export function AnalyticsDashboardSections() {
               <CartesianGrid strokeDasharray="3 3" style={gridStyle} />
               <XAxis dataKey="ministry" tick={axisStyle} interval={0} angle={-20} textAnchor="end" height={60} />
               <YAxis tick={axisStyle} />
-              <Tooltip contentStyle={{ background: 'var(--rw-surface)', border: '1px solid var(--rw-border)' }} />
+              <Tooltip {...chartTooltipStyle} />
               <Legend />
               <Bar dataKey="evaluated" fill="#38bdf8" name={t('evaluated')} />
               <Bar dataKey="nonCompliant" fill="#ef4444" name={t('nonCompliant')} />
@@ -217,11 +348,11 @@ export function AnalyticsDashboardSections() {
             hasData={tollAnalytics.byState.length > 0}
             emptyLabel="Dataset load failed: tolls-latest.json"
           >
-            <BarChart data={tollAnalytics.byState}>
+            <BarChart data={tollAnalytics.byState} margin={{ bottom: 16 }}>
               <CartesianGrid strokeDasharray="3 3" style={gridStyle} />
-              <XAxis dataKey="state" tick={axisStyle} />
+              <XAxis dataKey="state" tick={axisStyle} interval={0} angle={-35} textAnchor="end" height={80} />
               <YAxis tick={axisStyle} />
-              <Tooltip contentStyle={{ background: 'var(--rw-surface)', border: '1px solid var(--rw-border)' }} />
+              <Tooltip {...chartTooltipStyle} />
               <Bar dataKey="count" name={t('tollPlazas')}>
                 {tollAnalytics.byState.map((entry) => (
                   <Cell key={entry.state} fill={entry.color} />
@@ -232,7 +363,7 @@ export function AnalyticsDashboardSections() {
         </CardContent>
       </Card>
 
-      <Card className="rw-glass-panel rw-glass-edge lg:col-span-2">
+      <Card id="contractor-awards" className="rw-glass-panel rw-glass-edge lg:col-span-2 scroll-mt-24">
         <CardHeader>
           <CardTitle className="text-base">{t('contractorAwards')}</CardTitle>
           <CardDescription>
@@ -250,8 +381,8 @@ export function AnalyticsDashboardSections() {
               <CartesianGrid strokeDasharray="3 3" style={gridStyle} />
               <XAxis dataKey="contractor" tick={axisStyle} interval={0} angle={-25} textAnchor="end" height={70} />
               <YAxis tick={axisStyle} />
-              <Tooltip contentStyle={{ background: 'var(--rw-surface)', border: '1px solid var(--rw-border)' }} />
-              <Bar dataKey="valueMillionUsd" fill="#a855f7" name={t('awardValueUsd')} />
+              <Tooltip {...chartTooltipStyle} />
+              <Bar dataKey="valueInr" fill="#a855f7" name="Award value (INR)" />
             </BarChart>
           </ChartPanel>
           <ChartPanel
@@ -265,7 +396,7 @@ export function AnalyticsDashboardSections() {
                   <Cell key={entry.method} fill={entry.color} />
                 ))}
               </Pie>
-              <Tooltip contentStyle={{ background: 'var(--rw-surface)', border: '1px solid var(--rw-border)' }} />
+              <Tooltip {...chartTooltipStyle} />
               <Legend />
             </PieChart>
           </ChartPanel>

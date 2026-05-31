@@ -1,6 +1,6 @@
 import { Filter, Loader2, LocateFixed, Plus, Search, X } from 'lucide-react'
 import { motion, useReducedMotion } from 'framer-motion'
-import { useEffect, useId, useRef, type FormEvent } from 'react'
+import { useCallback, useEffect, useId, useRef, type FormEvent, type MouseEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '../common/Button'
@@ -14,7 +14,7 @@ export type MapSearchResult = {
   id: string
   label: string
   description: string
-  kind: 'road' | 'complaint' | 'place'
+  kind: 'road' | 'complaint' | 'place' | 'toll' | 'contractor' | 'state' | 'district'
   lat: number
   lng: number
 }
@@ -62,40 +62,47 @@ export function MapFloatingControls({
   const dropdownRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const showResults = mode === 'expanded' && (searchQuery.trim().length > 0 || searchResults.length > 0)
+  const showResults = mode === 'expanded' && searchQuery.trim().length >= 2
   const controlsEnabled = mode === 'expanded'
   const locating = locateStatus === 'loading' || locateStatus === 'refreshing'
 
-  const closeSearch = () => {
+  const closeSearch = useCallback(() => {
     onSearchQueryChange('')
     onSearchClose?.()
     inputRef.current?.blur()
-  }
+  }, [onSearchClose, onSearchQueryChange])
 
-  // Close dropdown on outside click
+  const handleClosePointer = useCallback(
+    (event: MouseEvent<HTMLButtonElement>) => {
+      event.preventDefault()
+      event.stopPropagation()
+      closeSearch()
+    },
+    [closeSearch],
+  )
+
   useEffect(() => {
     if (!showResults) return
-    function handleClick(event: MouseEvent) {
+    function handleClick(event: globalThis.MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         closeSearch()
       }
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
-  }, [showResults, onSearchQueryChange])
+  }, [closeSearch, showResults])
 
-  // Close dropdown on ESC
   useEffect(() => {
     if (!showResults) return
     function handleKey(event: KeyboardEvent) {
       if (event.key === 'Escape') {
+        event.preventDefault()
         closeSearch()
-        inputRef.current?.blur()
       }
     }
     document.addEventListener('keydown', handleKey)
     return () => document.removeEventListener('keydown', handleKey)
-  }, [showResults, onSearchQueryChange])
+  }, [closeSearch, showResults])
 
   const openLocationHelp = () => {
     const ua = navigator.userAgent.toLowerCase()
@@ -152,7 +159,7 @@ export function MapFloatingControls({
           <input
             ref={inputRef}
             id={searchId}
-            type="search"
+            type="text"
             value={searchQuery}
             onChange={(event) => onSearchQueryChange(event.target.value)}
             placeholder={t('searchPlaces')}
@@ -162,7 +169,8 @@ export function MapFloatingControls({
           {searchQuery ? (
             <button
               type="button"
-              onClick={closeSearch}
+              onClick={handleClosePointer}
+              onMouseDown={(event) => event.stopPropagation()}
               className="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-[var(--rw-text-secondary)] transition-[background-color,color,transform] duration-200 hover:bg-[var(--rw-surface-muted)] hover:text-[var(--rw-text-primary)] active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rw-ring)]"
               aria-label={t('clearSearch')}
             >
@@ -183,19 +191,10 @@ export function MapFloatingControls({
               role="listbox"
               aria-label={t('searchResults')}
             >
-              {/* Header with X close button */}
-              <li className="flex items-center justify-between px-3 py-1">
+              <li className="px-3 py-1">
                 <span className="text-xs font-medium uppercase tracking-wide text-[var(--rw-text-tertiary)]">
-                  {!searchQuery.trim() ? t('recentSearches') : t('searchResults')}
+                  {t('searchResults')}
                 </span>
-                <button
-                  type="button"
-                  onClick={closeSearch}
-                  className="inline-flex size-6 items-center justify-center rounded-full text-[var(--rw-text-tertiary)] hover:bg-[var(--rw-surface-muted)] hover:text-[var(--rw-text-secondary)]"
-                  aria-label="Close search results"
-                >
-                  <X className="size-3" aria-hidden="true" />
-                </button>
               </li>
               {searchLoading ? (
                 <li className="flex items-center justify-center gap-2 px-3 py-4 text-sm text-[var(--rw-text-secondary)]">

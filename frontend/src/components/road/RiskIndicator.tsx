@@ -23,22 +23,22 @@ const getRiskConfig = (t: any): Record<
   low: {
     label: t('lowRisk'),
     icon: Shield,
-    className: 'text-emerald-700 dark:text-emerald-300',
+    className: 'text-emerald-400 font-semibold',
   },
   medium: {
     label: t('mediumRisk'),
     icon: ShieldAlert,
-    className: 'text-amber-700 dark:text-amber-300',
+    className: 'text-amber-300 font-semibold',
   },
   high: {
     label: t('highRisk'),
     icon: AlertTriangle,
-    className: 'text-orange-700 dark:text-orange-300',
+    className: 'text-orange-400 font-semibold',
   },
   critical: {
     label: t('criticalRisk'),
     icon: AlertOctagon,
-    className: 'text-red-700 dark:text-red-300',
+    className: 'text-red-400 font-semibold',
   },
 })
 

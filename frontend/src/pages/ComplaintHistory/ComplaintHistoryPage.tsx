@@ -1,13 +1,13 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { PageContainer } from '../../components/common/PageContainer'
 import { SectionHeader } from '../../components/common/SectionHeader'
 import { Input } from '../../components/common/Input'
 import { Select } from '../../components/common/Select'
 import { ComplaintListSection } from '../../components/complaints/ComplaintListSection'
-import { fetchComplaints } from '../../lib/api/complaints'
 import { routes } from '../../lib/routes'
-import { buildStoredSubmittedComplaint, useComplaintStore } from '../../stores/complaintStore'
+import { selectComplaintHistoryItems } from '../../lib/complaints/mergedComplaints'
+import { useComplaintStore } from '../../stores/complaintStore'
 
 const statusOptions = ['all', 'pending', 'routed', 'in_review', 'resolved', 'rejected'] as const
 const severityOptions = ['all', 'low', 'medium', 'high', 'critical'] as const
@@ -17,7 +17,6 @@ export default function ComplaintHistoryPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const submittedComplaints = useComplaintStore((state) => state.submittedComplaints)
-  const setSubmittedComplaints = useComplaintStore((state) => state.setSubmittedComplaints)
   const [search, setSearch] = useState(searchParams.get('q') ?? '')
 
   const status = statusOptions.includes(searchParams.get('status') as (typeof statusOptions)[number])
@@ -31,24 +30,6 @@ export default function ComplaintHistoryPage() {
     ? searchParams.get('sort') ?? 'newest'
     : 'newest'
 
-  useEffect(() => {
-    let cancelled = false
-    async function loadComplaints() {
-      try {
-        const complaints = await fetchComplaints()
-        if (!cancelled) {
-          setSubmittedComplaints(complaints.map((complaint) => buildStoredSubmittedComplaint(complaint)))
-        }
-      } catch {
-        // Keep local records if the API is unavailable.
-      }
-    }
-    void loadComplaints()
-    return () => {
-      cancelled = true
-    }
-  }, [setSubmittedComplaints])
-
   const issueTypes = useMemo(
     () =>
       Array.from(
@@ -61,27 +42,17 @@ export default function ComplaintHistoryPage() {
     [submittedComplaints],
   )
 
-  const items = useMemo(() => {
-    const query = search.trim().toLowerCase()
-    return submittedComplaints
-      .map((entry) => entry.intelligenceItem)
-      .filter((item) => {
-        const statusMatch = status === 'all' || item.status === status
-        const issueMatch = issueType === 'all' || item.issueType === issueType
-        const severityMatch = severity === 'all' || item.severity === severity
-        const queryMatch =
-          !query ||
-          item.title.toLowerCase().includes(query) ||
-          item.referenceId?.toLowerCase().includes(query) ||
-          item.roadName?.toLowerCase().includes(query)
-        return statusMatch && issueMatch && severityMatch && queryMatch
-      })
-      .sort((a, b) => {
-        const aTime = Date.parse(a.reportedAt ?? '')
-        const bTime = Date.parse(b.reportedAt ?? '')
-        return sort === 'oldest' ? aTime - bTime : bTime - aTime
-      })
-  }, [issueType, search, severity, sort, status, submittedComplaints])
+  const items = useMemo(
+    () =>
+      selectComplaintHistoryItems(submittedComplaints, {
+        status,
+        issueType,
+        severity,
+        search,
+        sort: sort as 'newest' | 'oldest',
+      }),
+    [issueType, search, severity, sort, status, submittedComplaints],
+  )
 
   const updateParam = (key: string, value: string) => {
     const next = new URLSearchParams(searchParams)

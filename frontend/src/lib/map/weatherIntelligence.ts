@@ -1,6 +1,7 @@
 import { getWeatherProvider } from './providers/registry'
 import type { MapCoordinates } from './providers/types'
 import type { WeatherRiskInput } from '../analytics/riskEngine'
+import { getCachedIntelligence, setCachedIntelligence } from './intelligenceCache'
 
 export type ExtendedWeatherIntelligence = {
   rainfallMm: number | string
@@ -44,6 +45,13 @@ function buildWarnings(
 export async function fetchExtendedWeatherIntelligence(
   request: MapCoordinates,
 ): Promise<ExtendedWeatherIntelligence> {
+  const cached = getCachedIntelligence<ExtendedWeatherIntelligence>(
+    request.lat,
+    request.lng,
+    'weather-extended',
+  )
+  if (cached) return cached
+
   const provider = getWeatherProvider()
   const snapshot = await provider.getWeather(request)
   const rainProbability =
@@ -58,7 +66,7 @@ export async function fetchExtendedWeatherIntelligence(
   const warnings = buildWarnings(rainProbability, visibilityKm, String(snapshot.condition))
   const alerts = warnings.length > 0 ? warnings : []
 
-  return {
+  return setCachedIntelligence(request.lat, request.lng, 'weather-extended', {
     rainfallMm,
     visibilityKm: snapshot.visibilityKm,
     alerts,
@@ -71,7 +79,7 @@ export async function fetchExtendedWeatherIntelligence(
     rainProbabilityPercent: rainProbability,
     source: snapshot.source,
     observedAt: snapshot.observedAt,
-  }
+  })
 }
 
 export function toWeatherRiskInput(intel: ExtendedWeatherIntelligence): WeatherRiskInput {

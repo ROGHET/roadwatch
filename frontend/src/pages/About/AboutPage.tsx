@@ -1,21 +1,78 @@
 import { motion, useReducedMotion } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import {
+  AlertTriangle,
   Bot,
   Database,
   Globe,
   Layers,
   MapPin,
+  Route,
   Server,
+  Shield,
   Users,
+  Wallet,
 } from 'lucide-react'
 import { useI18n } from '../../lib/i18n'
 import { fadeInUp } from '../../lib/motion'
+import { routes } from '../../lib/routes'
 
 const teamLinks = [
   ['Harshit Rawat', 'https://www.linkedin.com/in/harshit-rawat-956850298/'],
   ['Kaushiki Choubey', 'https://www.linkedin.com/in/kaushiki-choubey/'],
   ['Vedanti Dokare', 'https://www.linkedin.com/in/vedanti-dokare-a3a67625a/'],
   ['Nikhil Nair', 'https://www.linkedin.com/in/nikhil-nair-225401333/'],
+] as const
+
+const featureCards = [
+  {
+    title: 'Budget Transparency',
+    icon: Wallet,
+    description: 'CRIF releases, sanctions, and utilization from parliamentary datasets.',
+    href: `${routes.dashboard}#crif-budget-trend`,
+    cardClass: 'from-sky-500/25 via-[var(--rw-surface-muted)] to-emerald-500/10',
+    iconClass: 'bg-sky-500/20 text-sky-300',
+  },
+  {
+    title: 'Road Quality Monitoring',
+    icon: Route,
+    description: 'OSM road network with composite health scoring and risk hotspots.',
+    href: routes.map,
+    cardClass: 'from-violet-500/25 via-[var(--rw-surface-muted)] to-indigo-500/10',
+    iconClass: 'bg-violet-500/20 text-violet-300',
+  },
+  {
+    title: 'Contractor Accountability',
+    icon: Shield,
+    description: 'World Bank contract awards linked to corridors and contractors.',
+    href: `${routes.dashboard}#contractor-awards`,
+    cardClass: 'from-amber-500/25 via-[var(--rw-surface-muted)] to-orange-500/10',
+    iconClass: 'bg-amber-500/20 text-amber-300',
+  },
+  {
+    title: 'Complaint Routing',
+    icon: AlertTriangle,
+    description: 'Authority-aware routing with NHAI, PWD, and municipal targets.',
+    href: routes.complaint,
+    cardClass: 'from-rose-500/25 via-[var(--rw-surface-muted)] to-red-500/10',
+    iconClass: 'bg-rose-500/20 text-rose-300',
+  },
+  {
+    title: 'RoadSOS',
+    icon: MapPin,
+    description: 'Rapid issue reporting with map-pinned evidence and severity.',
+    href: routes.complaint,
+    cardClass: 'from-red-600/30 via-[var(--rw-surface-muted)] to-orange-600/10',
+    iconClass: 'bg-red-600/25 text-red-300',
+  },
+  {
+    title: 'Location Intelligence',
+    icon: Globe,
+    description: 'Weather, AQI, traffic, and corridor context on every map tap.',
+    href: routes.map,
+    cardClass: 'from-cyan-500/25 via-[var(--rw-surface-muted)] to-teal-500/10',
+    iconClass: 'bg-cyan-500/20 text-cyan-300',
+  },
 ] as const
 
 const techStack = [
@@ -47,6 +104,7 @@ const techStack = [
 ]
 
 export default function AboutPage() {
+  const navigate = useNavigate()
   const prefersReducedMotion = useReducedMotion()
   const { t } = useI18n()
 
@@ -75,6 +133,35 @@ export default function AboutPage() {
               {t('objectivesText')}
             </p>
           </div>
+        </div>
+      </motion.section>
+
+      <motion.section
+        className="flex flex-col gap-6"
+        variants={prefersReducedMotion ? undefined : fadeInUp}
+        initial={prefersReducedMotion ? false : 'hidden'}
+        whileInView={prefersReducedMotion ? undefined : 'visible'}
+        viewport={{ once: true, margin: '-40px' }}
+      >
+        <div>
+          <p className="rw-type-label-caps text-[var(--rw-text-tertiary)]">{t('coreCapabilities')}</p>
+          <h2 className="mt-2 font-serif text-2xl text-[var(--rw-text-primary)]">Platform features</h2>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {featureCards.map(({ title, icon: Icon, description, href, cardClass, iconClass }) => (
+            <button
+              key={title}
+              type="button"
+              onClick={() => navigate(href)}
+              className={`relative overflow-hidden rounded-2xl border border-[var(--rw-border)] bg-gradient-to-br ${cardClass} p-5 text-left shadow-[var(--st-shadow-glass)] backdrop-blur-xl transition-transform hover:-translate-y-0.5 hover:border-[var(--rw-border-strong)] active:scale-[0.99]`}
+            >
+              <div className={`mb-3 inline-flex size-10 items-center justify-center rounded-xl shadow-inner ${iconClass}`}>
+                <Icon className="size-5" />
+              </div>
+              <h3 className="font-semibold text-[var(--rw-text-primary)]">{title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-[var(--rw-text-secondary)]">{description}</p>
+            </button>
+          ))}
         </div>
       </motion.section>
 

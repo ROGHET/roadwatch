@@ -97,6 +97,37 @@ export function createWaqiProvider(token: string): AQIProvider {
   }
 }
 
+export function createOpenMeteoAqiProvider(): AQIProvider {
+  return {
+    id: 'open-meteo-aqi',
+    label: 'Open-Meteo Air Quality',
+    async getAQI({ lat, lng }) {
+      const url = new URL('https://air-quality-api.open-meteo.com/v1/air-quality')
+      url.searchParams.set('latitude', String(lat))
+      url.searchParams.set('longitude', String(lng))
+      url.searchParams.set('current', 'us_aqi')
+
+      const response = await fetch(url)
+      if (!response.ok) {
+        throw new Error('Open-Meteo air quality request failed')
+      }
+
+      const payload = (await response.json()) as {
+        current?: { us_aqi?: number }
+      }
+      const aqi = Math.round(payload.current?.us_aqi ?? 0)
+
+      return {
+        locationName: locationLabel(lat, lng),
+        aqi,
+        aqiLabel: aqiLabelFor(aqi),
+        source: 'Open-Meteo',
+        observedAt: nowIso(),
+      }
+    },
+  }
+}
+
 export function resolveAqiProvider(env: ImportMetaEnv): AQIProvider {
   const provider = env.VITE_MAP_AQI_PROVIDER?.trim().toLowerCase()
   const aqicnKey = env.VITE_AQICN_API_KEY?.trim()
@@ -118,5 +149,5 @@ export function resolveAqiProvider(env: ImportMetaEnv): AQIProvider {
     return createWaqiProvider(waqiKey)
   }
 
-  return mockAqiProvider
+  return createOpenMeteoAqiProvider()
 }
