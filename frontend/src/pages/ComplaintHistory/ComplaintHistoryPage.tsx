@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { PageContainer } from '../../components/common/PageContainer'
 import { SectionHeader } from '../../components/common/SectionHeader'
@@ -7,6 +7,8 @@ import { Select } from '../../components/common/Select'
 import { ComplaintListSection } from '../../components/complaints/ComplaintListSection'
 import { routes } from '../../lib/routes'
 import { selectComplaintHistoryItems } from '../../lib/complaints/mergedComplaints'
+import { useUnifiedComplaints } from '../../hooks/useComplaintData'
+import { loadInfrastructureCatalog, mergeComplaintsWithCatalog } from '../../lib/complaints/unifiedComplaints'
 import { useComplaintStore } from '../../stores/complaintStore'
 
 const statusOptions = ['all', 'pending', 'routed', 'in_review', 'resolved', 'rejected'] as const
@@ -16,8 +18,19 @@ const sortOptions = ['newest', 'oldest'] as const
 export default function ComplaintHistoryPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const submittedComplaints = useComplaintStore((state) => state.submittedComplaints)
+  const unifiedComplaints = useUnifiedComplaints()
+  const setSubmittedComplaints = useComplaintStore((state) => state.setSubmittedComplaints)
+  const [catalogTick, setCatalogTick] = useState(0)
   const [search, setSearch] = useState(searchParams.get('q') ?? '')
+
+  useEffect(() => {
+    void loadInfrastructureCatalog().then(() => {
+      setSubmittedComplaints(
+        mergeComplaintsWithCatalog(useComplaintStore.getState().submittedComplaints),
+      )
+      setCatalogTick((value) => value + 1)
+    })
+  }, [setSubmittedComplaints])
 
   const status = statusOptions.includes(searchParams.get('status') as (typeof statusOptions)[number])
     ? searchParams.get('status') ?? 'all'
@@ -34,24 +47,28 @@ export default function ComplaintHistoryPage() {
     () =>
       Array.from(
         new Set(
-          submittedComplaints
+          unifiedComplaints
             .map((entry) => entry.marker.issueType)
             .filter((value): value is string => Boolean(value)),
         ),
       ).sort(),
-    [submittedComplaints],
+    [unifiedComplaints],
   )
 
   const items = useMemo(
     () =>
-      selectComplaintHistoryItems(submittedComplaints, {
-        status,
-        issueType,
-        severity,
-        search,
-        sort: sort as 'newest' | 'oldest',
-      }),
-    [issueType, search, severity, sort, status, submittedComplaints],
+      selectComplaintHistoryItems(
+        unifiedComplaints,
+        {
+          status,
+          issueType,
+          severity,
+          search,
+          sort: sort as 'newest' | 'oldest',
+        },
+        { alreadyMerged: true },
+      ),
+    [catalogTick, issueType, search, severity, sort, status, unifiedComplaints],
   )
 
   const updateParam = (key: string, value: string) => {
@@ -65,13 +82,13 @@ export default function ComplaintHistoryPage() {
   }
 
   return (
-    <PageContainer className="gap-6">
+    <PageContainer className="min-w-0 gap-6 overflow-x-hidden">
       <SectionHeader
         title="Complaint History"
         description="Search, filter, and open real complaint records from the connected database."
       />
 
-      <div className="grid gap-3 rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface)]/80 p-4 backdrop-blur-xl md:grid-cols-5">
+      <div className="grid min-w-0 grid-cols-1 gap-3 rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface)]/80 p-3 backdrop-blur-xl sm:grid-cols-2 sm:p-4 md:grid-cols-5">
         <Input
           value={search}
           onChange={(event) => setSearch(event.target.value)}

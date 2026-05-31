@@ -1,8 +1,7 @@
 import { AlertTriangle, CheckCircle2, ClipboardList, Clock } from 'lucide-react'
-import { type ReactNode, useMemo } from 'react'
+import { type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { selectComplaintMetrics } from '../../lib/complaints/complaintSelectors'
-import { useComplaintStore } from '../../stores/complaintStore'
+import { useComplaintMetrics } from '../../hooks/useComplaintData'
 import { useMapStore } from '../../stores/mapStore'
 import { AnimatedCounter } from '../common/AnimatedCounter'
 import { routes } from '../../lib/routes'
@@ -48,13 +47,8 @@ function MetricTile({ label, value, suffix = '', accentClassName, icon: Icon, on
 
 export function HomeMetricsRow() {
   const navigate = useNavigate()
-  const submittedComplaints = useComplaintStore((state) => state.submittedComplaints)
   const setSeverityFilters = useMapStore((state) => state.setSeverityFilters)
-
-  const metrics = useMemo(
-    () => selectComplaintMetrics(submittedComplaints),
-    [submittedComplaints],
-  )
+  const metrics = useComplaintMetrics()
 
   return (
     <div className="grid grid-cols-2 gap-3 md:grid-cols-4">

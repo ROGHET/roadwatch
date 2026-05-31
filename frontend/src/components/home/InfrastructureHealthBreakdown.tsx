@@ -1,9 +1,8 @@
 import { X } from 'lucide-react'
 import { useMemo } from 'react'
 import { accidentRecords, crifBudgetRecords, tenderComplianceRecords } from '../../data/realDatasets'
-import { selectComplaintMetrics } from '../../lib/complaints/complaintSelectors'
+import { useComplaintMetrics } from '../../hooks/useComplaintData'
 import { computeCompositeHealth } from '../../lib/analytics/riskEngine'
-import { useComplaintStore } from '../../stores/complaintStore'
 
 export type InfrastructureHealthBreakdownProps = {
   open: boolean
@@ -16,7 +15,7 @@ function percentFromRatio(numerator: number, denominator: number) {
 }
 
 export function InfrastructureHealthBreakdown({ open, onClose }: InfrastructureHealthBreakdownProps) {
-  const submittedComplaints = useComplaintStore((state) => state.submittedComplaints)
+  const complaintMetrics = useComplaintMetrics()
 
   const breakdown = useMemo(() => {
     const maharashtra = accidentRecords.find((row) =>
@@ -27,7 +26,6 @@ export function InfrastructureHealthBreakdown({ open, onClose }: InfrastructureH
       city: 'Mumbai',
     })
 
-    const complaintMetrics = selectComplaintMetrics(submittedComplaints)
     const complaintResolution = complaintMetrics.closedPercent
 
     const budgetTotals = crifBudgetRecords.reduce(
@@ -58,7 +56,7 @@ export function InfrastructureHealthBreakdown({ open, onClose }: InfrastructureH
       budgetUtilization,
       factors: health.factors,
     }
-  }, [submittedComplaints])
+  }, [complaintMetrics])
 
   if (!open) return null
 

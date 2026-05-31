@@ -3,20 +3,15 @@ import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 import '../../lib/map/leafletDefaults'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Marker } from 'react-leaflet'
 import L from 'leaflet'
 import { mapRoadMarkers, setMapRoadMarkers } from '../../data/mapMarkers'
 import { attachGeoCoordinatesToReports, infrastructureReports } from '../../data/infrastructureReports'
 import { setRoadCatalog } from '../../data/roads'
-import {
-  buildRoadFromCoordinates,
-  findNearestGeoRoad,
-  geoRoadToMockRoad,
-  getGeoRoadFeaturesSnapshot,
-  loadGeoRoadFeatures,
-} from '../../lib/gis/geoRoadIndex'
+import { geoRoadToMockRoad, getGeoRoadFeaturesSnapshot } from '../../lib/gis/geoRoadIndex'
+import { ensureRoadDataNearPoint, resolveRoadAtClick } from '../../lib/gis/mapRoadAtPoint'
 import type { TollPlazaRecord } from '../../data/tollPlazas'
 import { contractAwardRecords } from '../../data/contractAwards'
 import { CITIES_BY_STATE, INDIAN_STATES } from '../../data/indianStates'
@@ -59,6 +54,7 @@ import { MapRouteLayer } from './MapRouteLayer'
 import { MapResizeHandler } from './MapResizeHandler'
 import { MapThemeTileLayer } from './MapThemeTileLayer'
 import { MapViewportSync } from './MapViewportSync'
+import { MapRoadViewportLoader } from './MapRoadViewportLoader'
 import { MapContainer, ZoomControl } from 'react-leaflet'
 
 export type RoadWatchMapViewProps = {
@@ -72,18 +68,18 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
   const locationPickPending = useComplaintStore((state) => state.locationPickPending)
   const completeLocationPick = useComplaintStore((state) => state.completeLocationPick)
   const [geocodedComplaintMarkers, setGeocodedComplaintMarkers] = useState<MapComplaintMarker[]>([])
+  const geocodedOnceRef = useRef(false)
+  const catalogRefreshTimerRef = useRef<number | null>(null)
 
-  useEffect(() => {
+  const refreshGeoRoadCatalog = useCallback(() => {
     if (mode !== 'expanded') return
-    let cancelled = false
+    const features = getGeoRoadFeaturesSnapshot()
+    const namedRoads = features.map((feature) => geoRoadToMockRoad(feature))
+    setMapRoadMarkers(namedRoads)
+    setRoadCatalog(namedRoads)
 
-    const syncRoadCatalog = (features: ReturnType<typeof getGeoRoadFeaturesSnapshot>) => {
-      const namedRoads = features
-        .filter((feature) => feature.name && !feature.name.startsWith('Road segment'))
-        .slice(0, 500)
-        .map((feature) => geoRoadToMockRoad(feature))
-      setMapRoadMarkers(namedRoads)
-      setRoadCatalog(namedRoads)
+    if (!geocodedOnceRef.current && features.length > 0) {
+      geocodedOnceRef.current = true
       const geocoded = attachGeoCoordinatesToReports(infrastructureReports, features)
       setGeocodedComplaintMarkers(
         geocoded.map((complaint) => ({
@@ -94,21 +90,39 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
         })),
       )
     }
-
-    void loadGeoRoadFeatures().then((features) => {
-      if (cancelled) return
-      syncRoadCatalog(features)
-    })
-
-    return () => {
-      cancelled = true
-    }
   }, [mode])
 
-  const complaintMarkers = useMemo(
-    () => [...getMergedComplaintMarkers(submittedComplaints), ...geocodedComplaintMarkers],
-    [geocodedComplaintMarkers, submittedComplaints],
-  )
+  const scheduleCatalogRefresh = useCallback(() => {
+    if (mode !== 'expanded') return
+    if (catalogRefreshTimerRef.current) {
+      window.clearTimeout(catalogRefreshTimerRef.current)
+    }
+    catalogRefreshTimerRef.current = window.setTimeout(() => {
+      refreshGeoRoadCatalog()
+    }, 450)
+  }, [mode, refreshGeoRoadCatalog])
+
+  useEffect(() => {
+    return () => {
+      if (catalogRefreshTimerRef.current) {
+        window.clearTimeout(catalogRefreshTimerRef.current)
+      }
+    }
+  }, [])
+
+  const complaintMarkers = useMemo(() => {
+    const base = getMergedComplaintMarkers(submittedComplaints)
+    const byId = new Map(base.map((marker) => [marker.id, marker]))
+    for (const marker of geocodedComplaintMarkers) {
+      const existing = byId.get(marker.id)
+      if (!existing) {
+        byId.set(marker.id, marker)
+      } else if ((!existing.lat || !existing.lng) && marker.lat && marker.lng) {
+        byId.set(marker.id, { ...existing, lat: marker.lat, lng: marker.lng })
+      }
+    }
+    return [...byId.values()]
+  }, [geocodedComplaintMarkers, submittedComplaints])
 
   const filter = useMapStore((state) => state.filter)
   const layerToggles = useMapStore((state) => state.layerToggles)
@@ -371,22 +385,31 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
   const handleMapClick = useCallback(async (lat: number, lng: number) => {
     if (mode !== 'expanded' || intelLoading) return
 
+    if (complaintPickMode && locationPickPending) {
+      const place = inferPlaceFromCoordinates(lat, lng)
+      completeLocationPick(
+        lat,
+        lng,
+        place.label,
+        place.city,
+        place.state,
+      )
+      navigate(routes.complaint)
+      return
+    }
+
     setIntelLoading(true)
     try {
       const [intelligence, weatherIntel] = await Promise.all([
         fetchLocationIntelligence(lat, lng),
         fetchExtendedWeatherIntelligence({ lat, lng }),
-        loadGeoRoadFeatures(),
       ])
 
-      const geoFeatures = getGeoRoadFeaturesSnapshot()
-      const nearestRoad = findNearestGeoRoad(geoFeatures, lat, lng)
-      if (nearestRoad) {
-        const road = buildRoadFromCoordinates(geoFeatures, lat, lng, toWeatherRiskInput(weatherIntel))
-        if (road) {
-          setSelection({ kind: 'road', road })
-          return
-        }
+      await ensureRoadDataNearPoint(lat, lng)
+      const road = resolveRoadAtClick(lat, lng, toWeatherRiskInput(weatherIntel))
+      if (road) {
+        setSelection({ kind: 'road', road })
+        return
       }
 
       if (layerToggles.tollPlazas) {
@@ -396,19 +419,6 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
           setSelection({ kind: 'toll', toll: tollHit })
           return
         }
-      }
-
-      if (complaintPickMode && locationPickPending) {
-        const place = inferPlaceFromCoordinates(lat, lng)
-        completeLocationPick(
-          lat,
-          lng,
-          intelligence.locationName || place.label,
-          intelligence.city || place.city,
-          intelligence.state || place.state,
-        )
-        navigate(routes.complaint)
-        return
       }
 
       setSelection({ kind: 'location', lat, lng, intelligence, weatherIntel })
@@ -515,6 +525,7 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
         {mode === 'expanded' ? (
           <>
             <MapClusterZoomHandler />
+            <MapRoadViewportLoader onViewportRoadsChange={scheduleCatalogRefresh} />
             <MapGeoLayers showTolls={layerToggles.tollPlazas} onSelectToll={handleSelectToll} />
           </>
         ) : null}

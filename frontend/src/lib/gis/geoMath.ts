@@ -25,6 +25,36 @@ export function lineCentroid(coordinates: number[][]): LatLng | null {
   return { lat: lat / coordinates.length, lng: lng / coordinates.length }
 }
 
+/** Squared distance (deg²) from point to nearest point on a polyline segment. */
+export function pointToPolylineDistanceSq(
+  lat: number,
+  lng: number,
+  coordinates: number[][],
+): number {
+  if (coordinates.length === 0) return Infinity
+  if (coordinates.length === 1) {
+    const [lng0, lat0] = coordinates[0]
+    return distanceSquared(lat, lng, lat0, lng0)
+  }
+
+  let best = Infinity
+  for (let index = 0; index < coordinates.length - 1; index += 1) {
+    const [lngA, latA] = coordinates[index]
+    const [lngB, latB] = coordinates[index + 1]
+    const dx = lngB - lngA
+    const dy = latB - latA
+    const lengthSq = dx * dx + dy * dy
+    const t =
+      lengthSq > 0
+        ? Math.max(0, Math.min(1, ((lng - lngA) * dx + (lat - latA) * dy) / lengthSq))
+        : 0
+    const projLat = latA + t * dy
+    const projLng = lngA + t * dx
+    best = Math.min(best, distanceSquared(lat, lng, projLat, projLng))
+  }
+  return best
+}
+
 export function bboxFromCoordinates(coordinates: number[][]): [number, number, number, number] | null {
   if (coordinates.length === 0) return null
   let minLat = Infinity

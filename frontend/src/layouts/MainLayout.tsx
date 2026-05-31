@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { AnimatedOutlet } from '../components/common/AnimatedOutlet'
 import { useHydrateComplaints } from '../hooks/useHydrateComplaints'
-import { logContractorCoverageReport } from '../lib/contractors/coverageReport'
 import { OfflineBanner } from '../components/common/OfflineBanner'
 import { CommandPalette } from '../components/command/CommandPalette'
 import { RtiGenerationModal } from '../components/rti/RtiGenerationModal'
@@ -52,9 +51,6 @@ function FloatingNavLink({
 
 export default function MainLayout() {
   useHydrateComplaints()
-  useEffect(() => {
-    logContractorCoverageReport()
-  }, [])
   const prefersReducedMotion = useReducedMotion()
   const location = useLocation()
   const isMapRoute = location.pathname === routes.map
@@ -86,7 +82,7 @@ export default function MainLayout() {
   return (
     <div
       className={[
-        'flex min-h-dvh flex-col bg-[var(--rw-background)]',
+        'flex min-h-dvh flex-col overflow-x-hidden bg-[var(--rw-background)]',
         isMapRoute ? 'h-dvh overflow-hidden' : '',
       ].join(' ')}
     >
@@ -100,7 +96,7 @@ export default function MainLayout() {
         transition={transitions.normal}
       >
         <nav
-          className="rw-glass-nav pointer-events-auto mx-auto flex h-14 max-w-6xl items-center gap-3 rounded-full px-3 sm:px-4"
+          className="rw-glass-nav pointer-events-auto mx-auto flex h-14 w-full max-w-6xl min-w-0 items-center gap-2 rounded-full px-2 sm:gap-3 sm:px-4"
           aria-label="Main navigation"
         >
           <button
@@ -115,7 +111,7 @@ export default function MainLayout() {
           <button
             type="button"
             onClick={openCommandPalette}
-            className="min-w-0 flex-1 truncate text-left font-serif text-xl tracking-tight text-[var(--st-primary)] outline-none transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rw-ring)]"
+            className="min-w-0 flex-1 truncate text-left font-serif text-base tracking-tight text-[var(--st-primary)] outline-none transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rw-ring)] sm:text-xl"
             aria-label="Open command palette"
           >
             {t('appName')}

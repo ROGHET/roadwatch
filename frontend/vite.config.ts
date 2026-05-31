@@ -69,4 +69,30 @@ export default defineConfig({
       allow: ['..'],
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('recharts') || id.includes('d3-')) return 'vendor-charts'
+            if (id.includes('leaflet')) return 'vendor-leaflet'
+            if (id.includes('framer-motion')) return 'vendor-motion'
+            return 'vendor'
+          }
+          if (
+            id.includes('infrastructureCatalogBuilder') ||
+            id.includes('infrastructureReports') ||
+            id.includes('realDatasets') ||
+            id.includes('/datasets/') ||
+            id.includes('contract_awards')
+          ) {
+            return 'app-datasets'
+          }
+          if (id.includes('roadDatasetManager') || id.includes('geoRoadIndex') || id.includes('mapRoadAtPoint')) {
+            return 'app-map-gis'
+          }
+        },
+      },
+    },
+  },
 })

@@ -19,6 +19,7 @@ export type ComplaintDraft = {
   state?: string
   roadId?: string
   roadName?: string
+  contractor?: string
   photoDataUrl?: string
   savedAt: string
 }

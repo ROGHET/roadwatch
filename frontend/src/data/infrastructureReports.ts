@@ -2,7 +2,12 @@ import { roadWorkRecords } from './realDatasets'
 import gujaratWorksCsv from '../../../datasets/RS_Session_258_AU_92_A.iii_.csv?raw'
 import type { MockComplaintRecord } from './complaints'
 import type { RoadType } from '../lib/complaintRouting'
-import type { GeoRoadFeature } from '../lib/gis/geoRoadIndex'
+/** Minimal road shape for geocoding reports — avoids importing map GeoJSON modules. */
+export type GeoRoadMatchFeature = {
+  id: string
+  name: string
+  centroid: { lat: number; lng: number }
+}
 
 function parseCsv(text: string): string[][] {
   const rows: string[][] = []
@@ -48,10 +53,10 @@ function slugify(value: string) {
     .replace(/^-|-$/g, '')
 }
 
-function matchGeoRoad(features: GeoRoadFeature[], label: string): GeoRoadFeature | null {
+function matchGeoRoad(features: GeoRoadMatchFeature[], label: string): GeoRoadMatchFeature | null {
   const normalized = label.toLowerCase()
   const tokens = normalized.split(/[^a-z0-9]+/).filter((token) => token.length > 4)
-  let best: GeoRoadFeature | null = null
+  let best: GeoRoadMatchFeature | null = null
   let bestScore = 0
   for (const feature of features) {
     const name = feature.name.toLowerCase()
@@ -70,7 +75,7 @@ function matchGeoRoad(features: GeoRoadFeature[], label: string): GeoRoadFeature
 
 export function attachGeoCoordinatesToReports(
   reports: MockComplaintRecord[],
-  features: GeoRoadFeature[],
+  features: GeoRoadMatchFeature[],
 ): MockComplaintRecord[] {
   return reports
     .map((report) => {

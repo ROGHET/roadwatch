@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { AlertTriangle, CheckCircle2, ClipboardList, Clock } from 'lucide-react'
 import { MetricCard } from '../../components/charts/MetricCard'
@@ -7,15 +7,22 @@ import { AnimatedCounter } from '../../components/common/AnimatedCounter'
 import { PageContainer } from '../../components/common/PageContainer'
 import { SectionHeader } from '../../components/common/SectionHeader'
 import { ComplaintListSection } from '../../components/complaints/ComplaintListSection'
-import { AnalyticsDashboardSections } from '../../components/dashboard/AnalyticsDashboardSections'
+import { LoadingSpinner } from '../../components/common/LoadingSpinner'
 import { DashboardSection } from '../../components/dashboard/DashboardSection'
 import { dashboardPageCopy } from '../../data/dashboard'
-import { selectComplaintMetrics } from '../../lib/complaints/complaintSelectors'
+import { useComplaintMetrics } from '../../hooks/useComplaintData'
 import { getRecentIntelligenceItems } from '../../lib/complaints/mergedComplaints'
+import { loadInfrastructureCatalog, mergeComplaintsWithCatalog } from '../../lib/complaints/unifiedComplaints'
 import { routes } from '../../lib/routes'
 import { useComplaintStore } from '../../stores/complaintStore'
 import { useMapStore } from '../../stores/mapStore'
 import type { ComplaintSeverity } from '../../components/complaints/ComplaintCard'
+
+const AnalyticsDashboardSections = lazy(() =>
+  import('../../components/dashboard/AnalyticsDashboardSections').then((module) => ({
+    default: module.AnalyticsDashboardSections,
+  })),
+)
 
 function matchesSeverityFilter(severity: ComplaintSeverity | undefined, filters: ComplaintSeverity[]) {
   if (filters.length === 0) return true
@@ -26,17 +33,36 @@ export default function DashboardPage() {
   const location = useLocation()
   const navigate = useNavigate()
   const submittedComplaints = useComplaintStore((state) => state.submittedComplaints)
+  const setSubmittedComplaints = useComplaintStore((state) => state.setSubmittedComplaints)
+  const [catalogTick, setCatalogTick] = useState(0)
+
+  useEffect(() => {
+    void loadInfrastructureCatalog().then(() => {
+      setSubmittedComplaints(
+        mergeComplaintsWithCatalog(useComplaintStore.getState().submittedComplaints),
+      )
+      setCatalogTick((value) => value + 1)
+    })
+  }, [setSubmittedComplaints])
+  const unifiedComplaints = useMemo(
+    () => mergeComplaintsWithCatalog(submittedComplaints),
+    [submittedComplaints],
+  )
   const severityFilters = useMapStore((state) => state.severityFilters)
   const filteredComplaints = useMemo(
     () =>
-      submittedComplaints.filter((entry) =>
+      unifiedComplaints.filter((entry) =>
         matchesSeverityFilter(entry.marker.severity, severityFilters),
       ),
-    [severityFilters, submittedComplaints],
+    [catalogTick, severityFilters, unifiedComplaints],
   )
-  const recentComplaints = getRecentIntelligenceItems(filteredComplaints, 6)
+  const recentComplaints = useMemo(
+    () => getRecentIntelligenceItems(filteredComplaints, 6),
+    [filteredComplaints],
+  )
+  const complaintMetrics = useComplaintMetrics()
   const dashboardMetrics = useMemo(() => {
-    const metrics = selectComplaintMetrics(submittedComplaints)
+    const metrics = complaintMetrics
     return [
       {
         id: 'total-complaints',
@@ -71,7 +97,7 @@ export default function DashboardPage() {
         href: `${routes.complaintHistory}?severity=critical`,
       },
     ]
-  }, [submittedComplaints])
+  }, [catalogTick, complaintMetrics])
 
   useEffect(() => {
     if (!location.hash) return
@@ -104,7 +130,15 @@ export default function DashboardPage() {
         </StatGrid>
       </DashboardSection>
 
-      <AnalyticsDashboardSections />
+      <Suspense
+        fallback={
+          <div className="flex min-h-48 items-center justify-center">
+            <LoadingSpinner label="Loading analytics" />
+          </div>
+        }
+      >
+        <AnalyticsDashboardSections />
+      </Suspense>
 
       <ComplaintListSection
         title={dashboardPageCopy.recentComplaintsTitle}

@@ -95,7 +95,7 @@ export default function HomePage() {
         <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
           <button
             type="button"
-          onClick={() => navigate(`${routes.dashboard}#crif-budget-trend`)}
+          onClick={() => navigate(`${routes.dashboard}#budget-analytics`)}
             className="rw-glass-button rounded-full px-5 py-2.5 text-sm text-[var(--st-on-surface)] transition-[transform,box-shadow,background-color] duration-200 hover:-translate-y-0.5 hover:shadow-[var(--st-shadow-fab)]"
           >
             {t('budgetAnalytics')}

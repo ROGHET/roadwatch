@@ -21,6 +21,7 @@ import { Textarea } from '../../components/common/Textarea'
 import { RtiGenerationModal } from '../../components/rti/RtiGenerationModal'
 import { assistantPageCopy, assistantSamplePrompt, assistantSuggestedQuestions, assistantSystemKnowledge } from '../../data/assistant'
 import { mockComplaintRecords } from '../../data/complaints'
+import { useUnifiedComplaints } from '../../hooks/useComplaintData'
 import { mockRoads } from '../../data/roads'
 import {
   augmentPromptWithComplaintContext,
@@ -301,6 +302,7 @@ export default function AssistantPage() {
   const navigate = useNavigate()
   const selection = useMapStore((state) => state.selection)
   const submittedComplaints = useComplaintStore((state) => state.submittedComplaints)
+  const unifiedComplaints = useUnifiedComplaints()
 
   const initialContext = useMemo<AssistantContext>(() => {
     const state = (location.state ?? {}) as Partial<Record<string, unknown>>
@@ -509,7 +511,9 @@ export default function AssistantPage() {
 
   const activeContextSummary = useMemo(() => {
     if (activeRoad) {
-      const complaintCount = mockComplaintRecords.filter((complaint) => complaint.roadId === activeRoad.id).length
+      const complaintCount = unifiedComplaints.filter(
+        (complaint) => complaint.marker.roadId === activeRoad.id,
+      ).length
       return {
         type: 'road' as const,
         title: activeRoad.roadName,
@@ -616,7 +620,9 @@ export default function AssistantPage() {
     const normalized = promptText.toLowerCase()
 
     if (activeRoad && /(this road|condition|maintain|authority|contractor|budget|complaint|history|tell about|about this)/i.test(normalized)) {
-      const complaintCount = mockComplaintRecords.filter((complaint) => complaint.roadId === activeRoad.id).length
+      const complaintCount = unifiedComplaints.filter(
+        (complaint) => complaint.marker.roadId === activeRoad.id,
+      ).length
       const latestBudget = activeRoad.budgetHistory?.[0]
       return [
         `${activeRoad.roadName} is currently marked as ${activeRoad.status.replace('_', ' ')} with a road health score of ${activeRoad.score}.`,
@@ -715,7 +721,9 @@ export default function AssistantPage() {
                 contractor: activeRoad.contractor || 'Unknown',
                 budgetSanctioned: activeRoad.budgetHistory?.[0]?.sanctioned || 'Not Available',
                 budgetSpent: activeRoad.budgetHistory?.[0]?.spent || 'Not Available',
-                complaintCount: mockComplaintRecords.filter((complaint) => complaint.roadId === activeRoad.id).length || 0,
+                complaintCount:
+                  unifiedComplaints.filter((complaint) => complaint.marker.roadId === activeRoad.id)
+                    .length || 0,
               }
             : null,
           complaint: activeComplaint

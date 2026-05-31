@@ -1,5 +1,6 @@
 import type { ComplaintSeverity } from '../../components/complaints/ComplaintCard'
 import type { ComplaintStatus } from '../../components/complaints/ComplaintStatusBadge'
+import { toDisplayStatus } from '../complaints/complaintStatus'
 import type { StoredSubmittedComplaint } from '../../stores/complaintStore'
 
 export type ComplaintDisplayStatus = 'resolved' | 'in_review' | 'pending'
@@ -14,12 +15,7 @@ export type ComplaintMetricRecord = {
 const CLOSED_RATIO = 0.62
 const IN_PROGRESS_RATIO = 0.23
 
-/** Maps the actual stored status to a display-level bucket. */
-function mapDisplayStatus(status: ComplaintStatus): ComplaintDisplayStatus {
-  if (status === 'resolved') return 'resolved'
-  if (status === 'in_review' || status === 'routed') return 'in_review'
-  return 'pending'
-}
+const mapDisplayStatus = toDisplayStatus
 
 function mapStoredStatus(status: ComplaintDisplayStatus): ComplaintStatus {
   if (status === 'resolved') return 'resolved'

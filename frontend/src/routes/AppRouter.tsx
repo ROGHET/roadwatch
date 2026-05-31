@@ -1,16 +1,31 @@
+import { lazy, Suspense, type ReactNode } from 'react'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import { LoadingSpinner } from '../components/common/LoadingSpinner'
 import MainLayout from '../layouts/MainLayout'
-import AssistantPage from '../pages/Assistant/AssistantPage'
 import ComplaintPage from '../pages/Complaint/ComplaintPage'
 import ComplaintDetailPage from '../pages/ComplaintDetail/ComplaintDetailPage'
 import ComplaintHistoryPage from '../pages/ComplaintHistory/ComplaintHistoryPage'
-import DashboardPage from '../pages/Dashboard/DashboardPage'
 import HomePage from '../pages/Home/HomePage'
-import MapPage from '../pages/Map/MapPage'
 import RoadDetailsPage from '../pages/RoadDetails/RoadDetailsPage'
 import SettingsPage from '../pages/Settings/SettingsPage'
 import LanguagePage from '../pages/Language/LanguagePage'
 import AboutPage from '../pages/About/AboutPage'
+
+const MapPage = lazy(() => import('../pages/Map/MapPage'))
+const DashboardPage = lazy(() => import('../pages/Dashboard/DashboardPage'))
+const AssistantPage = lazy(() => import('../pages/Assistant/AssistantPage'))
+
+function PageFallback() {
+  return (
+    <div className="flex min-h-[50vh] flex-1 items-center justify-center py-16">
+      <LoadingSpinner label="Loading page" />
+    </div>
+  )
+}
+
+function LazyPage({ children }: { children: ReactNode }) {
+  return <Suspense fallback={<PageFallback />}>{children}</Suspense>
+}
 
 const router = createBrowserRouter([
   {
@@ -22,7 +37,11 @@ const router = createBrowserRouter([
       },
       {
         path: 'map',
-        element: <MapPage />,
+        element: (
+          <LazyPage>
+            <MapPage />
+          </LazyPage>
+        ),
       },
       {
         path: 'road/:roadId',
@@ -42,11 +61,19 @@ const router = createBrowserRouter([
       },
       {
         path: 'dashboard',
-        element: <DashboardPage />,
+        element: (
+          <LazyPage>
+            <DashboardPage />
+          </LazyPage>
+        ),
       },
       {
         path: 'assistant',
-        element: <AssistantPage />,
+        element: (
+          <LazyPage>
+            <AssistantPage />
+          </LazyPage>
+        ),
       },
       {
         path: 'settings',

@@ -155,12 +155,14 @@ function scoreContractMatch(label: string, row: ContractAwardRecord): number {
   return score
 }
 
+const MIN_ROAD_CONTRACT_MATCH_SCORE = 4
+
 export function findContractsForRoadLabel(label: string, limit = 5): ContractAwardRecord[] {
   const tokens = extractRoadTokens(label)
   if (tokens.length === 0) return []
   return roadContractAwards
     .map((row) => ({ row, score: scoreContractMatch(label, row) }))
-    .filter((entry) => entry.score > 0)
+    .filter((entry) => entry.score >= MIN_ROAD_CONTRACT_MATCH_SCORE)
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
     .map((entry) => entry.row)

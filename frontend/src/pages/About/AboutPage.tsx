@@ -29,9 +29,9 @@ const featureCards = [
     title: 'Budget Transparency',
     icon: Wallet,
     description: 'CRIF releases, sanctions, and utilization from parliamentary datasets.',
-    href: `${routes.dashboard}#crif-budget-trend`,
+    href: `${routes.dashboard}#budget-analytics`,
     cardClass: 'from-sky-500/25 via-[var(--rw-surface-muted)] to-emerald-500/10',
-    iconClass: 'bg-sky-500/20 text-sky-300',
+    iconClass: 'bg-sky-500/35 text-sky-800 ring-1 ring-sky-600/30 dark:text-sky-300',
   },
   {
     title: 'Road Quality Monitoring',
@@ -39,7 +39,7 @@ const featureCards = [
     description: 'OSM road network with composite health scoring and risk hotspots.',
     href: routes.map,
     cardClass: 'from-violet-500/25 via-[var(--rw-surface-muted)] to-indigo-500/10',
-    iconClass: 'bg-violet-500/20 text-violet-300',
+    iconClass: 'bg-violet-500/35 text-violet-800 ring-1 ring-violet-600/30 dark:text-violet-300',
   },
   {
     title: 'Contractor Accountability',
@@ -47,7 +47,7 @@ const featureCards = [
     description: 'World Bank contract awards linked to corridors and contractors.',
     href: `${routes.dashboard}#contractor-awards`,
     cardClass: 'from-amber-500/25 via-[var(--rw-surface-muted)] to-orange-500/10',
-    iconClass: 'bg-amber-500/20 text-amber-300',
+    iconClass: 'bg-amber-500/35 text-amber-900 ring-1 ring-amber-600/30 dark:text-amber-300',
   },
   {
     title: 'Complaint Routing',
@@ -55,7 +55,7 @@ const featureCards = [
     description: 'Authority-aware routing with NHAI, PWD, and municipal targets.',
     href: routes.complaint,
     cardClass: 'from-rose-500/25 via-[var(--rw-surface-muted)] to-red-500/10',
-    iconClass: 'bg-rose-500/20 text-rose-300',
+    iconClass: 'bg-rose-500/35 text-rose-800 ring-1 ring-rose-600/30 dark:text-rose-300',
   },
   {
     title: 'RoadSOS',
@@ -63,7 +63,7 @@ const featureCards = [
     description: 'Rapid issue reporting with map-pinned evidence and severity.',
     href: routes.complaint,
     cardClass: 'from-red-600/30 via-[var(--rw-surface-muted)] to-orange-600/10',
-    iconClass: 'bg-red-600/25 text-red-300',
+    iconClass: 'bg-red-600/35 text-red-800 ring-1 ring-red-600/35 dark:text-red-300',
   },
   {
     title: 'Location Intelligence',
@@ -71,7 +71,7 @@ const featureCards = [
     description: 'Weather, AQI, traffic, and corridor context on every map tap.',
     href: routes.map,
     cardClass: 'from-cyan-500/25 via-[var(--rw-surface-muted)] to-teal-500/10',
-    iconClass: 'bg-cyan-500/20 text-cyan-300',
+    iconClass: 'bg-cyan-500/35 text-cyan-800 ring-1 ring-cyan-600/30 dark:text-cyan-300',
   },
 ] as const
 
@@ -156,7 +156,7 @@ export default function AboutPage() {
               className={`relative overflow-hidden rounded-2xl border border-[var(--rw-border)] bg-gradient-to-br ${cardClass} p-5 text-left shadow-[var(--st-shadow-glass)] backdrop-blur-xl transition-transform hover:-translate-y-0.5 hover:border-[var(--rw-border-strong)] active:scale-[0.99]`}
             >
               <div className={`mb-3 inline-flex size-10 items-center justify-center rounded-xl shadow-inner ${iconClass}`}>
-                <Icon className="size-5" />
+                <Icon className="size-5 stroke-[2.25] opacity-95" />
               </div>
               <h3 className="font-semibold text-[var(--rw-text-primary)]">{title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-[var(--rw-text-secondary)]">{description}</p>

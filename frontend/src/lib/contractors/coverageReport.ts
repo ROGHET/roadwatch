@@ -1,5 +1,5 @@
 import { mapRoadMarkers } from '../../data/mapMarkers'
-import { findContractsForRoadLabel, roadContractAwards } from '../../data/contractAwards'
+import { findContractsForRoadLabel } from '../../data/contractAwards'
 
 export type ContractorCoverageReport = {
   totalRoads: number
@@ -37,11 +37,7 @@ export function buildContractorCoverageReport(): ContractorCoverageReport {
   }
 }
 
+/** @deprecated Coverage reports are not logged in production builds. */
 export function logContractorCoverageReport() {
-  if (!import.meta.env.DEV) return
-  const report = buildContractorCoverageReport()
-  console.info('[RoadWatch] Contractor coverage', {
-    ...report,
-    roadContractAwards: roadContractAwards.length,
-  })
+  // Intentionally no-op — avoids console noise and startup work.
 }

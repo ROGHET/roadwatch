@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   Bar,
   BarChart,
@@ -99,19 +99,25 @@ function ChartPanel({
 export function AnalyticsDashboardSections() {
   const { t } = useI18n()
   const submittedComplaints = useComplaintStore((state) => state.submittedComplaints)
-  const accidentData = getAccidentChartData()
-  const complaintData = getComplaintIssueChartData()
-  const complaintResolutionData = getComplaintResolutionChartData(submittedComplaints)
-  const budgetData = getBudgetTrendChartData()
-  const tenderData = getTenderComplianceChartData()
-  const hotspotData = getRiskHotspotChartData()
-  const contractorData = getContractorValueChartData()
-  const procurementData = getProcurementChartData()
-  const tollAnalytics = getTollAnalytics()
-  const contractSummary = getRoadContractSummary()
-  const budgetSummary = getBudgetUtilizationSummary()
-  const roadQualityTiers = getRoadQualityTierBreakdown()
-  const budgetQualityData = getBudgetVsRoadQualityChartData()
+  const accidentData = useMemo(() => getAccidentChartData(), [])
+  const complaintData = useMemo(
+    () => getComplaintIssueChartData(submittedComplaints),
+    [submittedComplaints],
+  )
+  const complaintResolutionData = useMemo(
+    () => getComplaintResolutionChartData(submittedComplaints),
+    [submittedComplaints],
+  )
+  const budgetData = useMemo(() => getBudgetTrendChartData(), [])
+  const tenderData = useMemo(() => getTenderComplianceChartData(), [])
+  const hotspotData = useMemo(() => getRiskHotspotChartData(), [])
+  const contractorData = useMemo(() => getContractorValueChartData(), [])
+  const procurementData = useMemo(() => getProcurementChartData(), [])
+  const tollAnalytics = useMemo(() => getTollAnalytics(), [])
+  const contractSummary = useMemo(() => getRoadContractSummary(), [])
+  const budgetSummary = useMemo(() => getBudgetUtilizationSummary(), [])
+  const roadQualityTiers = useMemo(() => getRoadQualityTierBreakdown(), [])
+  const budgetQualityData = useMemo(() => getBudgetVsRoadQualityChartData(), [])
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -219,6 +225,7 @@ export function AnalyticsDashboardSections() {
         </CardContent>
       </Card>
 
+      <div id="budget-analytics" className="contents">
       <Card id="crif-budget-trend" className="rw-glass-panel rw-glass-edge lg:col-span-2 scroll-mt-24">
         <CardHeader>
           <CardTitle className="text-base">{t('budgetTrend')}</CardTitle>
@@ -282,14 +289,15 @@ export function AnalyticsDashboardSections() {
           </p>
         </CardContent>
       </Card>
+      </div>
 
-      <Card className="rw-glass-panel rw-glass-edge">
-        <CardHeader>
-          <CardTitle className="text-base">Road Quality Breakdown</CardTitle>
-          <CardDescription>Requires India_surface-quality.geojson features</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {SURFACE_QUALITY_DATASET_AVAILABLE && roadQualityTiers.some((row) => row.count > 0) ? (
+      {SURFACE_QUALITY_DATASET_AVAILABLE && roadQualityTiers.some((row) => row.count > 0) ? (
+        <Card className="rw-glass-panel rw-glass-edge">
+          <CardHeader>
+            <CardTitle className="text-base">Road Quality Breakdown</CardTitle>
+            <CardDescription>Surface quality tiers from monitored corridors</CardDescription>
+          </CardHeader>
+          <CardContent>
             <ChartPanel heightClass="h-64" hasData={true} emptyLabel="">
               <BarChart data={roadQualityTiers}>
                 <CartesianGrid strokeDasharray="3 3" style={gridStyle} />
@@ -303,13 +311,9 @@ export function AnalyticsDashboardSections() {
                 </Bar>
               </BarChart>
             </ChartPanel>
-          ) : (
-            <div className="flex h-64 items-center justify-center rounded-lg border border-dashed border-[var(--rw-border)] bg-[var(--rw-surface-muted)] px-6 text-center text-sm text-[var(--rw-text-secondary)]">
-              Road quality dataset unavailable
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card className="rw-glass-panel rw-glass-edge">
         <CardHeader>

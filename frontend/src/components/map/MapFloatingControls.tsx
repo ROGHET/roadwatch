@@ -141,9 +141,9 @@ export function MapFloatingControls({
         className,
       )}
     >
-      <div ref={dropdownRef} className="pointer-events-auto mx-auto w-full max-w-[520px]">
+      <div ref={dropdownRef} className="pointer-events-auto mx-auto w-full min-w-0 max-w-[min(100%,520px)]">
         <motion.form
-          className="rw-map-glass flex items-center gap-3 rounded-full px-[var(--st-gutter)] py-[var(--st-stack-sm)] shadow-[var(--st-shadow-glass)]"
+          className="rw-map-glass flex min-w-0 items-center gap-2 rounded-full px-3 py-2 shadow-[var(--st-shadow-glass)] sm:gap-3 sm:px-[var(--st-gutter)] sm:py-[var(--st-stack-sm)]"
           onSubmit={handleSearchSubmit}
           variants={prefersReducedMotion ? undefined : fadeInUp}
           initial={prefersReducedMotion ? false : 'hidden'}

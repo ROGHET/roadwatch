@@ -1,7 +1,8 @@
-import { Globe, Info, Moon, Settings, User } from 'lucide-react'
+import { Globe, Info, Moon, Settings, Sun, User } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { twMerge } from 'tailwind-merge'
+import { useMapTheme } from '../../hooks/useMapTheme'
 import { useThemeStore } from '../../providers/ThemeProvider'
 import { useI18n, type TranslationKey } from '../../lib/i18n'
 
@@ -14,7 +15,7 @@ export type ProfileMenuProps = {
 const menuItems = [
   { id: 'settings', labelKey: 'settings', icon: Settings, path: '/settings' },
   { id: 'language', labelKey: 'language', icon: Globe, path: '/language' },
-  { id: 'theme', labelKey: 'theme', icon: Moon },
+  { id: 'theme', labelKey: 'theme', icon: Moon as typeof Settings },
   { id: 'about', labelKey: 'about', icon: Info, path: '/about' },
 ] as const
 
@@ -27,7 +28,9 @@ export function ProfileMenu({ className, open: openProp, onOpenChange }: Profile
   
   const theme = useThemeStore((state) => state.theme)
   const setTheme = useThemeStore((state) => state.setTheme)
+  const resolvedTheme = useMapTheme()
   const { t } = useI18n()
+  const ThemeIcon = resolvedTheme === 'dark' ? Moon : Sun
 
   const setOpen = (value: boolean) => {
     if (onOpenChange) onOpenChange(value)
@@ -83,6 +86,7 @@ export function ProfileMenu({ className, open: openProp, onOpenChange }: Profile
           {menuItems.map((item) => {
             const { id, labelKey, icon: Icon } = item
             const path = 'path' in item ? item.path : undefined
+            const ItemIcon = id === 'theme' ? ThemeIcon : Icon
 
             return (
             <button
@@ -101,7 +105,7 @@ export function ProfileMenu({ className, open: openProp, onOpenChange }: Profile
                 setOpen(false)
               }}
             >
-              <Icon className="size-4 text-[var(--st-on-surface-variant)]" aria-hidden="true" />
+              <ItemIcon className="size-4 text-[var(--st-on-surface-variant)]" aria-hidden="true" />
               {t(labelKey as TranslationKey)}
             </button>
             )

@@ -34,6 +34,7 @@ import {
   resolveAuthorityRouting,
   type RoadType,
 } from '../../lib/complaintRouting'
+import { findContractsForRoadLabel } from '../../data/contractAwards'
 import { detectRoadTypeFromText } from '../../data/realDatasets'
 import { inferPlaceFromCoordinates } from '../../lib/map/inferPlace'
 import { useI18n } from '../../lib/i18n'
@@ -80,6 +81,7 @@ function applyDraftToForm(
     setState: (value: string) => void
     setRoadId: (value: string | undefined) => void
     setRoadName: (value: string | undefined) => void
+    setContractor: (value: string) => void
     setPhotoPreview: (value: string | null) => void
   },
 ) {
@@ -94,6 +96,7 @@ function applyDraftToForm(
   setters.setState(draft.state ?? '')
   setters.setRoadId(draft.roadId)
   setters.setRoadName(draft.roadName)
+  setters.setContractor(draft.contractor ?? 'Unknown contractor')
   setters.setPhotoPreview(draft.photoDataUrl ?? null)
 }
 
@@ -128,8 +131,10 @@ export default function ComplaintPage() {
   const [stateName, setStateName] = useState('')
   const [roadId, setRoadId] = useState<string | undefined>()
   const [roadName, setRoadName] = useState<string | undefined>()
+  const [contractor, setContractor] = useState('Unknown contractor')
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [draftSavedMessage, setDraftSavedMessage] = useState<string | null>(null)
+  const [draftLoadMessage, setDraftLoadMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [routingResult, setRoutingResult] = useState<ComplaintRoutingResult | null>(null)
@@ -163,6 +168,12 @@ export default function ComplaintPage() {
       setStateName(prefill.state ?? '')
       setRoadId(prefill.roadId)
       setRoadName(prefill.roadName)
+      if (prefill.contractor) {
+        setContractor(prefill.contractor)
+      } else if (prefill.roadName) {
+        const match = findContractsForRoadLabel(prefill.roadName)[0]?.supplier
+        setContractor(match ?? 'Unknown contractor')
+      }
       if (prefill.roadType) {
         const detected = detectRoadTypeFromText(prefill.roadType) ?? (prefill.roadType as RoadType)
         setRoadType(detected)
@@ -196,6 +207,7 @@ export default function ComplaintPage() {
         setState: setStateName,
         setRoadId,
         setRoadName,
+        setContractor,
         setPhotoPreview,
       })
       draftRestoredRef.current = true
@@ -242,6 +254,20 @@ export default function ComplaintPage() {
       city: nextCity,
       state: nextState,
     })
+
+    void import('../../lib/gis/mapRoadAtPoint').then(async (roadModule) => {
+      await roadModule.ensureRoadDataNearPoint(pickedLocation.lat, pickedLocation.lng)
+      const road = roadModule.resolveRoadAtClick(pickedLocation.lat, pickedLocation.lng)
+      if (road) {
+        setRoadId(road.id)
+        setRoadName(road.roadName)
+        const match = findContractsForRoadLabel(road.roadName)[0]?.supplier
+        setContractor(match ?? 'Unknown contractor')
+      } else {
+        setContractor('Unknown contractor')
+      }
+    })
+
     clearPickedLocation()
   }, [pickedLocation, clearPickedLocation, updateDraftLocation])
 
@@ -278,6 +304,7 @@ export default function ComplaintPage() {
       state: stateName || undefined,
       roadId,
       roadName,
+      contractor,
       photoDataUrl: photoPreview ?? undefined,
     })
     draftRestoredRef.current = true
@@ -306,8 +333,35 @@ export default function ComplaintPage() {
     setStateName('')
     setRoadId(undefined)
     setRoadName(undefined)
+    setContractor('Unknown contractor')
     setPhotoPreview(null)
     draftRestoredRef.current = false
+  }
+
+  const handleLoadDraft = () => {
+    if (!draft) {
+      setDraftLoadMessage('No saved draft available')
+      window.setTimeout(() => setDraftLoadMessage(null), 4000)
+      return
+    }
+    applyDraftToForm(draft, {
+      setRoadType,
+      setIssueType,
+      setSeverity,
+      setDescription,
+      setLatitude,
+      setLongitude,
+      setLocationLabel,
+      setCity,
+      setState: setStateName,
+      setRoadId,
+      setRoadName,
+      setContractor,
+      setPhotoPreview,
+    })
+    draftRestoredRef.current = true
+    setDraftLoadMessage('Draft restored.')
+    window.setTimeout(() => setDraftLoadMessage(null), 4000)
   }
 
   const handleSaveDraft = () => {
@@ -323,6 +377,7 @@ export default function ComplaintPage() {
       state: stateName || undefined,
       roadId,
       roadName,
+      contractor,
       photoDataUrl: photoPreview ?? undefined,
     })
     draftRestoredRef.current = true
@@ -401,6 +456,12 @@ export default function ComplaintPage() {
         </Alert>
       ) : null}
 
+      {draftLoadMessage ? (
+        <Alert variant="info" title="Draft">
+          {draftLoadMessage}
+        </Alert>
+      ) : null}
+
       <Card>
         <form onSubmit={handleSubmit}>
           <CardHeader>
@@ -437,6 +498,17 @@ export default function ComplaintPage() {
                   </option>
                 ))}
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="complaint-contractor">Contractor</Label>
+              <Input
+                id="complaint-contractor"
+                type="text"
+                value={contractor}
+                readOnly
+                className="bg-[var(--rw-surface-muted)]"
+              />
             </div>
 
             <div className="space-y-2">
@@ -566,6 +638,9 @@ export default function ComplaintPage() {
             </Button>
             <Button type="button" variant="outline" disabled={isSubmitting} onClick={handleSaveDraft}>
               {t('saveDraft')}
+            </Button>
+            <Button type="button" variant="outline" disabled={isSubmitting} onClick={handleLoadDraft}>
+              Load Draft
             </Button>
             <Button type="button" variant="outline" disabled={isSubmitting} onClick={() => navigate(routes.home)}>
               {t('navHome') as string || 'Home'}

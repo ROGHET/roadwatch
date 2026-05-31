@@ -84,7 +84,7 @@ export function ComplaintSummaryCard({
                 {referenceId}
               </p>
             ) : null}
-            <CardTitle className="line-clamp-1 text-base">{title}</CardTitle>
+            <CardTitle className="break-words text-base leading-snug">{title}</CardTitle>
           </div>
           <ComplaintStatusBadge status={status} />
         </div>

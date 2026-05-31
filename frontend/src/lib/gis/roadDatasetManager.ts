@@ -255,8 +255,8 @@ async function loadRegion(region: RoadDatasetRegion): Promise<void> {
           loadedRegionIds.add(region.id)
           notifyListeners()
         })
-        .catch((error) => {
-          console.warn(`[RoadWatch] Road dataset unavailable: ${region.filename}`, error)
+        .catch(() => {
+          // Dataset missing or unreachable — skip silently in production.
         })
         .finally(() => {
           loadingPromises.delete(region.id)
@@ -317,6 +317,32 @@ export async function ensureStartupRoadDataset(): Promise<GeoRoadFeature[]> {
   if (!startup) return []
   await loadRegion(startup)
   return getLoadedGeoRoadFeatures()
+}
+
+/** Loads datasets whose bbox intersects a point (for map clicks / picks only). */
+export async function ensureRoadDatasetsNearPoint(
+  lat: number,
+  lng: number,
+  zoom: number = MIN_ROAD_RENDER_ZOOM,
+): Promise<void> {
+  if (zoom < MIN_ROAD_RENDER_ZOOM) return
+
+  const pad = 0.12
+  const south = lat - pad
+  const north = lat + pad
+  const west = lng - pad
+  const east = lng + pad
+
+  const candidates = ROAD_DATASET_REGIONS.filter(
+    (region) =>
+      !loadedRegionIds.has(region.id) &&
+      region.minZoom <= zoom &&
+      bboxIntersectsViewport(region.bbox, south, west, north, east),
+  )
+
+  for (const region of candidates) {
+    await loadRegion(region)
+  }
 }
 
 export async function ensureRoadDatasetsForViewport(

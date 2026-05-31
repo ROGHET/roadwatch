@@ -58,7 +58,7 @@ export function ComplaintListSection({
         />
       ) : (
         <motion.ul
-          className={twMerge('grid gap-4 sm:grid-cols-2', listClassName)}
+          className={twMerge('grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2', listClassName)}
           role="list"
           variants={prefersReducedMotion ? undefined : staggerContainer}
           initial={prefersReducedMotion ? false : 'hidden'}

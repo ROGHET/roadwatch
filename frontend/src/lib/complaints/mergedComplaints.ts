@@ -5,11 +5,12 @@ import {
   type ComplaintHistoryFilters,
   selectComplaintHistoryItems,
 } from './complaintSelectors'
+import { mergeComplaintsWithCatalog } from './unifiedComplaints'
 
 export function getMergedComplaintMarkers(
   submitted: StoredSubmittedComplaint[],
 ): MapComplaintMarker[] {
-  return submitted.map((entry) => entry.marker)
+  return mergeComplaintsWithCatalog(submitted).map((entry) => entry.marker)
 }
 
 export { selectRecentIntelligenceItems as getRecentIntelligenceItems }

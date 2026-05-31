@@ -4,7 +4,8 @@ import {
   tenderComplianceRecords,
 } from '../../data/realDatasets'
 import { mapRoadMarkers } from '../../data/mapMarkers'
-import { mockComplaintRecords } from '../../data/complaints'
+import type { StoredSubmittedComplaint } from '../../stores/complaintStore'
+import { mergeComplaintsWithCatalog } from '../complaints/unifiedComplaints'
 import {
   contractAwardRecords,
   getProcurementMethodStats,
@@ -16,8 +17,8 @@ import { formatAwardInr, usdToInr } from '../currency/formatInr'
 import { getAccidentHotspots } from './riskEngine'
 import { getComplaintDashboardMetrics } from './complaintMetrics'
 
-/** Road quality tier breakdown uses mapRoadMarkers score data (real mock dataset). */
-export const SURFACE_QUALITY_DATASET_AVAILABLE = true
+/** No India_surface-quality.geojson in datasets — hide road quality breakdown card. */
+export const SURFACE_QUALITY_DATASET_AVAILABLE = false
 
 export const chartTooltipStyle = {
   contentStyle: {
@@ -54,10 +55,12 @@ export function getAccidentChartData(limit = 10) {
     }))
 }
 
-export function getComplaintIssueChartData() {
+export function getComplaintIssueChartData(
+  submittedComplaints: StoredSubmittedComplaint[] = [],
+) {
   const counts = new Map<string, number>()
-  for (const record of mockComplaintRecords) {
-    const key = record.issueType
+  for (const entry of mergeComplaintsWithCatalog(submittedComplaints)) {
+    const key = entry.marker.issueType ?? 'Other'
     counts.set(key, (counts.get(key) ?? 0) + 1)
   }
   return Array.from(counts.entries())
@@ -72,7 +75,7 @@ export function getComplaintIssueChartData() {
 export function getComplaintResolutionChartData(
   submittedComplaints: Parameters<typeof getComplaintDashboardMetrics>[0] = [],
 ) {
-  const metrics = getComplaintDashboardMetrics(submittedComplaints)
+  const metrics = getComplaintDashboardMetrics(mergeComplaintsWithCatalog(submittedComplaints))
   return [
     { label: 'Closed', count: metrics.closed, color: '#22c55e' },
     { label: 'In Progress', count: metrics.inProgress, color: '#38bdf8' },

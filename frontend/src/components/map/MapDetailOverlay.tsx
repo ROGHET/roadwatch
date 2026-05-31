@@ -517,15 +517,11 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
 
                 {selection.kind === 'road' ? (
                   <div className="flex flex-col gap-4">
-                    {(() => {
-                      const contractMatches = findContractsForRoadLabel(selection.road.roadName)
-                      if (contractMatches.length === 0) return null
-                      return (
-                        <p className="text-sm text-[var(--rw-text-secondary)]">
-                          {t('contractor')}: {contractMatches[0].supplier}
-                        </p>
-                      )
-                    })()}
+                    <p className="text-sm text-[var(--rw-text-secondary)]">
+                      {t('contractor')}:{' '}
+                      {findContractsForRoadLabel(selection.road.roadName)[0]?.supplier ??
+                        'Unknown contractor'}
+                    </p>
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <h3 className="text-lg font-semibold text-[var(--rw-text-primary)]">
@@ -547,6 +543,17 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
                     <dl className="grid gap-2 text-sm">
                       {(() => {
                         const budget = getRoadBudget(selection.road.id, selection.road.city)
+                        const hasBudget =
+                          hasDisplayValue(budget.sanctioned) ||
+                          hasDisplayValue(budget.released) ||
+                          hasDisplayValue(budget.utilized)
+                        if (!hasBudget) {
+                          return (
+                            <div className="border-b border-[var(--rw-border)] py-2 text-sm text-[var(--rw-text-secondary)]">
+                              Budget data unavailable
+                            </div>
+                          )
+                        }
                         return (
                           <>
                             {hasDisplayValue(budget.sanctioned) ? (
@@ -906,7 +913,7 @@ function ContractorPanel({ selection }: { selection: MapActiveSelection }) {
   if (matches.length === 0) {
     return (
       <div className="rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-4 text-sm text-[var(--rw-text-secondary)]">
-        {t('noRoadContractMapping')}
+        Unknown contractor
       </div>
     )
   }

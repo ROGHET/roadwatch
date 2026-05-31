@@ -9,23 +9,17 @@ import {
 import type { RoadScoreTier } from '../../components/road/RoadScoreBadge'
 import type { RiskLevel } from '../../components/road/RiskIndicator'
 import type { RoadStatus } from '../../components/road/RoadStatusBadge'
-import { distanceSquared } from './geoMath'
+import { pointToPolylineDistanceSq } from './geoMath'
 import {
-  ensureStartupRoadDataset,
   getLoadedGeoRoadFeatures,
   subscribeRoadDatasetUpdates,
   type GeoRoadFeature,
 } from './roadDatasetManager'
 
+/** Max distance from tap to road centerline for road summary (km). */
+export const ROAD_MATCH_MAX_KM = 0.35
+
 export type { GeoRoadFeature } from './roadDatasetManager'
-
-let loadPromise: Promise<GeoRoadFeature[]> | null = null
-
-export async function loadGeoRoadFeatures(): Promise<GeoRoadFeature[]> {
-  if (loadPromise) return loadPromise
-  loadPromise = ensureStartupRoadDataset()
-  return loadPromise
-}
 
 export function getGeoRoadFeaturesSnapshot(): GeoRoadFeature[] {
   return getLoadedGeoRoadFeatures()
@@ -39,18 +33,19 @@ export function findNearestGeoRoad(
   features: GeoRoadFeature[],
   lat: number,
   lng: number,
-  maxDistanceSq = 0.0008,
+  maxDistanceKm = ROAD_MATCH_MAX_KM,
 ): GeoRoadFeature | null {
   let nearest: GeoRoadFeature | null = null
-  let best = Infinity
+  let bestKm = Infinity
   for (const feature of features) {
-    const distance = distanceSquared(lat, lng, feature.centroid.lat, feature.centroid.lng)
-    if (distance < best) {
-      best = distance
+    const distanceSq = pointToPolylineDistanceSq(lat, lng, feature.coordinates)
+    const distanceKm = Math.sqrt(distanceSq) * 111
+    if (distanceKm < bestKm) {
+      bestKm = distanceKm
       nearest = feature
     }
   }
-  return nearest && best <= maxDistanceSq ? nearest : null
+  return nearest && bestKm <= maxDistanceKm ? nearest : null
 }
 
 export function geoRoadToMockRoad(
