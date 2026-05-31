@@ -1,9 +1,9 @@
 # CrashZero
 AI-powered road safety and transparency platform for accident risk analysis, complaint reporting, and infrastructure monitoring.
 
-# RoadWatch
+# CrashZero
 
-RoadWatch is an AI-powered road safety and transparency platform developed for a road safety hackathon.
+CrashZero is an AI-powered road safety and transparency platform developed for a road safety hackathon.
 
 ## Features
 
