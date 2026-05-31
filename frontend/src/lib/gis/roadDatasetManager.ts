@@ -7,6 +7,7 @@ import { mapHighwayType } from '../analytics/riskEngine'
 export const MIN_ROAD_RENDER_ZOOM = 10
 export const MAX_VISIBLE_ROAD_FEATURES = 2000
 const SIMPLIFY_MAX_POINTS = 14
+const PICK_GRID_DEGREES = 0.05
 
 export type GeoRoadFeature = {
   id: string
@@ -115,6 +116,7 @@ type RoadGeoProperties = {
 const loadedRegionIds = new Set<string>()
 const loadingPromises = new Map<string, Promise<void>>()
 const featureById = new Map<string, GeoRoadFeature>()
+const pickFeatureIdsByCell = new Map<string, Set<string>>()
 const regionRenderFeatures = new Map<string, Feature<LineString | MultiLineString>[]>()
 const listeners = new Set<() => void>()
 
@@ -224,6 +226,31 @@ function bboxIntersectsViewport(
   return !(maxLat < south || minLat > north || maxLng < west || minLng > east)
 }
 
+function pickCellCoord(value: number): number {
+  return Math.floor(value / PICK_GRID_DEGREES)
+}
+
+function pickCellKey(latCell: number, lngCell: number): string {
+  return `${latCell}:${lngCell}`
+}
+
+function indexFeatureForPick(feature: GeoRoadFeature): void {
+  const [minLat, minLng, maxLat, maxLng] = feature.bbox
+  const southCell = pickCellCoord(minLat)
+  const northCell = pickCellCoord(maxLat)
+  const westCell = pickCellCoord(minLng)
+  const eastCell = pickCellCoord(maxLng)
+
+  for (let latCell = southCell; latCell <= northCell; latCell += 1) {
+    for (let lngCell = westCell; lngCell <= eastCell; lngCell += 1) {
+      const key = pickCellKey(latCell, lngCell)
+      const ids = pickFeatureIdsByCell.get(key) ?? new Set<string>()
+      ids.add(feature.id)
+      pickFeatureIdsByCell.set(key, ids)
+    }
+  }
+}
+
 function notifyListeners() {
   for (const listener of listeners) {
     listener()
@@ -248,6 +275,7 @@ async function loadRegion(region: RoadDatasetRegion): Promise<void> {
             const parsedFeature = toGeoRoadFeature(feature, index, region.id)
             if (!parsedFeature || featureById.has(parsedFeature.id)) continue
             featureById.set(parsedFeature.id, parsedFeature)
+            indexFeatureForPick(parsedFeature)
             renderFeatures.push(toRenderFeature(feature, parsedFeature))
           }
 
@@ -276,6 +304,25 @@ export function subscribeRoadDatasetUpdates(listener: () => void): () => void {
 
 export function getLoadedGeoRoadFeatures(): GeoRoadFeature[] {
   return Array.from(featureById.values())
+}
+
+export function getLoadedGeoRoadFeaturesNearPoint(lat: number, lng: number): GeoRoadFeature[] {
+  const latCell = pickCellCoord(lat)
+  const lngCell = pickCellCoord(lng)
+  const candidates = new Map<string, GeoRoadFeature>()
+
+  for (let latOffset = -1; latOffset <= 1; latOffset += 1) {
+    for (let lngOffset = -1; lngOffset <= 1; lngOffset += 1) {
+      const ids = pickFeatureIdsByCell.get(pickCellKey(latCell + latOffset, lngCell + lngOffset))
+      if (!ids) continue
+      for (const id of ids) {
+        const feature = featureById.get(id)
+        if (feature) candidates.set(id, feature)
+      }
+    }
+  }
+
+  return Array.from(candidates.values())
 }
 
 export function getLoadedRegionIds(): string[] {

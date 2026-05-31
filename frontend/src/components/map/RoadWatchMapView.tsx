@@ -18,7 +18,7 @@ import { CITIES_BY_STATE, INDIAN_STATES } from '../../data/indianStates'
 import { MapGeoLayers } from './MapGeoLayers'
 import { MapClusterZoomHandler } from './MapClusterZoomHandler'
 import { MapLayerLegend } from './MapLayerLegend'
-import { fetchExtendedWeatherIntelligence, toWeatherRiskInput } from '../../lib/map/weatherIntelligence'
+import { fetchExtendedWeatherIntelligence } from '../../lib/map/weatherIntelligence'
 import { getMergedComplaintMarkers } from '../../lib/complaints/mergedComplaints'
 import { useGeolocation } from '../../hooks/useGeolocation'
 import { inferPlaceFromCoordinates } from '../../lib/map/inferPlace'
@@ -70,12 +70,14 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
   const [geocodedComplaintMarkers, setGeocodedComplaintMarkers] = useState<MapComplaintMarker[]>([])
   const geocodedOnceRef = useRef(false)
   const catalogRefreshTimerRef = useRef<number | null>(null)
+  const roadMarkerByIdRef = useRef(new Map(mapRoadMarkers.map((road) => [road.id, road])))
 
   const refreshGeoRoadCatalog = useCallback(() => {
     if (mode !== 'expanded') return
     const features = getGeoRoadFeaturesSnapshot()
     const namedRoads = features.map((feature) => geoRoadToMockRoad(feature))
     setMapRoadMarkers(namedRoads)
+    roadMarkerByIdRef.current = new Map(namedRoads.map((road) => [road.id, road]))
     setRoadCatalog(namedRoads)
 
     if (!geocodedOnceRef.current && features.length > 0) {
@@ -124,6 +126,10 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
     return [...byId.values()]
   }, [geocodedComplaintMarkers, submittedComplaints])
 
+  const complaintMarkerById = useMemo(() => {
+    return new Map(complaintMarkers.map((complaint) => [complaint.id, complaint]))
+  }, [complaintMarkers])
+
   const filter = useMapStore((state) => state.filter)
   const layerToggles = useMapStore((state) => state.layerToggles)
 
@@ -158,6 +164,9 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
   const [searchPin, setSearchPin] = useState<{ lat: number; lng: number } | null>(null)
   const [intelLoading, setIntelLoading] = useState(false)
   const [tollSearchRecords, setTollSearchRecords] = useState<TollPlazaRecord[]>([])
+  const tollSearchRecordById = useMemo(() => {
+    return new Map(tollSearchRecords.map((toll) => [toll.id, toll]))
+  }, [tollSearchRecords])
   const [flyTarget, setFlyTarget] = useState<{
     lat: number
     lng: number
@@ -398,17 +407,24 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
       return
     }
 
+    const clickStart = performance.now()
     setIntelLoading(true)
     try {
-      const [intelligence, weatherIntel] = await Promise.all([
-        fetchLocationIntelligence(lat, lng),
-        fetchExtendedWeatherIntelligence({ lat, lng }),
-      ])
-
+      const datasetStart = performance.now()
       await ensureRoadDataNearPoint(lat, lng)
-      const road = resolveRoadAtClick(lat, lng, toWeatherRiskInput(weatherIntel))
+      const datasetMs = performance.now() - datasetStart
+
+      const resolveStart = performance.now()
+      const road = resolveRoadAtClick(lat, lng)
+      const resolveMs = performance.now() - resolveStart
       if (road) {
         setSelection({ kind: 'road', road })
+        console.info('[RoadWatch perf] road click', {
+          datasetMs: Number(datasetMs.toFixed(3)),
+          resolveRoadAtClickMs: Number(resolveMs.toFixed(3)),
+          totalMs: Number((performance.now() - clickStart).toFixed(3)),
+          roadName: road.roadName,
+        })
         return
       }
 
@@ -417,11 +433,25 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
         const tollHit = tollModule.findTollPlazaAtPoint(lat, lng, tollModule.tollPlazaRecords)
         if (tollHit) {
           setSelection({ kind: 'toll', toll: tollHit })
+          console.info('[RoadWatch perf] toll click', {
+            datasetMs: Number(datasetMs.toFixed(3)),
+            resolveRoadAtClickMs: Number(resolveMs.toFixed(3)),
+            totalMs: Number((performance.now() - clickStart).toFixed(3)),
+          })
           return
         }
       }
 
+      const [intelligence, weatherIntel] = await Promise.all([
+        fetchLocationIntelligence(lat, lng),
+        fetchExtendedWeatherIntelligence({ lat, lng }),
+      ])
       setSelection({ kind: 'location', lat, lng, intelligence, weatherIntel })
+      console.info('[RoadWatch perf] location click', {
+        datasetMs: Number(datasetMs.toFixed(3)),
+        resolveRoadAtClickMs: Number(resolveMs.toFixed(3)),
+        totalMs: Number((performance.now() - clickStart).toFixed(3)),
+      })
     } finally {
       setIntelLoading(false)
     }
@@ -440,13 +470,13 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
     focusOn(result.lat, result.lng, ROAD_FOCUS_ZOOM)
     setSearchPin({ lat: result.lat, lng: result.lng })
     if (result.kind === 'road') {
-      const road = mapRoadMarkers.find((record) => record.id === result.id)
+      const road = roadMarkerByIdRef.current.get(result.id)
       if (road) handleSelectRoad(road)
     } else if (result.kind === 'complaint') {
-      const complaint = complaintMarkers.find((record) => record.id === result.id)
+      const complaint = complaintMarkerById.get(result.id)
       if (complaint) handleSelectComplaint(complaint)
     } else if (result.kind === 'toll') {
-      const toll = tollSearchRecords.find((record) => record.id === result.id)
+      const toll = tollSearchRecordById.get(result.id)
       if (toll) handleSelectToll(toll)
     } else {
       setIntelLoading(true)

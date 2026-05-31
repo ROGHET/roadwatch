@@ -79,6 +79,39 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
   const complaintPickMode = useComplaintStore((state) => state.complaintPickMode)
   const locationPickPending = useComplaintStore((state) => state.locationPickPending)
   const completeLocationPick = useComplaintStore((state) => state.completeLocationPick)
+  const submittedComplaintById = useMemo(() => {
+    const byId = new Map<string, (typeof submittedComplaints)[number]>()
+    for (const entry of submittedComplaints) {
+      byId.set(entry.marker.id, entry)
+    }
+    return byId
+  }, [submittedComplaints])
+  const selectedRoadBudget = useMemo(() => {
+    if (selection?.kind !== 'road') return null
+    const start = performance.now()
+    const budget = getRoadBudget(
+      selection.road.id,
+      selection.road.state ?? selection.road.city,
+      selection.road.roadName,
+    )
+    console.info('[RoadWatch perf] roadBudget lookup', {
+      roadId: selection.road.id,
+      roadName: selection.road.roadName,
+      ms: Number((performance.now() - start).toFixed(3)),
+    })
+    return budget
+  }, [selection])
+  const selectedContractorMatches = useMemo(() => {
+    if (selection?.kind !== 'road') return []
+    const start = performance.now()
+    const matches = findContractsForRoadLabel(selection.road.roadName, 5, selection.road.state)
+    console.info('[RoadWatch perf] contractor lookup', {
+      roadId: selection.road.id,
+      roadName: selection.road.roadName,
+      ms: Number((performance.now() - start).toFixed(3)),
+    })
+    return matches
+  }, [selection])
   const [routeLoading, setRouteLoading] = useState(false)
   const [activePanelTab, setActivePanelTab] = useState<'intelligence' | 'contractor' | 'environment'>(
     'intelligence',
@@ -153,9 +186,7 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
     if (selection?.kind === 'road') {
       aiState = { contextType: 'road', roadId: selection.road.id, roadName: selection.road.roadName, latitude: selection.road.lat, longitude: selection.road.lng }
     } else if (selection?.kind === 'complaint') {
-      const submitted = submittedComplaints.find(
-        (entry) => entry.marker.id === selection.complaint.id,
-      )
+      const submitted = submittedComplaintById.get(selection.complaint.id)
       aiState = {
         contextType: 'complaint',
         complaintId: selection.complaint.id,
@@ -519,7 +550,8 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
                   <div className="flex flex-col gap-4">
                     <p className="text-sm text-[var(--rw-text-secondary)]">
                       {t('contractor')}:{' '}
-                      {findContractsForRoadLabel(selection.road.roadName)[0]?.supplier ??
+                      {selection.road.contractor ??
+                        selectedContractorMatches[0]?.supplier ??
                         'Unknown contractor'}
                     </p>
                     <div className="flex flex-wrap items-start justify-between gap-3">
@@ -542,7 +574,7 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
 
                     <dl className="grid gap-2 text-sm">
                       {(() => {
-                        const budget = getRoadBudget(selection.road.id, selection.road.city)
+                        const budget = selectedRoadBudget ?? {}
                         const hasBudget =
                           hasDisplayValue(budget.sanctioned) ||
                           hasDisplayValue(budget.released) ||
@@ -908,9 +940,23 @@ function ContractorPanel({ selection }: { selection: MapActiveSelection }) {
       : selection.kind === 'complaint'
         ? selection.complaint.roadName ?? selection.complaint.title
         : ''
-  const matches = roadLabel ? findContractsForRoadLabel(roadLabel) : []
+  const matches = useMemo(() => {
+    if (!roadLabel) return []
+    const start = performance.now()
+    const result = findContractsForRoadLabel(
+      roadLabel,
+      5,
+      selection.kind === 'road' ? selection.road.state : undefined,
+    )
+    console.info('[RoadWatch perf] MapDetailOverlay contractor panel lookup', {
+      roadName: roadLabel,
+      ms: Number((performance.now() - start).toFixed(3)),
+    })
+    return result
+  }, [roadLabel])
+  const directContractor = selection.kind === 'road' ? selection.road.contractor : undefined
 
-  if (matches.length === 0) {
+  if (matches.length === 0 && !directContractor) {
     return (
       <div className="rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-4 text-sm text-[var(--rw-text-secondary)]">
         Unknown contractor
@@ -920,6 +966,12 @@ function ContractorPanel({ selection }: { selection: MapActiveSelection }) {
 
   return (
     <div className="space-y-3">
+      {directContractor && matches.length === 0 ? (
+        <div className="rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-4 text-sm">
+          <p className="font-semibold text-[var(--rw-text-primary)]">{directContractor}</p>
+          <p className="mt-2 text-[var(--rw-text-secondary)]">Linked road contractor record</p>
+        </div>
+      ) : null}
       {matches.map((row) => (
         <div
           key={row.id}

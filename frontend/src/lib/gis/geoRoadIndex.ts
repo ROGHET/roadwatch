@@ -9,9 +9,13 @@ import {
 import type { RoadScoreTier } from '../../components/road/RoadScoreBadge'
 import type { RiskLevel } from '../../components/road/RiskIndicator'
 import type { RoadStatus } from '../../components/road/RoadStatusBadge'
+import { findContractsForRoadLabel } from '../../data/contractAwards'
+import { getRoadBudget } from '../../data/mapRoadBudget'
+import { inferPlaceFromCoordinates } from '../map/inferPlace'
 import { pointToPolylineDistanceSq } from './geoMath'
 import {
   getLoadedGeoRoadFeatures,
+  getLoadedGeoRoadFeaturesNearPoint,
   subscribeRoadDatasetUpdates,
   type GeoRoadFeature,
 } from './roadDatasetManager'
@@ -23,6 +27,10 @@ export type { GeoRoadFeature } from './roadDatasetManager'
 
 export function getGeoRoadFeaturesSnapshot(): GeoRoadFeature[] {
   return getLoadedGeoRoadFeatures()
+}
+
+export function getGeoRoadFeaturesNearPoint(lat: number, lng: number): GeoRoadFeature[] {
+  return getLoadedGeoRoadFeaturesNearPoint(lat, lng)
 }
 
 export function subscribeGeoRoadFeatures(listener: () => void): () => void {
@@ -70,10 +78,14 @@ export function geoRoadToMockRoad(
 
   const scoreTier: RoadScoreTier =
     health.tier === 'critical' ? 'poor' : (health.tier as RoadScoreTier)
+  const place = inferPlaceFromCoordinates(feature.centroid.lat, feature.centroid.lng)
+  const budget = getRoadBudget(feature.id, place.state, feature.name)
+  const contractor = findContractsForRoadLabel(feature.name, 1, place.state)[0]?.supplier
 
   return {
     id: feature.id,
-    city: context.city ?? 'Maharashtra',
+    city: context.city ?? place.city,
+    state: context.state ?? place.state,
     lat: feature.centroid.lat,
     lng: feature.centroid.lng,
     roadName: feature.name,
@@ -83,7 +95,20 @@ export function geoRoadToMockRoad(
     status,
     riskLevel: risk.level as RiskLevel,
     authority: feature.roadType === 'NH' ? 'NHAI' : feature.roadType === 'SH' ? 'State PWD' : 'Municipal',
-    budgetProgram: 'CRIF / BMC / TN Road Works',
+    contractor,
+    budgetProgram:
+      budget.sanctioned || budget.released || budget.utilized
+        ? 'Linked road budget records'
+        : undefined,
+    budgetHistory: budget.sanctioned
+      ? [
+          {
+            year: '2025-26',
+            sanctioned: budget.sanctioned,
+            spent: budget.utilized ?? budget.spent ?? budget.released ?? 'Data unavailable',
+          },
+        ]
+      : undefined,
   }
 }
 

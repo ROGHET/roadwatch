@@ -1,4 +1,3 @@
-import { mockComplaintRecords } from '../../data/complaints'
 import {
   COMPLAINT_ISSUE_TYPE_OPTIONS,
   type RoadType,
@@ -39,7 +38,14 @@ function formatStatusLabel(status: string): string {
     .replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
-function mapRecordToLookup(record: (typeof mockComplaintRecords)[number]): ComplaintLookupResult {
+type MockComplaintRecord = typeof import('../../data/complaints')['mockComplaintRecords'][number]
+
+async function loadMockComplaintRecords(): Promise<MockComplaintRecord[]> {
+  const module = await import('../../data/complaints')
+  return module.mockComplaintRecords
+}
+
+function mapRecordToLookup(record: MockComplaintRecord): ComplaintLookupResult {
   return {
     complaintId: record.referenceId,
     status: formatStatusLabel(record.status),
@@ -180,6 +186,7 @@ export async function lookupComplaint(
   const trimmed = complaintId.trim()
 
   if (useMockData) {
+    const mockComplaintRecords = await loadMockComplaintRecords()
     const match = mockComplaintRecords.find(
       (record) => record.referenceId.toUpperCase() === trimmed.toUpperCase(),
     )
@@ -216,6 +223,7 @@ export async function fetchComplaintById(
   complaintId: string,
 ): Promise<ComplaintRoutingResult | null> {
   if (useMockData) {
+    const mockComplaintRecords = await loadMockComplaintRecords()
     const record = mockComplaintRecords.find(
       (complaint) =>
         complaint.id.toUpperCase() === complaintId.toUpperCase() ||

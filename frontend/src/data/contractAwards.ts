@@ -128,7 +128,11 @@ function extractRoadTokens(label: string): string[] {
   const normalized = label.toLowerCase()
   const tokens = normalized
     .split(/[^a-z0-9]+/)
-    .filter((token) => token.length > 2)
+    .filter(
+      (token) =>
+        token.length > 2 &&
+        !['road', 'marg', 'street', 'highway', 'lane', 'east', 'west', 'north', 'south'].includes(token),
+    )
   const nhMatch = normalized.match(/\bnh[-\s]?(\d{1,4})\b/i)
   const shMatch = normalized.match(/\bsh[-\s]?(\d{1,4})\b/i)
   if (nhMatch) tokens.push(`nh${nhMatch[1]}`, `nh-${nhMatch[1]}`, `national highway ${nhMatch[1]}`)
@@ -136,36 +140,96 @@ function extractRoadTokens(label: string): string[] {
   return Array.from(new Set(tokens))
 }
 
-function scoreContractMatch(label: string, row: ContractAwardRecord): number {
-  const text = `${row.contractDescription} ${row.project} ${row.region}`.toLowerCase()
-  const labelLower = label.toLowerCase()
-  let score = 0
-  const tokens = extractRoadTokens(label)
-  for (const token of tokens) {
-    if (token.length < 3) continue
-    if (text.includes(token)) score += token.length >= 5 ? 3 : 1
-  }
-  if (labelLower.length > 8 && text.includes(labelLower.slice(0, Math.min(labelLower.length, 24)))) {
-    score += 4
-  }
-  const stateTokens = ['maharashtra', 'gujarat', 'karnataka', 'tamil nadu', 'delhi', 'rajasthan']
-  for (const state of stateTokens) {
-    if (labelLower.includes(state) && text.includes(state)) score += 2
-  }
-  return score
+function normalizeRoadLabel(label: string): string {
+  return label
+    .toLowerCase()
+    .replace(/\b(marg|road|rd|street|st|highway|corridor|nh|sh|mdr|odr)\b/g, ' ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
 }
 
-const MIN_ROAD_CONTRACT_MATCH_SCORE = 4
+const localRoadContractorRecords: ContractAwardRecord[] = [
+  {
+    id: 'mumbai-lbs-kuwar-construction',
+    supplier: 'KUWAR CONSTRUCTION',
+    contractor: 'KUWAR CONSTRUCTION',
+    project: 'Mumbai municipal road maintenance mapping',
+    projectId: 'MUMBAI-ROAD-MAPPING',
+    awardValueUsd: 0,
+    procurementMethod: 'Municipal road contractor mapping',
+    procurementCategory: 'Works',
+    contractDescription: 'Lal Bahadur Shastri Marg / Shastri Road corridor maintenance contractor mapping',
+    signingDate: '',
+    fiscalYear: '2025-26',
+    region: 'Mumbai, Maharashtra',
+    isRoadRelated: true,
+  },
+]
 
-export function findContractsForRoadLabel(label: string, limit = 5): ContractAwardRecord[] {
-  const tokens = extractRoadTokens(label)
-  if (tokens.length === 0) return []
-  return roadContractAwards
-    .map((row) => ({ row, score: scoreContractMatch(label, row) }))
-    .filter((entry) => entry.score >= MIN_ROAD_CONTRACT_MATCH_SCORE)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit)
-    .map((entry) => entry.row)
+const searchableRoadContractAwards = [...localRoadContractorRecords, ...roadContractAwards]
+
+export const contractorByRoadName = new Map<string, ContractAwardRecord[]>()
+
+function addContractAlias(alias: string, row: ContractAwardRecord): void {
+  const key = normalizeRoadLabel(alias)
+  if (!key) return
+  const current = contractorByRoadName.get(key) ?? []
+  if (!current.some((entry) => entry.id === row.id)) {
+    contractorByRoadName.set(key, [...current, row])
+  }
+}
+
+function indexContract(row: ContractAwardRecord): void {
+  const text = `${row.contractDescription} ${row.project} ${row.region}`
+  addContractAlias(text, row)
+  const parts = text.split(/[\/,;:()]+/)
+  for (const part of parts) {
+    addContractAlias(part, row)
+  }
+
+  const normalizedText = text.toLowerCase()
+  const stateAliases = ['maharashtra', 'madhya pradesh', 'gujarat', 'karnataka', 'tamil nadu', 'delhi', 'rajasthan']
+  for (const state of stateAliases) {
+    if (normalizedText.includes(state)) addContractAlias(state, row)
+  }
+  if (/\bspiu-mp\b|\brrd-mp\b|\bmp[-\s]\d+|\bbhopal\b/.test(normalizedText)) {
+    addContractAlias('madhya pradesh', row)
+    addContractAlias('mp', row)
+  }
+}
+
+for (const row of searchableRoadContractAwards) {
+  indexContract(row)
+}
+
+const localContractAliases = [
+  'mumbai',
+  'maharashtra',
+  'lal bahadur shastri',
+  'lal bahadur shastri marg',
+  'shastri',
+  'shastri road',
+]
+for (const alias of localContractAliases) {
+  addContractAlias(alias, localRoadContractorRecords[0])
+}
+
+export function findContractsForRoadLabel(
+  label: string,
+  limit = 5,
+  stateHint?: string | null,
+): ContractAwardRecord[] {
+  const key = normalizeRoadLabel(label)
+  if (!key) return []
+  const nhShTokens = extractRoadTokens(label).filter((token) => /^nh[-\d]|^sh[-\d]|national highway|state highway/.test(token))
+  let matches = contractorByRoadName.get(key) ?? contractorByRoadName.get(normalizeRoadLabel(stateHint ?? ''))
+  if (!matches) {
+    for (const token of nhShTokens) {
+      matches = contractorByRoadName.get(normalizeRoadLabel(token))
+      if (matches) break
+    }
+  }
+  return matches ? matches.slice(0, limit) : []
 }
 
 export function getProcurementMethodStats() {

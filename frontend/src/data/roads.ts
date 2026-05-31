@@ -3,6 +3,7 @@ import type { RoadSummaryCardProps } from '../components/road/RoadSummaryCard'
 export type MockRoad = {
   id: string
   city: string
+  state?: string
   lat: number
   lng: number
 } & Omit<RoadSummaryCardProps, 'footer' | 'className'>

@@ -1,6 +1,7 @@
 import {
   buildRoadFromCoordinates,
   findNearestGeoRoad,
+  getGeoRoadFeaturesNearPoint,
   getGeoRoadFeaturesSnapshot,
   type GeoRoadFeature,
 } from './geoRoadIndex'
@@ -19,7 +20,7 @@ export function resolveRoadAtClick(
   lng: number,
   weather?: WeatherRiskInput,
 ): MockRoad | null {
-  const features = getGeoRoadFeaturesSnapshot()
+  const features = getGeoRoadFeaturesNearPoint(lat, lng)
   return buildRoadFromCoordinates(features, lat, lng, weather)
 }
 
@@ -27,5 +28,5 @@ export function findNearestLoadedRoad(
   lat: number,
   lng: number,
 ): GeoRoadFeature | null {
-  return findNearestGeoRoad(getGeoRoadFeaturesSnapshot(), lat, lng)
+  return findNearestGeoRoad(getGeoRoadFeaturesNearPoint(lat, lng), lat, lng)
 }

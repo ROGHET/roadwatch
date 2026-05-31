@@ -2,18 +2,18 @@ import { lazy, Suspense, type ReactNode } from 'react'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import { LoadingSpinner } from '../components/common/LoadingSpinner'
 import MainLayout from '../layouts/MainLayout'
-import ComplaintPage from '../pages/Complaint/ComplaintPage'
-import ComplaintDetailPage from '../pages/ComplaintDetail/ComplaintDetailPage'
-import ComplaintHistoryPage from '../pages/ComplaintHistory/ComplaintHistoryPage'
-import HomePage from '../pages/Home/HomePage'
-import RoadDetailsPage from '../pages/RoadDetails/RoadDetailsPage'
-import SettingsPage from '../pages/Settings/SettingsPage'
-import LanguagePage from '../pages/Language/LanguagePage'
-import AboutPage from '../pages/About/AboutPage'
 
+const AboutPage = lazy(() => import('../pages/About/AboutPage'))
+const ComplaintPage = lazy(() => import('../pages/Complaint/ComplaintPage'))
+const ComplaintDetailPage = lazy(() => import('../pages/ComplaintDetail/ComplaintDetailPage'))
+const ComplaintHistoryPage = lazy(() => import('../pages/ComplaintHistory/ComplaintHistoryPage'))
 const MapPage = lazy(() => import('../pages/Map/MapPage'))
 const DashboardPage = lazy(() => import('../pages/Dashboard/DashboardPage'))
 const AssistantPage = lazy(() => import('../pages/Assistant/AssistantPage'))
+const HomePage = lazy(() => import('../pages/Home/HomePage'))
+const LanguagePage = lazy(() => import('../pages/Language/LanguagePage'))
+const RoadDetailsPage = lazy(() => import('../pages/RoadDetails/RoadDetailsPage'))
+const SettingsPage = lazy(() => import('../pages/Settings/SettingsPage'))
 
 function PageFallback() {
   return (
@@ -33,7 +33,11 @@ const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <HomePage />,
+        element: (
+          <LazyPage>
+            <HomePage />
+          </LazyPage>
+        ),
       },
       {
         path: 'map',
@@ -45,19 +49,35 @@ const router = createBrowserRouter([
       },
       {
         path: 'road/:roadId',
-        element: <RoadDetailsPage />,
+        element: (
+          <LazyPage>
+            <RoadDetailsPage />
+          </LazyPage>
+        ),
       },
       {
         path: 'complaint',
-        element: <ComplaintPage />,
+        element: (
+          <LazyPage>
+            <ComplaintPage />
+          </LazyPage>
+        ),
       },
       {
         path: 'complaints/:complaintId',
-        element: <ComplaintDetailPage />,
+        element: (
+          <LazyPage>
+            <ComplaintDetailPage />
+          </LazyPage>
+        ),
       },
       {
         path: 'complaint-history',
-        element: <ComplaintHistoryPage />,
+        element: (
+          <LazyPage>
+            <ComplaintHistoryPage />
+          </LazyPage>
+        ),
       },
       {
         path: 'dashboard',
@@ -77,15 +97,27 @@ const router = createBrowserRouter([
       },
       {
         path: 'settings',
-        element: <SettingsPage />,
+        element: (
+          <LazyPage>
+            <SettingsPage />
+          </LazyPage>
+        ),
       },
       {
         path: 'language',
-        element: <LanguagePage />,
+        element: (
+          <LazyPage>
+            <LanguagePage />
+          </LazyPage>
+        ),
       },
       {
         path: 'about',
-        element: <AboutPage />,
+        element: (
+          <LazyPage>
+            <AboutPage />
+          </LazyPage>
+        ),
       },
     ],
   },
