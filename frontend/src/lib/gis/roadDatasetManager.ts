@@ -41,15 +41,6 @@ export const ROAD_DATASET_REGIONS: RoadDatasetRegion[] = [
     sizeMb: 4.6,
   },
   {
-    id: 'maharashtra',
-    filename: 'Maharashtra export.geojson',
-    aliases: ['Maharashtra.geojson', 'Maharashtra export.geojson'],
-    bbox: [15.5, 72.5, 22.5, 80.5],
-    minZoom: MIN_ROAD_RENDER_ZOOM,
-    label: 'Maharashtra',
-    sizeMb: 102.4,
-  },
-  {
     id: 'madhya-pradesh',
     filename: 'Madhya Pradesh.geojson',
     aliases: ['MadhyaPradesh.geojson', 'Madhya Pradesh.geojson'],
@@ -57,15 +48,6 @@ export const ROAD_DATASET_REGIONS: RoadDatasetRegion[] = [
     minZoom: MIN_ROAD_RENDER_ZOOM,
     label: 'Madhya Pradesh',
     sizeMb: 64.6,
-  },
-  {
-    id: 'zone-a',
-    filename: 'A.geojson',
-    aliases: ['A.geojson'],
-    bbox: [16.0, 70.0, 30.5, 80.5],
-    minZoom: MIN_ROAD_RENDER_ZOOM,
-    label: 'Zone A',
-    sizeMb: 187.2,
   },
   {
     id: 'zone-b',
@@ -93,24 +75,6 @@ export const ROAD_DATASET_REGIONS: RoadDatasetRegion[] = [
     minZoom: MIN_ROAD_RENDER_ZOOM,
     label: 'Zone D',
     sizeMb: 131.6,
-  },
-  {
-    id: 'zone-e',
-    filename: 'E.geojson',
-    aliases: ['E.geojson'],
-    bbox: [8.0, 74.5, 28.5, 96.0],
-    minZoom: MIN_ROAD_RENDER_ZOOM,
-    label: 'Zone E',
-    sizeMb: 90.6,
-  },
-  {
-    id: 'zone-f',
-    filename: 'F.geojson',
-    aliases: ['F.geojson'],
-    bbox: [12.5, 76.5, 20.0, 85.0],
-    minZoom: MIN_ROAD_RENDER_ZOOM,
-    label: 'Zone F',
-    sizeMb: 112.4,
   },
 ]
 

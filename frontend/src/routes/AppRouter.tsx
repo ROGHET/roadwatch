@@ -1,19 +1,41 @@
-import { lazy, Suspense, type ReactNode } from 'react'
+import { lazy, Suspense, type ReactNode, type ComponentType } from 'react'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import { LoadingSpinner } from '../components/common/LoadingSpinner'
 import MainLayout from '../layouts/MainLayout'
 
-const AboutPage = lazy(() => import('../pages/About/AboutPage'))
-const ComplaintPage = lazy(() => import('../pages/Complaint/ComplaintPage'))
-const ComplaintDetailPage = lazy(() => import('../pages/ComplaintDetail/ComplaintDetailPage'))
-const ComplaintHistoryPage = lazy(() => import('../pages/ComplaintHistory/ComplaintHistoryPage'))
-const MapPage = lazy(() => import('../pages/Map/MapPage'))
-const DashboardPage = lazy(() => import('../pages/Dashboard/DashboardPage'))
-const AssistantPage = lazy(() => import('../pages/Assistant/AssistantPage'))
-const HomePage = lazy(() => import('../pages/Home/HomePage'))
-const LanguagePage = lazy(() => import('../pages/Language/LanguagePage'))
-const RoadDetailsPage = lazy(() => import('../pages/RoadDetails/RoadDetailsPage'))
-const SettingsPage = lazy(() => import('../pages/Settings/SettingsPage'))
+function lazyWithRetry<T extends ComponentType<any>>(
+  componentImport: () => Promise<{ default: T }>,
+) {
+  return lazy(async () => {
+    const pageHasAlreadyBeenForceRefreshed = JSON.parse(
+      window.sessionStorage.getItem('rw-chunk-reload') || 'false',
+    )
+    try {
+      const component = await componentImport()
+      window.sessionStorage.setItem('rw-chunk-reload', 'false')
+      return component
+    } catch (error) {
+      if (!pageHasAlreadyBeenForceRefreshed) {
+        window.sessionStorage.setItem('rw-chunk-reload', 'true')
+        window.location.reload()
+        return { default: () => <PageFallback /> as any }
+      }
+      throw error
+    }
+  })
+}
+
+const AboutPage = lazyWithRetry(() => import('../pages/About/AboutPage'))
+const ComplaintPage = lazyWithRetry(() => import('../pages/Complaint/ComplaintPage'))
+const ComplaintDetailPage = lazyWithRetry(() => import('../pages/ComplaintDetail/ComplaintDetailPage'))
+const ComplaintHistoryPage = lazyWithRetry(() => import('../pages/ComplaintHistory/ComplaintHistoryPage'))
+const MapPage = lazyWithRetry(() => import('../pages/Map/MapPage'))
+const DashboardPage = lazyWithRetry(() => import('../pages/Dashboard/DashboardPage'))
+const AssistantPage = lazyWithRetry(() => import('../pages/Assistant/AssistantPage'))
+const HomePage = lazyWithRetry(() => import('../pages/Home/HomePage'))
+const LanguagePage = lazyWithRetry(() => import('../pages/Language/LanguagePage'))
+const RoadDetailsPage = lazyWithRetry(() => import('../pages/RoadDetails/RoadDetailsPage'))
+const SettingsPage = lazyWithRetry(() => import('../pages/Settings/SettingsPage'))
 
 function PageFallback() {
   return (
