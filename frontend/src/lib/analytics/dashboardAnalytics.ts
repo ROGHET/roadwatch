@@ -45,13 +45,15 @@ const statusColors: Record<string, string> = {
 }
 
 function parseCr(value: string): number {
+  if (value === 'Data unavailable') return 0
   const match = value.match(/([\d.]+)/)
   return match ? Number.parseFloat(match[1]) : 0
 }
 
 export function getComplaintCategoryStats(): CategoryStat[] {
   const counts = new Map<string, number>()
-  mockComplaintRecords.forEach((record) => {
+  const records = mockComplaintRecords.length > 0 ? mockComplaintRecords : []
+  records.forEach((record) => {
     const key = record.issueType.replace(/\b\w/g, (char) => char.toUpperCase())
     counts.set(key, (counts.get(key) ?? 0) + 1)
   })

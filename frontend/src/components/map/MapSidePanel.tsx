@@ -28,9 +28,13 @@ export function MapSidePanel({
   return (
     <aside
       className={twMerge(
-        'pointer-events-auto absolute inset-x-0 z-[500] flex max-h-[calc(100dvh-5.5rem-env(safe-area-inset-bottom))] flex-col overflow-hidden',
-        'bottom-[calc(4.5rem+env(safe-area-inset-bottom))]',
-        'lg:inset-x-auto lg:bottom-4 lg:right-4 lg:top-[calc(var(--st-floating-offset)+4.5rem)] lg:h-auto lg:max-h-[calc(100dvh-var(--st-floating-offset)-2.5rem)] lg:w-[min(26rem,calc(100vw-2rem))]',
+        'pointer-events-auto absolute inset-x-0 z-[500] flex flex-col overflow-hidden',
+        // Mobile: appear from bottom, respect top nav safe area, never clip close button
+        'top-[calc(env(safe-area-inset-top)+3.5rem)] bottom-[calc(4.5rem+env(safe-area-inset-bottom))]',
+        'max-h-[calc(100dvh-env(safe-area-inset-top)-8rem-env(safe-area-inset-bottom))]',
+        // Desktop: right side panel
+        'lg:inset-x-auto lg:top-[calc(var(--st-floating-offset)+4.5rem)] lg:bottom-4 lg:right-4',
+        'lg:h-auto lg:max-h-[calc(100dvh-var(--st-floating-offset)-5.5rem)] lg:w-[min(26rem,calc(100vw-2rem))]',
         className,
       )}
       role="dialog"

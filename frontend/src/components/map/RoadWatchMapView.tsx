@@ -7,7 +7,23 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Marker } from 'react-leaflet'
 import L from 'leaflet'
-import { mapRoadMarkers } from '../../data/mapMarkers'
+import { mapRoadMarkers, setMapRoadMarkers } from '../../data/mapMarkers'
+import { attachGeoCoordinatesToReports, infrastructureReports } from '../../data/infrastructureReports'
+import { setRoadCatalog } from '../../data/roads'
+import {
+  buildRoadFromCoordinates,
+  findNearestGeoRoad,
+  geoRoadToMockRoad,
+  getGeoRoadFeaturesSnapshot,
+  loadGeoRoadFeatures,
+  subscribeGeoRoadFeatures,
+} from '../../lib/gis/geoRoadIndex'
+import { findNearestTollPlaza, type TollPlazaRecord } from '../../data/tollPlazas'
+import { MapGeoLayers } from './MapGeoLayers'
+import { MapClusterZoomHandler } from './MapClusterZoomHandler'
+import { MapLayerLegend } from './MapLayerLegend'
+import { MapRoadViewportLoader } from './MapRoadViewportLoader'
+import { fetchExtendedWeatherIntelligence, toWeatherRiskInput } from '../../lib/map/weatherIntelligence'
 import { getMergedComplaintMarkers } from '../../lib/complaints/mergedComplaints'
 import { useGeolocation } from '../../hooks/useGeolocation'
 import { inferPlaceFromCoordinates } from '../../lib/map/inferPlace'
@@ -58,9 +74,49 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
   const complaintPickMode = useComplaintStore((state) => state.complaintPickMode)
   const locationPickPending = useComplaintStore((state) => state.locationPickPending)
   const completeLocationPick = useComplaintStore((state) => state.completeLocationPick)
+  const [geocodedComplaintMarkers, setGeocodedComplaintMarkers] = useState<MapComplaintMarker[]>([])
+
+  useEffect(() => {
+    if (mode !== 'expanded') return
+    let cancelled = false
+
+    const syncRoadCatalog = (features: ReturnType<typeof getGeoRoadFeaturesSnapshot>) => {
+      const namedRoads = features
+        .filter((feature) => feature.name && !feature.name.startsWith('Road segment'))
+        .slice(0, 500)
+        .map((feature) => geoRoadToMockRoad(feature))
+      setMapRoadMarkers(namedRoads)
+      setRoadCatalog(namedRoads)
+      const geocoded = attachGeoCoordinatesToReports(infrastructureReports, features)
+      setGeocodedComplaintMarkers(
+        geocoded.map((complaint) => ({
+          ...complaint,
+          roadId: complaint.roadId,
+          lat: complaint.lat,
+          lng: complaint.lng,
+        })),
+      )
+    }
+
+    void loadGeoRoadFeatures().then((features) => {
+      if (cancelled) return
+      syncRoadCatalog(features)
+    })
+
+    const unsubscribe = subscribeGeoRoadFeatures(() => {
+      if (cancelled) return
+      syncRoadCatalog(getGeoRoadFeaturesSnapshot())
+    })
+
+    return () => {
+      cancelled = true
+      unsubscribe()
+    }
+  }, [mode])
+
   const complaintMarkers = useMemo(
-    () => getMergedComplaintMarkers(submittedComplaints),
-    [submittedComplaints],
+    () => [...getMergedComplaintMarkers(submittedComplaints), ...geocodedComplaintMarkers],
+    [geocodedComplaintMarkers, submittedComplaints],
   )
 
   useEffect(() => {
@@ -84,6 +140,7 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
   }, [mode, setSubmittedComplaints])
 
   const filter = useMapStore((state) => state.filter)
+  const layerToggles = useMapStore((state) => state.layerToggles)
   const severityFilters = useMapStore((state) => state.severityFilters)
   const roadTypeFilters = useMapStore((state) => state.roadTypeFilters)
   const selection = useMapStore((state) => state.selection)
@@ -234,22 +291,47 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
     }))
   }, [])
 
-  const handleSelectRoad = (road: MockRoad) => {
+  const handleSelectRoad = useCallback((road: MockRoad) => {
     if (mode !== 'expanded') return
     setSelection({ kind: 'road', road })
-  }
+  }, [mode, setSelection])
 
-  const handleSelectComplaint = (complaint: MapComplaintMarker) => {
+  const handleSelectComplaint = useCallback((complaint: MapComplaintMarker) => {
     if (mode !== 'expanded') return
     setSelection({ kind: 'complaint', complaint })
-  }
+  }, [mode, setSelection])
 
-  const handleMapClick = async (lat: number, lng: number) => {
+  const handleSelectToll = useCallback((toll: TollPlazaRecord) => {
+    if (mode !== 'expanded') return
+    setSelection({ kind: 'toll', toll })
+  }, [mode, setSelection])
+
+  const handleMapClick = useCallback(async (lat: number, lng: number) => {
     if (mode !== 'expanded' || intelLoading) return
 
     setIntelLoading(true)
     try {
-      const intelligence = await fetchLocationIntelligence(lat, lng)
+      const [intelligence, weatherIntel] = await Promise.all([
+        fetchLocationIntelligence(lat, lng),
+        fetchExtendedWeatherIntelligence({ lat, lng }),
+        loadGeoRoadFeatures(),
+      ])
+
+      const geoFeatures = getGeoRoadFeaturesSnapshot()
+      const nearestRoad = findNearestGeoRoad(geoFeatures, lat, lng)
+      if (nearestRoad) {
+        const road = buildRoadFromCoordinates(geoFeatures, lat, lng, toWeatherRiskInput(weatherIntel))
+        if (road) {
+          setSelection({ kind: 'road', road })
+          return
+        }
+      }
+
+      const nearestToll = findNearestTollPlaza(lat, lng, 8)
+      if (nearestToll && !nearestRoad) {
+        setSelection({ kind: 'toll', toll: nearestToll })
+        return
+      }
 
       if (complaintPickMode && locationPickPending) {
         const place = inferPlaceFromCoordinates(lat, lng)
@@ -264,11 +346,19 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
         return
       }
 
-      setSelection({ kind: 'location', lat, lng, intelligence })
+      setSelection({ kind: 'location', lat, lng, intelligence, weatherIntel })
     } finally {
       setIntelLoading(false)
     }
-  }
+  }, [
+    complaintPickMode,
+    completeLocationPick,
+    intelLoading,
+    locationPickPending,
+    mode,
+    navigate,
+    setSelection,
+  ])
 
   const handleSearchResultSelect = async (result: MapSearchResult) => {
     focusOn(result.lat, result.lng, ROAD_FOCUS_ZOOM)
@@ -282,14 +372,23 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
     } else {
       setIntelLoading(true)
       try {
-        const intelligence = await fetchLocationIntelligence(result.lat, result.lng)
-        setSelection({ kind: 'location', lat: result.lat, lng: result.lng, intelligence })
+        const [intelligence, weatherIntel] = await Promise.all([
+          fetchLocationIntelligence(result.lat, result.lng),
+          fetchExtendedWeatherIntelligence({ lat: result.lat, lng: result.lng }),
+        ])
+        setSelection({ kind: 'location', lat: result.lat, lng: result.lng, intelligence, weatherIntel })
       } finally {
         setIntelLoading(false)
       }
     }
     setSearchQuery('')
     setNominatimResults([])
+  }
+
+  const handleSearchClose = () => {
+    setSearchQuery('')
+    setNominatimResults([])
+    setSearchPin(null)
   }
 
   const handleLocate = useCallback(async () => {
@@ -343,11 +442,24 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
           zoom={flyTarget.zoom}
           trigger={flyTarget.trigger}
         />
+        {mode === 'expanded' ? (
+          <>
+            <MapRoadViewportLoader />
+            <MapClusterZoomHandler />
+            <MapGeoLayers
+              showRoads={layerToggles.roads}
+              showTolls={layerToggles.tollPlazas}
+              onSelectRoad={handleSelectRoad}
+              onSelectToll={handleSelectToll}
+            />
+          </>
+        ) : null}
         <MapMarkerLayers
           filter={filter}
           severityFilters={severityFilters}
           roadTypeFilters={roadTypeFilters}
           complaintMarkers={complaintMarkers}
+          showComplaints={layerToggles.complaints}
           userPosition={mode === 'expanded' ? userPosition : null}
           onSelectRoad={handleSelectRoad}
           onSelectComplaint={handleSelectComplaint}
@@ -391,6 +503,7 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
         searchResults={searchResults}
         searchLoading={searchLoading}
         onSearchResultSelect={handleSearchResultSelect}
+        onSearchClose={handleSearchClose}
         filterOpen={filterOpen}
         onFilterOpenChange={setFilterOpen}
         onLocate={handleLocate}
@@ -425,6 +538,8 @@ export default function RoadWatchMapView({ mode = 'expanded' }: RoadWatchMapView
         onClose={clearSelection}
         onZoomToHere={(lat, lng) => focusOn(lat, lng, ROAD_FOCUS_ZOOM)}
       />
+
+      {mode === 'expanded' ? <MapLayerLegend /> : null}
     </div>
   )
 }

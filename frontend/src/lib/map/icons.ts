@@ -65,6 +65,36 @@ export function createRoadMarkerIcon(status: RoadStatus) {
   })
 }
 
+const tollPlazaSvg = `
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M4 10h16"/>
+  <path d="M6 10V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v4"/>
+  <path d="M8 14h8"/>
+  <path d="M10 18h4"/>
+  <path d="M12 10v4"/>
+</svg>`
+
+const highwayBadgeSvg = `
+<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+  <path d="M12 2 4 22h4l1-4h6l1 4h4L12 2z"/>
+</svg>`
+
+export function createTollPlazaIcon() {
+  return L.divIcon({
+    className: 'rw-map-marker-root',
+    html: `<div class="rw-map-marker-pin">
+      <div class="rw-map-marker rw-map-marker-toll">
+        ${tollPlazaSvg}
+        <span class="rw-map-marker-toll-badge" aria-hidden="true">${highwayBadgeSvg}</span>
+      </div>
+      <span class="rw-map-marker-tail rw-map-marker-tail-toll" aria-hidden="true"></span>
+    </div>`,
+    iconSize: [44, 52],
+    iconAnchor: [22, 48],
+    popupAnchor: [0, -48],
+  })
+}
+
 export function createComplaintMarkerIcon(severity: ComplaintSeverity = 'medium') {
   return L.divIcon({
     className: 'rw-map-marker-root',

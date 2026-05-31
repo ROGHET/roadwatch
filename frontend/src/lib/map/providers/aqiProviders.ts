@@ -18,13 +18,10 @@ function aqiLabelFor(value: number): string {
 }
 
 function buildMockAQI(lat: number, lng: number, source: string): AirQualitySnapshot {
-  const seed = Math.abs(Math.round(lat * 100) * 29 + Math.round(lng * 100) * 19)
-  const aqi = 38 + (seed % 230)
-
   return {
     locationName: locationLabel(lat, lng),
-    aqi,
-    aqiLabel: aqiLabelFor(aqi),
+    aqi: 'Data unavailable',
+    aqiLabel: 'Data unavailable',
     source,
     observedAt: nowIso(),
   }

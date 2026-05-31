@@ -16,6 +16,7 @@ import { Label } from '../../components/common/Label'
 import { PageContainer } from '../../components/common/PageContainer'
 import { SectionHeader } from '../../components/common/SectionHeader'
 import { Select } from '../../components/common/Select'
+import { StateSelect, CityInput } from '../../components/common/StateSelect'
 import { Textarea } from '../../components/common/Textarea'
 import { ComplaintPhotoField } from '../../components/complaints/ComplaintPhotoField'
 import { ComplaintSubmissionSuccess } from '../../components/complaints/ComplaintSubmissionSuccess'
@@ -30,8 +31,10 @@ import {
 import {
   COMPLAINT_ISSUE_TYPE_OPTIONS,
   ROAD_TYPE_OPTIONS,
+  resolveAuthorityRouting,
   type RoadType,
 } from '../../lib/complaintRouting'
+import { detectRoadTypeFromText } from '../../data/realDatasets'
 import { inferPlaceFromCoordinates } from '../../lib/map/inferPlace'
 import { useI18n } from '../../lib/i18n'
 import { routes } from '../../lib/routes'
@@ -109,6 +112,7 @@ export default function ComplaintPage() {
   const { position, locate, status: geoStatus } = useGeolocation()
 
   const [roadType, setRoadType] = useState<RoadType>('NH')
+  const [autoDetectedRoadType, setAutoDetectedRoadType] = useState<RoadType | null>(null)
   const [issueType, setIssueType] = useState('Pothole')
   const [severity, setSeverity] = useState('medium')
   const [description, setDescription] = useState('')
@@ -156,6 +160,15 @@ export default function ComplaintPage() {
       setRoadName(prefill.roadName)
       const normalizedIssue = normalizeIssueTypeForForm(prefill.issueType)
       if (normalizedIssue) setIssueType(normalizedIssue)
+      const detectedRoadType = detectRoadTypeFromText(
+        [prefill.roadName, prefill.locationLabel, prefill.title].filter(Boolean).join(' '),
+      )
+      if (detectedRoadType) {
+        setRoadType(detectedRoadType)
+        setAutoDetectedRoadType(detectedRoadType)
+      } else {
+        setAutoDetectedRoadType(null)
+      }
       draftRestoredRef.current = true
       return
     }
@@ -205,6 +218,13 @@ export default function ComplaintPage() {
     setCity(nextCity)
     setStateName(nextState)
     setLocationLabel(nextLabel)
+    const detectedRoadType = detectRoadTypeFromText(nextLabel)
+    if (detectedRoadType) {
+      setRoadType(detectedRoadType)
+      setAutoDetectedRoadType(detectedRoadType)
+    } else {
+      setAutoDetectedRoadType(null)
+    }
     updateDraftLocation({
       latitude: nextLatitude,
       longitude: nextLongitude,
@@ -231,6 +251,7 @@ export default function ComplaintPage() {
       setLocationLabel(
         `Current location (${result.position.lat.toFixed(4)}, ${result.position.lng.toFixed(4)})`,
       )
+      setAutoDetectedRoadType(null)
     }
   }
 
@@ -264,6 +285,7 @@ export default function ComplaintPage() {
     setErrorMessage(null)
     setDraftSavedMessage(null)
     setRoadType('NH')
+    setAutoDetectedRoadType(null)
     setIssueType('Pothole')
     setSeverity('medium')
     setDescription('')
@@ -297,6 +319,9 @@ export default function ComplaintPage() {
     setDraftSavedMessage('Draft saved. It will be restored when you return to this page.')
     window.setTimeout(() => setDraftSavedMessage(null), 4000)
   }
+
+  const authorityRouting =
+    autoDetectedRoadType === roadType ? resolveAuthorityRouting(roadType) : null
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -380,6 +405,11 @@ export default function ComplaintPage() {
                 {roadName ? ` • ${roadName}` : ''}
               </Alert>
             ) : null}
+
+            <Alert variant="info" title="Complaint intelligence">
+              Road type: {autoDetectedRoadType ?? 'Data unavailable'}. Authority:{' '}
+              {authorityRouting?.assignedAuthority ?? 'Authority unavailable'}.
+            </Alert>
 
             <div className="space-y-2">
               <Label htmlFor="complaint-road-type" required>
@@ -469,21 +499,22 @@ export default function ComplaintPage() {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="complaint-city">City</Label>
-                <Input
-                  id="complaint-city"
-                  value={city}
-                  onChange={(event) => setCity(event.target.value)}
-                  placeholder="Chennai"
+                <Label htmlFor="complaint-state">{t('state') as string || 'State'}</Label>
+                <StateSelect
+                  id="complaint-state"
+                  value={stateName}
+                  onChange={(val) => { setStateName(val); setCity('') }}
+                  placeholder="Select state"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="complaint-state">State</Label>
-                <Input
-                  id="complaint-state"
-                  value={stateName}
-                  onChange={(event) => setStateName(event.target.value)}
-                  placeholder="Tamil Nadu"
+                <Label htmlFor="complaint-city">{t('city') as string || 'City'}</Label>
+                <CityInput
+                  id="complaint-city"
+                  value={city}
+                  onChange={setCity}
+                  selectedState={stateName}
+                  placeholder="Enter or select city"
                 />
               </div>
             </div>
@@ -525,6 +556,9 @@ export default function ComplaintPage() {
             </Button>
             <Button type="button" variant="outline" disabled={isSubmitting} onClick={handleSaveDraft}>
               {t('saveDraft')}
+            </Button>
+            <Button type="button" variant="outline" disabled={isSubmitting} onClick={() => navigate(routes.home)}>
+              {t('navHome') as string || 'Home'}
             </Button>
           </CardFooter>
         </form>

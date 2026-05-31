@@ -8,27 +8,11 @@ function locationLabel(lat: number, lng: number): string {
   return `Traffic corridor (${lat.toFixed(3)}, ${lng.toFixed(3)})`
 }
 
-function hashCoordinates(lat: number, lng: number): number {
-  const latKey = Math.round(lat * 100)
-  const lngKey = Math.round(lng * 100)
-  return Math.abs(latKey * 13 + lngKey * 23)
-}
-
 function buildMockTraffic({ lat, lng }: MapCoordinates, source: string): TrafficSnapshot {
-  const seed = hashCoordinates(lat, lng)
-  const states: TrafficSnapshot['condition'][] = ['light', 'moderate', 'heavy', 'severe']
-  const condition = states[seed % states.length]
-  const descriptions = {
-    light: 'Free-flowing traffic with short signal delays.',
-    moderate: 'Typical urban congestion with intermittent slowdowns.',
-    heavy: 'Recurring bottlenecks near junctions and bus stops.',
-    severe: 'Stop-and-go movement with frequent queue spillback.',
-  } as const
-
   return {
     locationName: locationLabel(lat, lng),
-    condition,
-    description: descriptions[condition],
+    condition: 'moderate',
+    description: 'Data unavailable',
     source,
     observedAt: nowIso(),
   }

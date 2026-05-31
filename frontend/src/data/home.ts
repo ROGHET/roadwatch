@@ -1,7 +1,7 @@
 import { Bot, FileWarning, MapPin, Shield } from 'lucide-react'
 import type { FeatureItem } from '../components/home/FeatureGrid'
 import { routes } from '../lib/routes'
-import { mockRoads } from './roads'
+import { datasetSummary } from './datasetIntegration'
 
 export const homePageCopy = {
   heroSubtitle: 'Road Safety Transparency',
@@ -9,7 +9,7 @@ export const homePageCopy = {
   heroDescription:
     'AI-powered citizen transparency for roads, budgets, contractors, and safety alerts across India.',
   exploreTitle: 'Explore Roads',
-  exploreDescription: `Search and select from ${mockRoads.length} monitored corridors to view budget, contractor, and repair records.`,
+  exploreDescription: `Search and explore ${datasetSummary.geoRoadSegments.toLocaleString('en-IN')} OSM road segments, ${datasetSummary.tollPlazas.toLocaleString('en-IN')} toll plazas, and parliamentary work packages.`,
   roadsListTitle: 'Monitored Corridors',
   roadsListDescription:
     'Select a road to view budget transparency, contractor records, and complaint history.',

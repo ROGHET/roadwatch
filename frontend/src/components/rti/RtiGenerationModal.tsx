@@ -4,6 +4,7 @@ import { Button } from '../common/Button'
 import { Input } from '../common/Input'
 import { Label } from '../common/Label'
 import { Select } from '../common/Select'
+import { StateSelect } from '../common/StateSelect'
 import { Textarea } from '../common/Textarea'
 import {
   buildRtiDocument,
@@ -183,11 +184,11 @@ export function RtiGenerationModal({
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="rti-state">State (for State PWD routing)</Label>
-                  <Input
+                  <StateSelect
                     id="rti-state"
                     value={applicantState}
-                    onChange={(event) => setApplicantState(event.target.value)}
-                    placeholder="e.g. Maharashtra"
+                    onChange={setApplicantState}
+                    placeholder="Select state"
                   />
                 </div>
               </div>

@@ -1,31 +1,46 @@
 import { Activity } from 'lucide-react'
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { accidentRecords } from '../../data/realDatasets'
+import { computeCompositeHealth } from '../../lib/analytics/riskEngine'
 import { useI18n } from '../../lib/i18n'
-import { mockRoads } from '../../data/roads'
 import { routes } from '../../lib/routes'
-import { AnimatedCounter } from '../common/AnimatedCounter'
 import { MetricCard } from '../stitch'
-
-function computeInfrastructureHealth() {
-  if (mockRoads.length === 0) return 94
-  const averageScore = mockRoads.reduce((sum, road) => sum + road.score, 0) / mockRoads.length
-  return Math.round(averageScore)
-}
 
 export function HomeHealthCard() {
   const navigate = useNavigate()
-  const health = computeInfrastructureHealth()
   const { t } = useI18n()
+
+  const health = useMemo(() => {
+    const maharashtra = accidentRecords.find((row) =>
+      row.stateOrCity.toLowerCase().includes('maharashtra'),
+    )
+    return computeCompositeHealth({
+      state: maharashtra?.stateOrCity ?? 'Maharashtra',
+      city: 'Mumbai',
+    })
+  }, [])
+
+  const tierLabel =
+    health.tier === 'critical'
+      ? t('critical')
+      : health.tier === 'poor'
+        ? t('poor')
+        : health.tier === 'fair'
+          ? t('moderate')
+          : health.tier === 'good'
+            ? t('good')
+            : t('excellent')
 
   return (
     <MetricCard
       label={t('infrastructureHealth')}
-      value={<AnimatedCounter value={health} suffix="%" duration={1100} />}
-      meta="+2.4% vs last week"
-      description={t('infrastructureHealthDesc')}
+      value={`${health.score}/100`}
+      meta={`${tierLabel} • ADSI + budget + tender + weather factors`}
+      description={`${accidentRecords.length} ADSI regions loaded; composite score from real parliamentary and NCRB datasets.`}
       icon={Activity}
       accentClassName="text-[var(--st-tertiary)]"
-      progress={health}
+      progress={health.score}
       onClick={() => navigate(routes.dashboard)}
     />
   )

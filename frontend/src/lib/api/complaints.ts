@@ -1,8 +1,6 @@
 import { mockComplaintRecords } from '../../data/complaints'
 import {
-  buildMockComplaintId,
   COMPLAINT_ISSUE_TYPE_OPTIONS,
-  resolveAuthorityRouting,
   type RoadType,
 } from '../complaintRouting'
 import { apiClient, useMockData } from './client'
@@ -87,41 +85,11 @@ export type ComplaintRoutingResult = {
   updatedAt?: string
 }
 
-const mockDelayMs = 150
-let mockSequence = 1043
-
-function mockDelay<T>(value: T): Promise<T> {
-  return new Promise((resolve) => {
-    window.setTimeout(() => resolve(value), mockDelayMs)
-  })
-}
-
 export async function submitComplaint(
   input: SubmitComplaintInput,
 ): Promise<ComplaintRoutingResult> {
   if (useMockData) {
-    const routing = resolveAuthorityRouting(input.roadType)
-    mockSequence += 1
-
-    return mockDelay({
-      id: `mock-${mockSequence}`,
-      complaintId: buildMockComplaintId(mockSequence),
-      roadType: input.roadType,
-      issueType: input.issueType,
-      assignedAuthority: routing.assignedAuthority,
-      assignedDepartment: routing.assignedDepartment,
-      severity: input.severity,
-      description: input.description,
-      status: 'ROUTED',
-      latitude: input.lat,
-      longitude: input.lng,
-      locationLabel: input.locationLabel,
-      city: input.city,
-      state: input.state,
-      photoUrl: input.photoUrl,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    })
+    throw new Error('Data unavailable')
   }
 
   try {
@@ -233,27 +201,7 @@ export async function lookupComplaint(
 
 export async function fetchComplaints(): Promise<ComplaintRoutingResult[]> {
   if (useMockData) {
-    return mockDelay(
-      mockComplaintRecords.map((record) => ({
-        id: record.id,
-        complaintId: record.referenceId,
-        roadType: (record.roadType ?? 'NH') as RoadType,
-        issueType: record.issueType ?? 'Other',
-        assignedAuthority: record.assignedAuthority,
-        assignedDepartment: record.assignedDepartment,
-        severity: record.severity ?? 'medium',
-        description: record.description ?? '',
-        status: record.status,
-        latitude: record.lat,
-        longitude: record.lng,
-        city: record.city,
-        state: 'Tamil Nadu',
-        roadId: record.roadId,
-        roadName: record.roadName,
-        createdAt: record.reportedAt,
-        updatedAt: record.updatedAt,
-      })),
-    )
+    return []
   }
 
   try {

@@ -3,6 +3,7 @@ import MainLayout from '../layouts/MainLayout'
 import AssistantPage from '../pages/Assistant/AssistantPage'
 import ComplaintPage from '../pages/Complaint/ComplaintPage'
 import ComplaintDetailPage from '../pages/ComplaintDetail/ComplaintDetailPage'
+import ComplaintHistoryPage from '../pages/ComplaintHistory/ComplaintHistoryPage'
 import DashboardPage from '../pages/Dashboard/DashboardPage'
 import HomePage from '../pages/Home/HomePage'
 import MapPage from '../pages/Map/MapPage'
@@ -34,6 +35,10 @@ const router = createBrowserRouter([
       {
         path: 'complaints/:complaintId',
         element: <ComplaintDetailPage />,
+      },
+      {
+        path: 'complaint-history',
+        element: <ComplaintHistoryPage />,
       },
       {
         path: 'dashboard',

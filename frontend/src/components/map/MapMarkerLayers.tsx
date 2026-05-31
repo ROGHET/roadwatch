@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { memo, useMemo, useRef } from 'react'
 import L from 'leaflet'
 import { Marker } from 'react-leaflet'
 import MarkerClusterGroup from 'react-leaflet-cluster'
@@ -25,6 +25,7 @@ export type MapMarkerLayersProps = {
   severityFilters: ComplaintSeverity[]
   roadTypeFilters: MapRoadTypeFilter[]
   complaintMarkers: MapComplaintMarker[]
+  showComplaints?: boolean
   userPosition: GeolocationPosition | null
   onSelectRoad: (road: MockRoad) => void
   onSelectComplaint: (complaint: MapComplaintMarker) => void
@@ -36,11 +37,12 @@ function matchesRoadTypeFilter(roadType: string | undefined, filters: MapRoadTyp
   return filters.some((filter) => roadType.toLowerCase().includes(filter.toLowerCase()))
 }
 
-export function MapMarkerLayers({
+export const MapMarkerLayers = memo(function MapMarkerLayers({
   filter,
   severityFilters,
   roadTypeFilters,
   complaintMarkers,
+  showComplaints = true,
   userPosition,
   onSelectRoad,
   onSelectComplaint,
@@ -50,8 +52,8 @@ export function MapMarkerLayers({
   onSelectRoadRef.current = onSelectRoad
   onSelectComplaintRef.current = onSelectComplaint
 
-  const showRoads = filter === 'all' || filter === 'roads'
-  const showComplaints = filter === 'all' || filter === 'complaints'
+  const showRoadMarkers = false
+  const showComplaintLayer = showComplaints && (filter === 'all' || filter === 'complaints')
 
   const filteredRoads = useMemo(
     () =>
@@ -121,17 +123,17 @@ export function MapMarkerLayers({
       <MapClusterSpiderfyGuard />
       {userPosition ? <UserLocationLayer position={userPosition} /> : null}
 
-      {showRoads ? (
+      {showRoadMarkers ? (
         <MarkerClusterGroup {...clusterGroupProps} maxClusterRadius={56}>
           {roadMarkers}
         </MarkerClusterGroup>
       ) : null}
 
-      {showComplaints ? (
+      {showComplaintLayer ? (
         <MarkerClusterGroup {...clusterGroupProps} maxClusterRadius={48}>
           {complaintMarkerNodes}
         </MarkerClusterGroup>
       ) : null}
     </>
   )
-}
+})

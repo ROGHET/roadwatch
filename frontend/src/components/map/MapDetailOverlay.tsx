@@ -6,7 +6,10 @@ import { Button } from '../common/Button'
 import { ComplaintSummaryCard } from '../complaints/ComplaintSummaryCard'
 import { RoadStatusBadge } from '../road/RoadStatusBadge'
 import { complaintsByRoadId } from '../../data/complaints'
+import { findContractsForRoadLabel } from '../../data/contractAwards'
 import { getRoadBudget } from '../../data/mapRoadBudget'
+import { RoadScoreBadge } from '../road/RoadScoreBadge'
+import { RiskIndicator } from '../road/RiskIndicator'
 import type { MapDisplayMode } from '../../lib/map/constants'
 import { getRouteProvider } from '../../lib/map/providers/registry'
 import type { MapActiveSelection } from '../../lib/map/types'
@@ -27,6 +30,10 @@ export type MapDetailOverlayProps = {
   onZoomToHere?: (lat: number, lng: number) => void
 }
 
+function valueWithUnit(value: number | string, unit: string) {
+  return typeof value === 'number' ? `${value} ${unit}` : value
+}
+
 export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoomToHere }: MapDetailOverlayProps) {
   const navigate = useNavigate()
   const prefersReducedMotion = useReducedMotion()
@@ -44,10 +51,12 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
   const locationPickPending = useComplaintStore((state) => state.locationPickPending)
   const completeLocationPick = useComplaintStore((state) => state.completeLocationPick)
   const [routeLoading, setRouteLoading] = useState(false)
+  const [activePanelTab, setActivePanelTab] = useState<'intelligence' | 'contractor'>('intelligence')
   const { t } = useI18n()
 
   useEffect(() => {
     clearRoutePreview()
+    setActivePanelTab('intelligence')
   }, [clearRoutePreview, selection])
 
   if (mode !== 'expanded' || !selection) {
@@ -172,7 +181,9 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
         ? { lat: selection.road.lat, lng: selection.road.lng }
         : selection.kind === 'complaint'
           ? { lat: selection.complaint.lat, lng: selection.complaint.lng }
-          : { lat: selection.lat, lng: selection.lng }
+          : selection.kind === 'toll'
+            ? { lat: selection.toll.lat, lng: selection.toll.lng }
+            : { lat: selection.lat, lng: selection.lng }
     const destination = routePreview?.destination ?? routePreviewTarget?.destination ?? selectedDestination
     if (!destination) return
     const url = `https://www.google.com/maps/dir/?api=1&destination=${destination.lat},${destination.lng}&travelmode=driving`
@@ -209,10 +220,38 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
                 ? t('roadSummary')
                 : selection.kind === 'complaint'
                   ? t('complaintRecord')
-                  : t('locationIntelligenceTitle')
+                  : selection.kind === 'toll'
+                    ? t('tollPlaza')
+                    : t('locationIntelligenceTitle')
             }
             onClose={onClose}
             closeLabel={t('closeDetails')}
+            headerExtra={
+              <div className="mt-2 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setActivePanelTab('intelligence')}
+                  className={`rounded-full px-3 py-1 text-xs ${
+                    activePanelTab === 'intelligence'
+                      ? 'bg-[var(--rw-primary)] text-white'
+                      : 'bg-[var(--rw-surface-muted)] text-[var(--rw-text-secondary)]'
+                  }`}
+                >
+                  {t('intelligenceTab')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActivePanelTab('contractor')}
+                  className={`rounded-full px-3 py-1 text-xs ${
+                    activePanelTab === 'contractor'
+                      ? 'bg-[var(--rw-primary)] text-white'
+                      : 'bg-[var(--rw-surface-muted)] text-[var(--rw-text-secondary)]'
+                  }`}
+                >
+                  {t('contractorTab')}
+                </button>
+              </div>
+            }
             footer={
               <>
                 {selection.kind === 'location' && (
@@ -342,6 +381,10 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
               </>
             }
           >
+                {activePanelTab === 'contractor' ? (
+                  <ContractorPanel selection={selection} />
+                ) : (
+                  <>
                 {selection.kind === 'location' ? (
                   <div className="flex flex-col gap-4">
                     <div>
@@ -357,7 +400,7 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
                       <div className="rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-3">
                         <dt className="text-xs text-[var(--rw-text-tertiary)]">{t('temperature')}</dt>
                         <dd className="mt-1 font-semibold text-[var(--rw-text-primary)]">
-                          {selection.intelligence.temperatureC} C
+                          {valueWithUnit(selection.intelligence.temperatureC, 'C')}
                         </dd>
                       </div>
                       <div className="rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-3">
@@ -384,21 +427,47 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
                           {t('humidity')}
                         </dt>
                         <dd className="mt-1 font-semibold text-[var(--rw-text-primary)]">
-                          {selection.intelligence.humidityPercent}%
+                          {valueWithUnit(selection.intelligence.humidityPercent, '%')}
                         </dd>
                       </div>
                       <div className="rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-3">
                         <dt className="text-xs text-[var(--rw-text-tertiary)]">{t('visibility')}</dt>
                         <dd className="mt-1 font-semibold text-[var(--rw-text-primary)]">
-                          {selection.intelligence.visibilityKm} km
+                          {valueWithUnit(selection.intelligence.visibilityKm, 'km')}
                         </dd>
                       </div>
                       <div className="rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-3">
                         <dt className="text-xs text-[var(--rw-text-tertiary)]">{t('rainProbability')}</dt>
                         <dd className="mt-1 font-semibold text-[var(--rw-text-primary)]">
-                          {selection.intelligence.rainProbabilityPercent}%
+                          {valueWithUnit(selection.intelligence.rainProbabilityPercent, '%')}
                         </dd>
                       </div>
+                      {selection.weatherIntel ? (
+                        <>
+                          <div className="rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-3">
+                            <dt className="text-xs text-[var(--rw-text-tertiary)]">{t('rainfall')}</dt>
+                            <dd className="mt-1 font-semibold text-[var(--rw-text-primary)]">
+                              {valueWithUnit(selection.weatherIntel.rainfallMm, 'mm')}
+                            </dd>
+                          </div>
+                          <div className="rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-3">
+                            <dt className="text-xs text-[var(--rw-text-tertiary)]">{t('floodRisk')}</dt>
+                            <dd className="mt-1 font-semibold text-[var(--rw-text-primary)]">
+                              {selection.weatherIntel.floodRisk}%
+                            </dd>
+                          </div>
+                          {selection.weatherIntel.warnings.length > 0 ? (
+                            <div className="col-span-2 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
+                              <dt className="text-xs font-medium text-amber-200">{t('weatherWarnings')}</dt>
+                              <dd className="mt-2 space-y-1 text-[var(--rw-text-primary)]">
+                                {selection.weatherIntel.warnings.map((warning) => (
+                                  <p key={warning}>{warning}</p>
+                                ))}
+                              </dd>
+                            </div>
+                          ) : null}
+                        </>
+                      ) : null}
                       {selection.intelligence.roadType ? (
                         <div className="col-span-2 rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-3">
                           <dt className="flex items-center gap-1 text-xs text-[var(--rw-text-tertiary)]">
@@ -416,7 +485,7 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
                           {t('windSpeed')}
                         </dt>
                         <dd className="mt-1 font-semibold text-[var(--rw-text-primary)]">
-                          {selection.intelligence.windSpeedKph} km/h
+                          {valueWithUnit(selection.intelligence.windSpeedKph, 'km/h')}
                         </dd>
                       </div>
                       <div className="col-span-2 rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-3">
@@ -440,6 +509,12 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
                           {new Date(selection.intelligence.observedAt).toLocaleString()}
                         </dd>
                       </div>
+                      <div className="col-span-2 rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-3">
+                        <dt className="text-xs text-[var(--rw-text-tertiary)]">Contractor Information</dt>
+                        <dd className="mt-1 font-semibold text-[var(--rw-text-primary)]">
+                          Contractor information unavailable
+                        </dd>
+                      </div>
                     </dl>
                   </div>
                 ) : null}
@@ -457,20 +532,24 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
                           </p>
                         ) : null}
                       </div>
-                      <RoadStatusBadge status={selection.road.status} />
+                      <div className="flex flex-col items-end gap-2">
+                        <RoadStatusBadge status={selection.road.status} />
+                        <RoadScoreBadge score={selection.road.score} tier={selection.road.scoreTier} />
+                        <RiskIndicator level={selection.road.riskLevel} />
+                      </div>
                     </div>
 
                     <dl className="grid gap-2 text-sm">
                       <div className="flex justify-between gap-4 border-b border-[var(--rw-border)] py-2">
                         <dt className="text-[var(--rw-text-secondary)]">{t('budgetSanctioned')}</dt>
                         <dd className="font-medium text-[var(--rw-text-primary)]">
-                          {getRoadBudget(selection.road.id).sanctioned === 'Not published' ? t('notPublished') : getRoadBudget(selection.road.id).sanctioned}
+                          {getRoadBudget(selection.road.id).sanctioned}
                         </dd>
                       </div>
                       <div className="flex justify-between gap-4 border-b border-[var(--rw-border)] py-2">
                         <dt className="text-[var(--rw-text-secondary)]">{t('budgetSpent')}</dt>
                         <dd className="font-medium text-[var(--rw-text-primary)]">
-                          {getRoadBudget(selection.road.id).spent === 'Not published' ? t('notPublished') : getRoadBudget(selection.road.id).spent}
+                          {getRoadBudget(selection.road.id).spent}
                         </dd>
                       </div>
                       <div className="flex justify-between gap-4 border-b border-[var(--rw-border)] py-2">
@@ -495,6 +574,50 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
                           </dd>
                         </div>
                       ) : null}
+                      <div className="rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-3">
+                        <dt className="text-[var(--rw-text-secondary)]">Contractor Information</dt>
+                        <dd className="mt-1 font-medium text-[var(--rw-text-primary)]">
+                          Contractor information unavailable
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
+                ) : null}
+
+                {selection.kind === 'toll' ? (
+                  <div className="flex flex-col gap-3 text-sm">
+                    <h3 className="text-lg font-semibold text-[var(--rw-text-primary)]">{selection.toll.name}</h3>
+                    <dl className="grid gap-2">
+                      <div className="flex justify-between gap-4 border-b border-[var(--rw-border)] py-2">
+                        <dt className="text-[var(--rw-text-secondary)]">NH</dt>
+                        <dd className="font-medium">{selection.toll.nhNumber ?? t('unknown')}</dd>
+                      </div>
+                      <div className="flex justify-between gap-4 border-b border-[var(--rw-border)] py-2">
+                        <dt className="text-[var(--rw-text-secondary)]">{t('emergencyCrane')}</dt>
+                        <dd className="font-medium">{selection.toll.helplineCrane ?? t('notPublished')}</dd>
+                      </div>
+                      <div className="flex justify-between gap-4 border-b border-[var(--rw-border)] py-2">
+                        <dt className="text-[var(--rw-text-secondary)]">{t('emergencyAmbulance')}</dt>
+                        <dd className="font-medium">{selection.toll.helplineAmbulance ?? t('notPublished')}</dd>
+                      </div>
+                      <div className="flex justify-between gap-4 border-b border-[var(--rw-border)] py-2">
+                        <dt className="text-[var(--rw-text-secondary)]">{t('patrolContact')}</dt>
+                        <dd className="font-medium">{selection.toll.helplinePatrol ?? t('notPublished')}</dd>
+                      </div>
+                      <div className="flex justify-between gap-4 border-b border-[var(--rw-border)] py-2">
+                        <dt className="text-[var(--rw-text-secondary)]">{t('policeContact')}</dt>
+                        <dd className="font-medium">
+                          {selection.toll.policeStationContact ?? selection.toll.nearestPoliceStation ?? t('notPublished')}
+                        </dd>
+                      </div>
+                      <div className="flex justify-between gap-4 border-b border-[var(--rw-border)] py-2">
+                        <dt className="text-[var(--rw-text-secondary)]">{t('nearestHospital')}</dt>
+                        <dd className="font-medium">{selection.toll.nearestHospitals ?? t('notPublished')}</dd>
+                      </div>
+                      <div className="flex justify-between gap-4 py-2">
+                        <dt className="text-[var(--rw-text-secondary)]">{t('highwayService')}</dt>
+                        <dd className="font-medium">{selection.toll.emergencyServices ?? t('notPublished')}</dd>
+                      </div>
                     </dl>
                   </div>
                 ) : null}
@@ -517,6 +640,8 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
                     maintenanceReports={selection.complaint.maintenanceReports}
                   />
                 ) : null}
+                  </>
+                )}
           </MapSidePanel>
         </motion.div>
       </AnimatePresence>
@@ -532,5 +657,53 @@ export function MapDetailOverlay({ mode, selection, userLocation, onClose, onZoo
         onOpenInGoogleMaps={handleOpenGoogleMaps}
       />
     </>
+  )
+}
+
+function ContractorPanel({ selection }: { selection: MapActiveSelection }) {
+  const { t } = useI18n()
+  const roadLabel =
+    selection.kind === 'road'
+      ? selection.road.roadName
+      : selection.kind === 'complaint'
+        ? selection.complaint.roadName ?? selection.complaint.title
+        : ''
+  const matches = roadLabel ? findContractsForRoadLabel(roadLabel) : []
+
+  if (matches.length === 0) {
+    return (
+      <div className="rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-4 text-sm text-[var(--rw-text-secondary)]">
+        {t('noRoadContractMapping')}
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-3">
+      {matches.map((row) => (
+        <div
+          key={row.id}
+          className="rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-4 text-sm"
+        >
+          <p className="font-semibold text-[var(--rw-text-primary)]">{row.supplier}</p>
+          <dl className="mt-2 grid gap-1">
+            <div className="flex justify-between gap-3">
+              <dt className="text-[var(--rw-text-secondary)]">{t('projectName')}</dt>
+              <dd className="text-right font-medium">{row.project}</dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt className="text-[var(--rw-text-secondary)]">{t('awardValue')}</dt>
+              <dd className="text-right font-medium tabular-nums">
+                ${row.awardValueUsd.toLocaleString('en-IN')}
+              </dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt className="text-[var(--rw-text-secondary)]">{t('procurementMethod')}</dt>
+              <dd className="text-right font-medium">{row.procurementMethod}</dd>
+            </div>
+          </dl>
+        </div>
+      ))}
+    </div>
   )
 }

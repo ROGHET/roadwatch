@@ -1,4 +1,30 @@
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
+import type { ReactNode } from 'react'
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
+import {
+  getAccidentChartData,
+  getBudgetTrendChartData,
+  getComplaintIssueChartData,
+  getContractorValueChartData,
+  getProcurementChartData,
+  getRiskHotspotChartData,
+  getRoadContractSummary,
+  getTenderComplianceChartData,
+  getTollAnalytics,
+} from '../../lib/analytics/dashboardCharts'
 import {
   Card,
   CardContent,
@@ -6,183 +32,243 @@ import {
   CardHeader,
   CardTitle,
 } from '../common/Card'
-import {
-  getBudgetUtilizationStats,
-  getComplaintCategoryStats,
-  getMaxCategoryCount,
-  getMaxMonthlyCount,
-  getMonthlyTrendStats,
-  getResolutionStatusStats,
-  getTotalStatusCount,
-} from '../../lib/analytics/dashboardAnalytics'
+import { useI18n } from '../../lib/i18n'
 
-function ProgressBar({
-  label,
-  value,
-  max,
-  color,
-  suffix,
+const axisStyle = { fill: 'var(--rw-text-tertiary)', fontSize: 11 }
+const gridStyle = { stroke: 'var(--rw-border)', strokeOpacity: 0.5 }
+
+function ChartPanel({
+  heightClass,
+  children,
+  emptyLabel,
+  hasData,
 }: {
-  label: string
-  value: number
-  max: number
-  color: string
-  suffix?: string
+  heightClass: string
+  children: ReactNode
+  emptyLabel: string
+  hasData: boolean
 }) {
-  const width = Math.round((value / max) * 100)
+  if (!hasData) {
+    return (
+      <div
+        className={`flex items-center justify-center rounded-lg border border-dashed border-[var(--rw-border)] bg-[var(--rw-surface-muted)] px-4 text-center text-sm text-[var(--rw-text-secondary)] ${heightClass}`}
+      >
+        {emptyLabel}
+      </div>
+    )
+  }
+
   return (
-    <div className="space-y-1.5">
-      <div className="flex items-center justify-between gap-3 text-sm">
-        <span className="text-[var(--rw-text-secondary)]">{label}</span>
-        <span className="font-medium tabular-nums text-[var(--rw-text-primary)]">
-          {value}
-          {suffix ?? ''}
-        </span>
-      </div>
-      <div className="h-2 overflow-hidden rounded-full bg-[var(--rw-surface-muted)]">
-        <div
-          className="h-full rounded-full transition-[width] duration-700 ease-out"
-          style={{ width: `${width}%`, backgroundColor: color }}
-        />
-      </div>
+    <div className={`w-full ${heightClass}`}>
+      <ResponsiveContainer width="100%" height="100%">
+        {children}
+      </ResponsiveContainer>
     </div>
   )
 }
 
 export function AnalyticsDashboardSections() {
-  const categories = getComplaintCategoryStats()
-  const statuses = getResolutionStatusStats()
-  const monthlyTrends = getMonthlyTrendStats()
-  const budget = getBudgetUtilizationStats()
-  const maxCategory = getMaxCategoryCount(categories)
-  const maxMonthly = getMaxMonthlyCount(monthlyTrends)
-  const totalStatus = getTotalStatusCount(statuses)
-  const resolvedCount = statuses.find((entry) => entry.label === 'Resolved')?.count ?? 0
-  const resolvedPercent = totalStatus > 0 ? Math.round((resolvedCount / totalStatus) * 100) : 0
+  const { t } = useI18n()
+  const accidentData = getAccidentChartData()
+  const complaintData = getComplaintIssueChartData()
+  const budgetData = getBudgetTrendChartData()
+  const tenderData = getTenderComplianceChartData()
+  const hotspotData = getRiskHotspotChartData()
+  const contractorData = getContractorValueChartData()
+  const procurementData = getProcurementChartData()
+  const tollAnalytics = getTollAnalytics()
+  const contractSummary = getRoadContractSummary()
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
-      <Card className="rw-glass-panel rw-glass-edge shadow-[0_20px_60px_-30px_rgb(0_0_0/0.35)]">
+      <Card className="rw-glass-panel rw-glass-edge lg:col-span-2">
         <CardHeader>
-          <CardTitle className="text-base">Complaint Categories</CardTitle>
-          <CardDescription>Open complaints grouped by issue type.</CardDescription>
+          <CardTitle className="text-base">{t('accidentDashboard')}</CardTitle>
+          <CardDescription>{t('accidentDashboardDesc')}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {categories.map((entry) => (
-            <ProgressBar
-              key={entry.label}
-              label={entry.label}
-              value={entry.count}
-              max={maxCategory}
-              color={entry.color}
-            />
-          ))}
+        <CardContent>
+          <ChartPanel
+            heightClass="h-72"
+            hasData={accidentData.length > 0}
+            emptyLabel="Dataset load failed: ADSI_Table_1A.2.csv"
+          >
+            <BarChart data={accidentData}>
+              <CartesianGrid strokeDasharray="3 3" style={gridStyle} />
+              <XAxis dataKey="label" tick={axisStyle} interval={0} angle={-25} textAnchor="end" height={70} />
+              <YAxis tick={axisStyle} />
+              <Tooltip contentStyle={{ background: 'var(--rw-surface)', border: '1px solid var(--rw-border)' }} />
+              <Legend />
+              <Bar dataKey="accidents" fill="#38bdf8" name={t('accidents')} />
+              <Bar dataKey="deaths" fill="#ef4444" name={t('deaths')} />
+            </BarChart>
+          </ChartPanel>
         </CardContent>
       </Card>
 
-      <Card className="rw-glass-panel rw-glass-edge shadow-[0_20px_60px_-30px_rgb(0_0_0/0.35)]">
+      <Card className="rw-glass-panel rw-glass-edge">
         <CardHeader>
-          <CardTitle className="text-base">Resolution Status</CardTitle>
-          <CardDescription>Distribution of complaint lifecycle states.</CardDescription>
+          <CardTitle className="text-base">{t('riskHotspots')}</CardTitle>
+          <CardDescription>{t('riskHotspotsDesc')}</CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-          <div className="relative mx-auto min-h-[12rem] w-full min-w-0">
-            <ResponsiveContainer width="100%" height={192} minWidth={0}>
-              <PieChart>
-                <Pie
-                  data={statuses}
-                  dataKey="count"
-                  nameKey="label"
-                  innerRadius={52}
-                  outerRadius={78}
-                  paddingAngle={2}
-                >
-                  {statuses.map((entry) => (
-                    <Cell key={entry.label} fill={entry.color} />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <span className="text-2xl font-semibold tabular-nums text-[var(--rw-text-primary)]">
-                {resolvedPercent}%
-              </span>
-            </div>
-          </div>
-          <div className="space-y-2">
-            {statuses.map((entry) => (
-              <div key={entry.label} className="flex items-center justify-between gap-3 text-sm">
-                <span className="flex items-center gap-2 text-[var(--rw-text-secondary)]">
-                  <span
-                    className="size-2.5 rounded-full"
-                    style={{ backgroundColor: entry.color }}
-                    aria-hidden="true"
-                  />
-                  {entry.label}
-                </span>
-                <span className="font-medium tabular-nums text-[var(--rw-text-primary)]">
-                  {entry.count}
-                </span>
-              </div>
-            ))}
-          </div>
+        <CardContent>
+          <ChartPanel
+            heightClass="h-64"
+            hasData={hotspotData.length > 0}
+            emptyLabel="Dataset load failed: ADSI_Table_1A.2.csv"
+          >
+            <BarChart data={hotspotData} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" style={gridStyle} />
+              <XAxis type="number" tick={axisStyle} />
+              <YAxis type="category" dataKey="label" width={100} tick={axisStyle} />
+              <Tooltip contentStyle={{ background: 'var(--rw-surface)', border: '1px solid var(--rw-border)' }} />
+              <Bar dataKey="riskScore" name={t('riskScore')}>
+                {hotspotData.map((entry) => (
+                  <Cell key={entry.label} fill={entry.color} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ChartPanel>
         </CardContent>
       </Card>
 
-      <Card className="rw-glass-panel rw-glass-edge shadow-[0_20px_60px_-30px_rgb(0_0_0/0.35)]">
+      <Card className="rw-glass-panel rw-glass-edge">
         <CardHeader>
-          <CardTitle className="text-base">Monthly Trends</CardTitle>
-          <CardDescription>Complaint volume by reporting month.</CardDescription>
+          <CardTitle className="text-base">{t('infrastructureReportsChart')}</CardTitle>
+          <CardDescription>{t('infrastructureReportsDesc')}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {monthlyTrends.map((entry) => (
-            <ProgressBar
-              key={entry.month}
-              label={entry.month}
-              value={entry.count}
-              max={maxMonthly}
-              color="var(--st-primary)"
-            />
-          ))}
+        <CardContent>
+          <ChartPanel
+            heightClass="h-64"
+            hasData={complaintData.length > 0}
+            emptyLabel="Dataset load failed: RS_Session road works CSVs"
+          >
+            <PieChart>
+              <Pie data={complaintData} dataKey="count" nameKey="label" innerRadius={50} outerRadius={90}>
+                {complaintData.map((entry) => (
+                  <Cell key={entry.label} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip contentStyle={{ background: 'var(--rw-surface)', border: '1px solid var(--rw-border)' }} />
+              <Legend />
+            </PieChart>
+          </ChartPanel>
         </CardContent>
       </Card>
 
-      <Card className="rw-glass-panel rw-glass-edge shadow-[0_20px_60px_-30px_rgb(0_0_0/0.35)]">
+      <Card className="rw-glass-panel rw-glass-edge lg:col-span-2">
         <CardHeader>
-          <CardTitle className="text-base">Budget Utilization</CardTitle>
-          <CardDescription>Aggregated sanctioned and spent road budgets.</CardDescription>
+          <CardTitle className="text-base">{t('budgetTrend')}</CardTitle>
+          <CardDescription>{t('budgetTrendDesc')}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-5">
-          <div className="grid grid-cols-3 gap-3">
-            <div className="rounded-xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-3">
-              <p className="text-xs uppercase tracking-wide text-[var(--rw-text-tertiary)]">Allocated</p>
-              <p className="mt-1 text-xl font-semibold text-[var(--st-tertiary)]">
-                ₹{budget.allocatedCr.toFixed(1)}Cr
-              </p>
-            </div>
-            <div className="rounded-xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-3">
-              <p className="text-xs uppercase tracking-wide text-[var(--rw-text-tertiary)]">Spent</p>
-              <p className="mt-1 text-xl font-semibold text-[var(--st-secondary)]">
-                ₹{budget.spentCr.toFixed(1)}Cr
-              </p>
-            </div>
-            <div className="rounded-xl border border-[var(--rw-border)] bg-[var(--rw-surface-muted)] p-3">
-              <p className="text-xs uppercase tracking-wide text-[var(--rw-text-tertiary)]">Remaining</p>
-              <p className="mt-1 text-xl font-semibold text-[var(--rw-text-primary)]">
-                ₹{budget.remainingCr.toFixed(1)}Cr
-              </p>
-            </div>
-          </div>
-          <ProgressBar
-            label="Utilisation"
-            value={budget.utilizationPercent}
-            max={100}
-            color="var(--st-tertiary)"
-            suffix="%"
-          />
-          <p className="text-xs text-[var(--rw-text-secondary)]">
-            ₹{budget.allocatedCr.toFixed(1)} Cr total across published corridor budgets.
-          </p>
+        <CardContent>
+          <ChartPanel
+            heightClass="h-72"
+            hasData={budgetData.length > 0}
+            emptyLabel="Dataset load failed: RS_Session_259_AU_1686_B_to_D.csv"
+          >
+            <LineChart data={budgetData}>
+              <CartesianGrid strokeDasharray="3 3" style={gridStyle} />
+              <XAxis dataKey="year" tick={axisStyle} />
+              <YAxis tick={axisStyle} />
+              <Tooltip contentStyle={{ background: 'var(--rw-surface)', border: '1px solid var(--rw-border)' }} />
+              <Legend />
+              <Line type="monotone" dataKey="sanctioned" stroke="#38bdf8" name={t('sanctioned')} />
+              <Line type="monotone" dataKey="released" stroke="#22c55e" name={t('released')} />
+              <Line type="monotone" dataKey="remaining" stroke="#f59e0b" name={t('remaining')} />
+            </LineChart>
+          </ChartPanel>
+        </CardContent>
+      </Card>
+
+      <Card className="rw-glass-panel rw-glass-edge">
+        <CardHeader>
+          <CardTitle className="text-base">{t('tenderComplianceChart')}</CardTitle>
+          <CardDescription>{t('tenderComplianceDesc')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ChartPanel
+            heightClass="h-64"
+            hasData={tenderData.length > 0}
+            emptyLabel="Dataset load failed: RS_Session_267_AU_546_A_to_B_i.csv"
+          >
+            <BarChart data={tenderData}>
+              <CartesianGrid strokeDasharray="3 3" style={gridStyle} />
+              <XAxis dataKey="ministry" tick={axisStyle} interval={0} angle={-20} textAnchor="end" height={60} />
+              <YAxis tick={axisStyle} />
+              <Tooltip contentStyle={{ background: 'var(--rw-surface)', border: '1px solid var(--rw-border)' }} />
+              <Legend />
+              <Bar dataKey="evaluated" fill="#38bdf8" name={t('evaluated')} />
+              <Bar dataKey="nonCompliant" fill="#ef4444" name={t('nonCompliant')} />
+            </BarChart>
+          </ChartPanel>
+        </CardContent>
+      </Card>
+
+      <Card className="rw-glass-panel rw-glass-edge">
+        <CardHeader>
+          <CardTitle className="text-base">{t('tollAnalytics')}</CardTitle>
+          <CardDescription>
+            {tollAnalytics.totalPlazas.toLocaleString('en-IN')} {t('tollPlazas')} — {t('tollAnalyticsDesc')}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ChartPanel
+            heightClass="h-64"
+            hasData={tollAnalytics.byState.length > 0}
+            emptyLabel="Dataset load failed: tolls-latest.json"
+          >
+            <BarChart data={tollAnalytics.byState}>
+              <CartesianGrid strokeDasharray="3 3" style={gridStyle} />
+              <XAxis dataKey="state" tick={axisStyle} />
+              <YAxis tick={axisStyle} />
+              <Tooltip contentStyle={{ background: 'var(--rw-surface)', border: '1px solid var(--rw-border)' }} />
+              <Bar dataKey="count" name={t('tollPlazas')}>
+                {tollAnalytics.byState.map((entry) => (
+                  <Cell key={entry.state} fill={entry.color} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ChartPanel>
+        </CardContent>
+      </Card>
+
+      <Card className="rw-glass-panel rw-glass-edge lg:col-span-2">
+        <CardHeader>
+          <CardTitle className="text-base">{t('contractorAwards')}</CardTitle>
+          <CardDescription>
+            {contractSummary.roadRelatedAwards.toLocaleString('en-IN')} {t('roadLinkedAwards')} /{' '}
+            {contractSummary.totalAwards.toLocaleString('en-IN')} {t('totalAwards')}. {t('contractorAwardsDesc')}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-6 lg:grid-cols-2">
+          <ChartPanel
+            heightClass="h-72"
+            hasData={contractorData.length > 0}
+            emptyLabel="Dataset load failed: contract_awards CSV"
+          >
+            <BarChart data={contractorData}>
+              <CartesianGrid strokeDasharray="3 3" style={gridStyle} />
+              <XAxis dataKey="contractor" tick={axisStyle} interval={0} angle={-25} textAnchor="end" height={70} />
+              <YAxis tick={axisStyle} />
+              <Tooltip contentStyle={{ background: 'var(--rw-surface)', border: '1px solid var(--rw-border)' }} />
+              <Bar dataKey="valueMillionUsd" fill="#a855f7" name={t('awardValueUsd')} />
+            </BarChart>
+          </ChartPanel>
+          <ChartPanel
+            heightClass="h-72"
+            hasData={procurementData.length > 0}
+            emptyLabel="Dataset load failed: contract_awards CSV"
+          >
+            <PieChart>
+              <Pie data={procurementData} dataKey="count" nameKey="method" outerRadius={100}>
+                {procurementData.map((entry) => (
+                  <Cell key={entry.method} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip contentStyle={{ background: 'var(--rw-surface)', border: '1px solid var(--rw-border)' }} />
+              <Legend />
+            </PieChart>
+          </ChartPanel>
         </CardContent>
       </Card>
     </div>

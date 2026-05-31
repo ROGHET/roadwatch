@@ -1,0 +1,51 @@
+[
+  {
+    "path": "datasets/ADSI_Table_1A.2.csv",
+    "columns": ["Sl. No.", "State/UT/City", "Road Accidents - Cases", "Road Accidents - Injured", "Road Accidents - Died", "Total Traffic Accidents - Cases", "Total Traffic Accidents - Injured", "Total Traffic Accidents - Died"],
+    "feature": "Accident Locations",
+    "frontend_page": "/map, /analytics",
+    "backend_route": "/api/accidents"
+  },
+  {
+    "path": "datasets/hways_statehighways_0.csv",
+    "columns": ["SH. No.", "Name of the Road", "Starting KM.", "Ending KM", "Total Length KM."],
+    "feature": "Road Ownership, Jurisdiction Mapping, Road GIS",
+    "frontend_page": "/map",
+    "backend_route": "/api/highways"
+  },
+  {
+    "path": "datasets/roadwatch_bmc_4010.json",
+    "columns": ["source_file", "document_type", "integration_ready", "pages"],
+    "feature": "Complaint Records",
+    "frontend_page": "/complaints",
+    "backend_route": "/api/complaints"
+  },
+  {
+    "path": "datasets/RS_Session_258_AU_92_A.iii_.csv",
+    "columns": ["S. No.", "Year ", "Name of Work", "Sanctioned Cost in Rs Lakh"],
+    "feature": "Work Packages",
+    "frontend_page": "/contractors",
+    "backend_route": "/api/work-packages"
+  },
+  {
+    "path": "datasets/RS_Session_259_AU_1686_B_to_D.csv",
+    "columns": ["Year", "2019-20 - Accrual", "2019-20 - Release", "2020-21 - Accrual", "2020-21 - Release", "2021-22 - Accrual", "2021-22 - Release", "2022-23 (Till 28-02-2023) - Accrual", "2022-23 (Till 28-02-2023) - Release"],
+    "feature": "Budget Utilization",
+    "frontend_page": "/budget",
+    "backend_route": "/api/budget"
+  },
+  {
+    "path": "datasets/RS_Session_267_AU_3631_A.1.csv",
+    "columns": ["Sl. No.", "District", "Category", "Name of Work", "Length (km)", "Cost (Rs. Crore)"],
+    "feature": "Work Packages, Road GIS",
+    "frontend_page": "/contractors, /map",
+    "backend_route": "/api/projects"
+  },
+  {
+    "path": "datasets/RS_Session_267_AU_546_A_to_B_i.csv",
+    "columns": ["Sl. No.", "Name of the Ministry", "Total Tenders Evaluated", "Non-Compliant Tenders Found", "Compliance Report received as on 31-01-2025"],
+    "feature": "Contractor Intelligence",
+    "frontend_page": "/contractors",
+    "backend_route": "/api/tenders"
+  }
+]

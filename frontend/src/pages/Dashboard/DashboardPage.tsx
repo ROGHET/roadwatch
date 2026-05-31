@@ -43,6 +43,7 @@ export default function DashboardPage() {
         value: filteredComplaints.length,
         icon: ClipboardList,
         hint: 'Stored complaint records',
+        href: routes.complaintHistory,
       },
       {
         id: 'pending-complaints',
@@ -52,6 +53,7 @@ export default function DashboardPage() {
         ).length,
         icon: Clock,
         hint: 'Awaiting authority action',
+        href: `${routes.complaintHistory}?status=pending`,
       },
       {
         id: 'resolved-complaints',
@@ -59,6 +61,7 @@ export default function DashboardPage() {
         value: filteredComplaints.filter((entry) => entry.marker.status === 'resolved').length,
         icon: CheckCircle2,
         hint: 'Closed complaint records',
+        href: `${routes.complaintHistory}?status=resolved`,
       },
       {
         id: 'critical-open',
@@ -68,6 +71,7 @@ export default function DashboardPage() {
         ).length,
         icon: AlertTriangle,
         hint: 'Immediate safety risk',
+        href: `${routes.complaintHistory}?severity=critical`,
       },
     ],
     [filteredComplaints],
@@ -111,6 +115,7 @@ export default function DashboardPage() {
               value={<AnimatedCounter value={metric.value} duration={1000} />}
               icon={metric.icon}
               hint={metric.hint}
+              onClick={() => navigate(metric.href)}
             />
           ))}
         </StatGrid>

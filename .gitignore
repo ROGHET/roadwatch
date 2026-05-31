@@ -141,3 +141,24 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Large GIS datasets
+datasets/*.geojson
+datasets/*.pbf
+datasets/*.osm.pbf
+datasets/*.xls
+datasets/*.xlsx
+
+datasets/A.geojson
+datasets/B.geojson
+datasets/C.geojson
+datasets/D.geojson
+datasets/E.geojson
+datasets/F.geojson
+
+datasets/Maharashtra export.geojson
+datasets/Madhya Pradesh.geojson
+
+datasets/india-260529.osm.pbf
+datasets/southern-zone-260529.osm.pbf
+datasets/western-zone-260529.osm.pbf

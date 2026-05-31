@@ -4,12 +4,6 @@ function nowIso() {
   return new Date().toISOString()
 }
 
-function hashCoordinates(lat: number, lng: number): number {
-  const latKey = Math.round(lat * 100)
-  const lngKey = Math.round(lng * 100)
-  return Math.abs(latKey * 31 + lngKey * 17)
-}
-
 function locationLabel(lat: number, lng: number): string {
   const roundedLat = lat.toFixed(3)
   const roundedLng = lng.toFixed(3)
@@ -17,19 +11,14 @@ function locationLabel(lat: number, lng: number): string {
 }
 
 function buildMockWeather(lat: number, lng: number, source: string): WeatherSnapshot {
-  const seed = hashCoordinates(lat, lng)
-  const weatherStates = ['Clear', 'Partly cloudy', 'Overcast', 'Light rain', 'Haze', 'Mist']
-  const visibilityKm = Number((4 + (seed % 12) * 0.75).toFixed(1))
-  const rainProbabilityPercent = Math.min(100, 8 + (seed % 72))
-
   return {
     locationName: locationLabel(lat, lng),
-    temperatureC: 22 + (seed % 14),
-    condition: weatherStates[seed % weatherStates.length],
-    humidityPercent: 35 + (seed % 55),
-    windSpeedKph: 4 + (seed % 28),
-    visibilityKm,
-    rainProbabilityPercent,
+    temperatureC: 'Data unavailable',
+    condition: 'Data unavailable',
+    humidityPercent: 'Data unavailable',
+    windSpeedKph: 'Data unavailable',
+    visibilityKm: 'Data unavailable',
+    rainProbabilityPercent: 'Data unavailable',
     source,
     observedAt: nowIso(),
   }

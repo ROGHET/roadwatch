@@ -121,12 +121,12 @@ export const appCommands: AppCommand[] = [
   },
   {
     id: 'my-complaints',
-    label: 'Track Complaints',
-    description: 'Look up complaint status by ID',
-    keywords: 'complaints tracking status my issues track',
+    label: 'Complaint History',
+    description: 'Search and filter complaint records',
+    keywords: 'complaints history tracking status my issues track filter',
     icon: FileWarning,
     group: 'Complaints',
-    href: routes.complaint,
+    href: routes.complaintHistory,
   },
   {
     id: 'report-issue',

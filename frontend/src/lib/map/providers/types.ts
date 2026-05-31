@@ -5,19 +5,19 @@ export type MapCoordinates = {
 
 export type WeatherSnapshot = {
   locationName: string
-  temperatureC: number
+  temperatureC: number | string
   condition: string
-  humidityPercent: number
-  windSpeedKph: number
-  visibilityKm: number
-  rainProbabilityPercent: number
+  humidityPercent: number | string
+  windSpeedKph: number | string
+  visibilityKm: number | string
+  rainProbabilityPercent: number | string
   source: string
   observedAt: string
 }
 
 export type AirQualitySnapshot = {
   locationName: string
-  aqi: number
+  aqi: number | string
   aqiLabel: string
   source: string
   observedAt: string

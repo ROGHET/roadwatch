@@ -1,7 +1,14 @@
+// Centralized Road Type enum — covers all India road categories
 export const ROAD_TYPE_OPTIONS = [
-  { value: 'NH', label: 'NH' },
-  { value: 'SH', label: 'SH' },
-  { value: 'MDR', label: 'MDR' },
+  { value: 'NH', label: 'NH – National Highway' },
+  { value: 'SH', label: 'SH – State Highway' },
+  { value: 'MDR', label: 'MDR – Major District Road' },
+  { value: 'ODR', label: 'ODR – Other District Road' },
+  { value: 'VR', label: 'VR – Village Road' },
+  { value: 'NH(O)', label: 'NH(O) – National Highway (Original)' },
+  { value: 'LWE', label: 'LWE – Left Wing Extremism Road' },
+  { value: 'ESIC', label: 'ESIC – Employee State Insurance Road' },
+  { value: 'Expressway', label: 'Expressway' },
   { value: 'Urban Road', label: 'Urban Road' },
   { value: 'Village Road', label: 'Village Road' },
 ] as const
@@ -13,6 +20,10 @@ export const COMPLAINT_ISSUE_TYPE_OPTIONS = [
   { value: 'Missing Signage', label: 'Missing Signage' },
   { value: 'Streetlight Failure', label: 'Streetlight Failure' },
   { value: 'Accident Hazard', label: 'Accident Hazard' },
+  { value: 'Road Blockage', label: 'Road Blockage' },
+  { value: 'Under Construction', label: 'Under Construction (No Sign)' },
+  { value: 'Bridge Damage', label: 'Bridge / Culvert Damage' },
+  { value: 'Encroachment', label: 'Encroachment' },
   { value: 'Other', label: 'Other' },
 ] as const
 
@@ -35,6 +46,30 @@ const ROUTING_BY_ROAD_TYPE: Record<RoadType, AuthorityRouting> = {
   MDR: {
     assignedAuthority: 'District Engineer',
     assignedDepartment: 'District Roads & Bridges Division',
+  },
+  ODR: {
+    assignedAuthority: 'District Engineer',
+    assignedDepartment: 'Other District Roads Cell',
+  },
+  VR: {
+    assignedAuthority: 'Rural Development Department',
+    assignedDepartment: 'PMGSY – Village Connectivity Cell',
+  },
+  'NH(O)': {
+    assignedAuthority: 'NHAI / State PWD',
+    assignedDepartment: 'Original National Highways Division',
+  },
+  LWE: {
+    assignedAuthority: 'Ministry of Home Affairs',
+    assignedDepartment: 'LWE Road Connectivity Program',
+  },
+  ESIC: {
+    assignedAuthority: 'ESIC Authority',
+    assignedDepartment: 'Employee State Insurance Corporation Roads',
+  },
+  Expressway: {
+    assignedAuthority: 'NHAI / State Expressway Authority',
+    assignedDepartment: 'Expressway Operations Division',
   },
   'Urban Road': {
     assignedAuthority: 'Municipal Corporation',

@@ -7,14 +7,14 @@ export type LocationWeatherSnapshot = {
   locationName: string
   city: string
   state: string
-  temperatureC: number
+  temperatureC: number | string
   condition: string
-  aqi: number
+  aqi: number | string
   aqiLabel: string
-  humidityPercent: number
-  windSpeedKph: number
-  visibilityKm: number
-  rainProbabilityPercent: number
+  humidityPercent: number | string
+  windSpeedKph: number | string
+  visibilityKm: number | string
+  rainProbabilityPercent: number | string
   trafficCondition: 'light' | 'moderate' | 'heavy' | 'severe'
   trafficDescription: string
   roadType?: string
@@ -31,48 +31,23 @@ export interface LocationIntelligenceProvider {
   getSnapshot(request: LocationIntelligenceRequest): Promise<LocationWeatherSnapshot>
 }
 
-const conditionCatalog = ['Clear', 'Partly cloudy', 'Overcast', 'Light rain', 'Haze', 'Mist'] as const
-
-function hashCoordinates(lat: number, lng: number): number {
-  const latKey = Math.round(lat * 100)
-  const lngKey = Math.round(lng * 100)
-  return Math.abs(latKey * 31 + lngKey * 17)
-}
-
-function aqiLabelFor(value: number): string {
-  if (value <= 50) return 'Good'
-  if (value <= 100) return 'Moderate'
-  if (value <= 200) return 'Unhealthy for sensitive groups'
-  if (value <= 300) return 'Unhealthy'
-  return 'Hazardous'
-}
-
-function buildMockSnapshot(lat: number, lng: number): LocationWeatherSnapshot {
-  const seed = hashCoordinates(lat, lng)
+function buildUnavailableSnapshot(lat: number, lng: number): LocationWeatherSnapshot {
   const place = inferPlaceFromCoordinates(lat, lng)
-  const aqi = 40 + (seed % 220)
-  const trafficCondition = ['light', 'moderate', 'heavy', 'severe'][seed % 4] as LocationWeatherSnapshot['trafficCondition']
-  const trafficDescriptionByCondition: Record<LocationWeatherSnapshot['trafficCondition'], string> = {
-    light: 'Free-flowing traffic with short signal delays.',
-    moderate: 'Typical urban congestion with intermittent slowdowns.',
-    heavy: 'Recurring bottlenecks near junctions and bus stops.',
-    severe: 'Stop-and-go movement with frequent queue spillback.',
-  }
 
   return {
     locationName: `${place.label} (${lat.toFixed(3)}, ${lng.toFixed(3)})`,
     city: place.city,
     state: place.state,
-    temperatureC: 22 + (seed % 14),
-    condition: conditionCatalog[seed % conditionCatalog.length],
-    aqi,
-    aqiLabel: aqiLabelFor(aqi),
-    humidityPercent: 35 + (seed % 55),
-    windSpeedKph: 4 + (seed % 28),
-    visibilityKm: Number((4 + (seed % 12) * 0.75).toFixed(1)),
-    rainProbabilityPercent: Math.min(100, 8 + (seed % 72)),
-    trafficCondition,
-    trafficDescription: trafficDescriptionByCondition[trafficCondition],
+    temperatureC: 'Data unavailable',
+    condition: 'Data unavailable',
+    aqi: 'Data unavailable',
+    aqiLabel: 'Data unavailable',
+    humidityPercent: 'Data unavailable',
+    windSpeedKph: 'Data unavailable',
+    visibilityKm: 'Data unavailable',
+    rainProbabilityPercent: 'Data unavailable',
+    trafficCondition: 'moderate',
+    trafficDescription: 'Data unavailable',
     roadType: findNearestRoadType(lat, lng),
     observedAt: new Date().toISOString(),
   }
@@ -98,7 +73,7 @@ function findNearestRoadType(lat: number, lng: number): string | undefined {
   return nearest && nearest.distance <= 0.02 ? nearest.roadType : undefined
 }
 
-/** Deterministic mock provider for demo and interface validation. */
+/** Provider facade. Values stay unavailable unless configured providers return real data. */
 export const mockLocationIntelligenceProvider: LocationIntelligenceProvider = {
   async getSnapshot({ lat, lng }) {
     const [weather, airQuality, traffic] = await Promise.all([
@@ -147,6 +122,6 @@ export async function fetchLocationIntelligence(
   try {
     return await getLocationIntelligenceProvider().getSnapshot({ lat, lng })
   } catch {
-    return buildMockSnapshot(lat, lng)
+    return buildUnavailableSnapshot(lat, lng)
   }
 }

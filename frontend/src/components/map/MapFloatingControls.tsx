@@ -1,6 +1,6 @@
 import { Filter, Loader2, LocateFixed, Plus, Search, X } from 'lucide-react'
 import { motion, useReducedMotion } from 'framer-motion'
-import { useId, type FormEvent } from 'react'
+import { useEffect, useId, useRef, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '../common/Button'
@@ -26,6 +26,7 @@ export type MapFloatingControlsProps = {
   searchResults: MapSearchResult[]
   searchLoading?: boolean
   onSearchResultSelect: (result: MapSearchResult) => void
+  onSearchClose?: () => void
   filterOpen: boolean
   onFilterOpenChange: (open: boolean) => void
   onLocate: () => void
@@ -43,6 +44,7 @@ export function MapFloatingControls({
   searchResults,
   searchLoading = false,
   onSearchResultSelect,
+  onSearchClose,
   filterOpen,
   onFilterOpenChange,
   onLocate,
@@ -57,9 +59,44 @@ export function MapFloatingControls({
   const persistForNavigation = useMapStore((state) => state.persistForNavigation)
   const prefersReducedMotion = useReducedMotion()
   const searchId = useId()
+  const dropdownRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
   const showResults = mode === 'expanded' && (searchQuery.trim().length > 0 || searchResults.length > 0)
   const controlsEnabled = mode === 'expanded'
   const locating = locateStatus === 'loading' || locateStatus === 'refreshing'
+
+  const closeSearch = () => {
+    onSearchQueryChange('')
+    onSearchClose?.()
+    inputRef.current?.blur()
+  }
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!showResults) return
+    function handleClick(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        closeSearch()
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [showResults, onSearchQueryChange])
+
+  // Close dropdown on ESC
+  useEffect(() => {
+    if (!showResults) return
+    function handleKey(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        closeSearch()
+        inputRef.current?.blur()
+      }
+    }
+    document.addEventListener('keydown', handleKey)
+    return () => document.removeEventListener('keydown', handleKey)
+  }, [showResults, onSearchQueryChange])
+
   const openLocationHelp = () => {
     const ua = navigator.userAgent.toLowerCase()
     const helpUrl = ua.includes('edg')
@@ -77,7 +114,13 @@ export function MapFloatingControls({
     event.preventDefault()
     if (searchResults[0]) {
       onSearchResultSelect(searchResults[0])
+      closeSearch()
     }
+  }
+
+  const handleResultSelect = (result: MapSearchResult) => {
+    onSearchResultSelect(result)
+    closeSearch()
   }
 
   if (!controlsEnabled) {
@@ -91,86 +134,100 @@ export function MapFloatingControls({
         className,
       )}
     >
-      <motion.form
-        className="pointer-events-auto rw-map-glass mx-auto flex w-full max-w-[520px] items-center gap-3 rounded-full px-[var(--st-gutter)] py-[var(--st-stack-sm)] shadow-[var(--st-shadow-glass)]"
-        onSubmit={handleSearchSubmit}
-        variants={prefersReducedMotion ? undefined : fadeInUp}
-        initial={prefersReducedMotion ? false : 'hidden'}
-        animate={prefersReducedMotion ? undefined : 'visible'}
-        role="search"
-        aria-label={t('searchPlaces')}
-      >
-        <Search className="size-5 shrink-0 text-[var(--st-primary)]" aria-hidden="true" />
-        <span className="hidden font-serif text-lg text-[var(--st-primary)] sm:inline">{t('appName')}</span>
-        <label htmlFor={searchId} className="sr-only">
-          {t('searchPlaces')}
-        </label>
-        <input
-          id={searchId}
-          type="search"
-          value={searchQuery}
-          onChange={(event) => onSearchQueryChange(event.target.value)}
-          placeholder={t('searchPlaces')}
-          className="min-w-0 flex-1 bg-transparent text-sm text-[var(--rw-text-primary)] outline-none placeholder:text-[var(--rw-text-tertiary)]"
-          autoComplete="off"
-        />
-        {searchQuery ? (
-          <button
-            type="button"
-            onClick={() => onSearchQueryChange('')}
-            className="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-[var(--rw-text-secondary)] transition-[background-color,color,transform] duration-200 hover:bg-[var(--rw-surface-muted)] hover:text-[var(--rw-text-primary)] active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rw-ring)]"
-            aria-label={t('clearSearch')}
-          >
-            <X className="size-4" aria-hidden="true" />
-          </button>
-        ) : null}
-      </motion.form>
-
-      {showResults ? (
-        <motion.ul
-          className="pointer-events-auto rw-map-glass mx-auto max-h-52 w-full max-w-xl overflow-y-auto rounded-[1.25rem] p-2 shadow-[0_20px_60px_-24px_rgb(0_0_0/0.45)] backdrop-blur-2xl"
-          role="listbox"
-          aria-label={t('searchResults')}
+      <div ref={dropdownRef} className="pointer-events-auto mx-auto w-full max-w-[520px]">
+        <motion.form
+          className="rw-map-glass flex items-center gap-3 rounded-full px-[var(--st-gutter)] py-[var(--st-stack-sm)] shadow-[var(--st-shadow-glass)]"
+          onSubmit={handleSearchSubmit}
           variants={prefersReducedMotion ? undefined : fadeInUp}
           initial={prefersReducedMotion ? false : 'hidden'}
           animate={prefersReducedMotion ? undefined : 'visible'}
+          role="search"
+          aria-label={t('searchPlaces')}
         >
-          {searchLoading ? (
-            <li className="flex items-center justify-center gap-2 px-3 py-4 text-sm text-[var(--rw-text-secondary)]">
-              <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-              {t('searchingPlaces')}
-            </li>
-          ) : searchResults.length === 0 ? (
-            <li className="px-3 py-4 text-center text-sm text-[var(--rw-text-secondary)]">
-              {t('noMatchingRecords')}
-            </li>
-          ) : (
-            <>
-              {!searchQuery.trim() ? (
-                <li className="px-3 py-1 text-xs font-medium uppercase tracking-wide text-[var(--rw-text-tertiary)]">
-                  {t('recentSearches')}
+          <Search className="size-5 shrink-0 text-[var(--st-primary)]" aria-hidden="true" />
+          <span className="hidden font-serif text-lg text-[var(--st-primary)] sm:inline">{t('appName')}</span>
+          <label htmlFor={searchId} className="sr-only">
+            {t('searchPlaces')}
+          </label>
+          <input
+            ref={inputRef}
+            id={searchId}
+            type="search"
+            value={searchQuery}
+            onChange={(event) => onSearchQueryChange(event.target.value)}
+            placeholder={t('searchPlaces')}
+            className="min-w-0 flex-1 bg-transparent text-sm text-[var(--rw-text-primary)] outline-none placeholder:text-[var(--rw-text-tertiary)]"
+            autoComplete="off"
+          />
+          {searchQuery ? (
+            <button
+              type="button"
+              onClick={closeSearch}
+              className="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-[var(--rw-text-secondary)] transition-[background-color,color,transform] duration-200 hover:bg-[var(--rw-surface-muted)] hover:text-[var(--rw-text-primary)] active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rw-ring)]"
+              aria-label={t('clearSearch')}
+            >
+              <X className="size-4" aria-hidden="true" />
+            </button>
+          ) : null}
+        </motion.form>
+
+        {showResults ? (
+          <motion.div
+            className="mt-2"
+            variants={prefersReducedMotion ? undefined : fadeInUp}
+            initial={prefersReducedMotion ? false : 'hidden'}
+            animate={prefersReducedMotion ? undefined : 'visible'}
+          >
+            <ul
+              className="rw-map-glass max-h-52 w-full overflow-y-auto rounded-[1.25rem] p-2 shadow-[0_20px_60px_-24px_rgb(0_0_0/0.45)] backdrop-blur-2xl"
+              role="listbox"
+              aria-label={t('searchResults')}
+            >
+              {/* Header with X close button */}
+              <li className="flex items-center justify-between px-3 py-1">
+                <span className="text-xs font-medium uppercase tracking-wide text-[var(--rw-text-tertiary)]">
+                  {!searchQuery.trim() ? t('recentSearches') : t('searchResults')}
+                </span>
+                <button
+                  type="button"
+                  onClick={closeSearch}
+                  className="inline-flex size-6 items-center justify-center rounded-full text-[var(--rw-text-tertiary)] hover:bg-[var(--rw-surface-muted)] hover:text-[var(--rw-text-secondary)]"
+                  aria-label="Close search results"
+                >
+                  <X className="size-3" aria-hidden="true" />
+                </button>
+              </li>
+              {searchLoading ? (
+                <li className="flex items-center justify-center gap-2 px-3 py-4 text-sm text-[var(--rw-text-secondary)]">
+                  <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                  {t('searchingPlaces')}
                 </li>
-              ) : null}
-              {searchResults.map((result) => (
-                <li key={`${result.kind}-${result.id}`} role="option">
-                  <button
-                    type="button"
-                    onClick={() => onSearchResultSelect(result)}
-                    className="flex w-full flex-col gap-0.5 rounded-xl px-3 py-2.5 text-left transition-[background-color,transform] duration-200 hover:bg-[var(--rw-surface-muted)] active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rw-ring)]"
-                  >
-                    <span className="text-sm font-medium text-[var(--rw-text-primary)]">
-                      {result.label}
-                    </span>
-                    <span className="text-xs text-[var(--rw-text-secondary)]">
-                      {result.description}
-                    </span>
-                  </button>
+              ) : searchResults.length === 0 ? (
+                <li className="px-3 py-4 text-center text-sm text-[var(--rw-text-secondary)]">
+                  {t('noMatchingRecords')}
                 </li>
-              ))}
-            </>
-          )}
-        </motion.ul>
-      ) : null}
+              ) : (
+                searchResults.map((result) => (
+                  <li key={`${result.kind}-${result.id}`} role="option">
+                    <button
+                      type="button"
+                      onClick={() => handleResultSelect(result)}
+                      className="flex w-full flex-col gap-0.5 rounded-xl px-3 py-2.5 text-left transition-[background-color,transform] duration-200 hover:bg-[var(--rw-surface-muted)] active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rw-ring)]"
+                    >
+                      <span className="text-sm font-medium text-[var(--rw-text-primary)]">
+                        {result.label}
+                      </span>
+                      <span className="text-xs text-[var(--rw-text-secondary)]">
+                        {result.description}
+                      </span>
+                    </button>
+                  </li>
+                ))
+              )}
+            </ul>
+          </motion.div>
+        ) : null}
+      </div>
 
       <div className="pointer-events-none flex items-start justify-between gap-3">
         <div className="pointer-events-auto relative">
@@ -191,6 +248,7 @@ export function MapFloatingControls({
           </motion.button>
         </div>
 
+        {/* Top-right controls: Recenter, then Report Issue */}
         <div className="pointer-events-auto flex flex-col items-end gap-2">
           <motion.button
             type="button"

@@ -11,8 +11,13 @@ export type MapViewport = {
   zoom: number
 }
 
+export type MapLayerToggleKey = 'roads' | 'complaints' | 'tollPlazas'
+
+export type MapLayerToggles = Record<MapLayerToggleKey, boolean>
+
 type MapStoreState = {
   center: MapViewport
+  layerToggles: MapLayerToggles
   filter: MapLayerFilter
   severityFilters: ComplaintSeverity[]
   roadTypeFilters: MapRoadTypeFilter[]
@@ -25,6 +30,8 @@ type MapStoreState = {
   hasUserViewport: boolean
   skipMapTeardown: boolean
   setViewport: (center: Pick<MapViewport, 'lat' | 'lng'>, zoom: number) => void
+  setLayerToggle: (key: MapLayerToggleKey, enabled: boolean) => void
+  toggleLayerToggle: (key: MapLayerToggleKey) => void
   setFilter: (filter: MapLayerFilter) => void
   setSeverityFilters: (filters: ComplaintSeverity[]) => void
   setRoadTypeFilters: (filters: MapRoadTypeFilter[]) => void
@@ -44,8 +51,15 @@ type MapStoreState = {
   clearTransientMapUi: () => void
 }
 
+const defaultLayerToggles: MapLayerToggles = {
+  roads: true,
+  complaints: true,
+  tollPlazas: true,
+}
+
 export const useMapStore = create<MapStoreState>((set) => ({
   center: { lat: INDIA_CENTER.lat, lng: INDIA_CENTER.lng, zoom: INDIA_DEFAULT_ZOOM },
+  layerToggles: defaultLayerToggles,
   filter: 'all',
   severityFilters: [],
   roadTypeFilters: [],
@@ -64,6 +78,16 @@ export const useMapStore = create<MapStoreState>((set) => ({
       hasUserViewport: true,
     })
   },
+
+  setLayerToggle: (key, enabled) =>
+    set((state) => ({
+      layerToggles: { ...state.layerToggles, [key]: enabled },
+    })),
+
+  toggleLayerToggle: (key) =>
+    set((state) => ({
+      layerToggles: { ...state.layerToggles, [key]: !state.layerToggles[key] },
+    })),
 
   setFilter: (filter) => set({ filter }),
 
@@ -134,6 +158,7 @@ export const useMapStore = create<MapStoreState>((set) => ({
   resetMapForFreshOpen: () => {
     set((state) => ({
       center: { lat: INDIA_CENTER.lat, lng: INDIA_CENTER.lng, zoom: INDIA_DEFAULT_ZOOM },
+      layerToggles: defaultLayerToggles,
       filter: 'all',
       severityFilters: [],
       roadTypeFilters: [],
