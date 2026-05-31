@@ -162,3 +162,5 @@ datasets/Madhya Pradesh.geojson
 datasets/india-260529.osm.pbf
 datasets/southern-zone-260529.osm.pbf
 datasets/western-zone-260529.osm.pbf
+
+.cursor/
