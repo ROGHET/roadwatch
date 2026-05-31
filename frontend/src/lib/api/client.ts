@@ -1,9 +1,9 @@
 import axios from 'axios'
 
-const baseURL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
+export const API_BASE_URL = import.meta.env.VITE_API_URL || "https://roadwatch-api-mrw8.onrender.com";
 
 export const apiClient = axios.create({
-  baseURL,
+  baseURL: API_BASE_URL,
   headers: {
     Accept: 'application/json',
     'Content-Type': 'application/json',

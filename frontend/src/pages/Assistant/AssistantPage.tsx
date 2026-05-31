@@ -36,6 +36,7 @@ import { routes } from '../../lib/routes'
 import { useAssistantChatStore } from '../../stores/assistantChatStore'
 import { useComplaintStore } from '../../stores/complaintStore'
 import { useMapStore } from '../../stores/mapStore'
+import { API_BASE_URL } from '../../lib/api/client'
 
 type AssistantContext =
   | { type: 'generic' }
@@ -294,7 +295,7 @@ function isComplaintResolved(status: string, resolutionStatus?: string): boolean
   )
 }
 
-const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
+
 
 export default function AssistantPage() {
   const { t } = useI18n()
@@ -479,7 +480,7 @@ export default function AssistantPage() {
 
       try {
         const response = await fetch(
-          `${apiBaseUrl}/api/intelligence/geocode?lat=${activeLocation.latitude}&lng=${activeLocation.longitude}`,
+          `${API_BASE_URL}/api/intelligence/geocode?lat=${activeLocation.latitude}&lng=${activeLocation.longitude}`,
         )
         if (!response.ok) throw new Error('Geocode failed')
         const payload = (await response.json()) as { city?: string; state?: string; label?: string }
@@ -770,7 +771,7 @@ export default function AssistantPage() {
         },
       }
 
-      const res = await fetch(`${apiBaseUrl}/api/ai/chat`, {
+      const res = await fetch(`${API_BASE_URL}/api/ai/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -889,7 +890,7 @@ export default function AssistantPage() {
     }
 
     try {
-      const response = await fetch(`${apiBaseUrl}/api/intelligence/geocode?q=${encodeURIComponent(roadName)}`)
+      const response = await fetch(`${API_BASE_URL}/api/intelligence/geocode?q=${encodeURIComponent(roadName)}`)
       if (!response.ok) throw new Error('Geocode failed')
       const payload = (await response.json()) as {
         label?: string

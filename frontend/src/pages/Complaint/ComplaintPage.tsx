@@ -96,7 +96,7 @@ function applyDraftToForm(
   setters.setState(draft.state ?? '')
   setters.setRoadId(draft.roadId)
   setters.setRoadName(draft.roadName)
-  setters.setContractor(draft.contractor ?? 'Unknown contractor')
+  setters.setContractor(draft.contractor ?? '')
   setters.setPhotoPreview(draft.photoDataUrl ?? null)
 }
 
@@ -131,7 +131,7 @@ export default function ComplaintPage() {
   const [stateName, setStateName] = useState('')
   const [roadId, setRoadId] = useState<string | undefined>()
   const [roadName, setRoadName] = useState<string | undefined>()
-  const [contractor, setContractor] = useState('Unknown contractor')
+  const [contractor, setContractor] = useState('')
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [draftSavedMessage, setDraftSavedMessage] = useState<string | null>(null)
   const [draftLoadMessage, setDraftLoadMessage] = useState<string | null>(null)
@@ -172,7 +172,7 @@ export default function ComplaintPage() {
         setContractor(prefill.contractor)
       } else if (prefill.roadName) {
         const match = findContractsForRoadLabel(prefill.roadName)[0]?.supplier
-        setContractor(match ?? 'Unknown contractor')
+        setContractor(match ?? '')
       }
       if (prefill.roadType) {
         const detected = detectRoadTypeFromText(prefill.roadType) ?? (prefill.roadType as RoadType)
@@ -262,9 +262,9 @@ export default function ComplaintPage() {
         setRoadId(road.id)
         setRoadName(road.roadName)
         const match = findContractsForRoadLabel(road.roadName)[0]?.supplier
-        setContractor(match ?? 'Unknown contractor')
+        setContractor(road.contractor ?? match ?? '')
       } else {
-        setContractor('Unknown contractor')
+        setContractor('')
       }
     })
 
@@ -333,7 +333,7 @@ export default function ComplaintPage() {
     setStateName('')
     setRoadId(undefined)
     setRoadName(undefined)
-    setContractor('Unknown contractor')
+    setContractor('')
     setPhotoPreview(null)
     draftRestoredRef.current = false
   }
@@ -500,16 +500,18 @@ export default function ComplaintPage() {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="complaint-contractor">Contractor</Label>
-              <Input
-                id="complaint-contractor"
-                type="text"
-                value={contractor}
-                readOnly
-                className="bg-[var(--rw-surface-muted)]"
-              />
-            </div>
+            {contractor ? (
+              <div className="space-y-2">
+                <Label htmlFor="complaint-contractor">Contractor</Label>
+                <Input
+                  id="complaint-contractor"
+                  type="text"
+                  value={contractor}
+                  readOnly
+                  className="bg-[var(--rw-surface-muted)]"
+                />
+              </div>
+            ) : null}
 
             <div className="space-y-2">
               <Label htmlFor="complaint-issue-type" required>
