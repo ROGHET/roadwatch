@@ -5,20 +5,21 @@ export function usdToInr(usd: number): number {
   return usd * USD_TO_INR
 }
 
-/** Format as ₹12.6 Cr, ₹8.3 Lakh, etc. */
-export function formatAwardInr(usd: number): string {
+/** Format as INR crore/lakh; unknown or placeholder zero values stay unavailable. */
+export function formatAwardInr(usd: number | null | undefined): string {
+  if (usd === null || usd === undefined || !Number.isFinite(usd)) return 'Not Available'
   const inr = usdToInr(usd)
-  if (!Number.isFinite(inr) || inr <= 0) return '₹0'
+  if (!Number.isFinite(inr) || inr <= 0) return 'Not Available'
   if (inr >= 1e7) {
     const cr = inr / 1e7
-    return `₹${cr >= 10 ? Math.round(cr) : cr.toFixed(1)} Cr`
+    return `Rs ${cr >= 10 ? Math.round(cr) : cr.toFixed(1)} Cr`
   }
   if (inr >= 1e5) {
     const lakh = inr / 1e5
-    return `₹${lakh >= 10 ? Math.round(lakh) : lakh.toFixed(1)} Lakh`
+    return `Rs ${lakh >= 10 ? Math.round(lakh) : lakh.toFixed(1)} Lakh`
   }
   if (inr >= 1e3) {
-    return `₹${Math.round(inr).toLocaleString('en-IN')}`
+    return `Rs ${Math.round(inr).toLocaleString('en-IN')}`
   }
-  return `₹${inr.toFixed(0)}`
+  return `Rs ${inr.toFixed(0)}`
 }

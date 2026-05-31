@@ -5,6 +5,22 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 const datasetsDir = path.resolve(__dirname, '../datasets')
+const roadDatasetAliases = new Map([
+  ['export.geojson', ['Mumbai.geojson']],
+  ['Maharashtra export.geojson', ['Maharashtra.geojson']],
+  ['Madhya Pradesh.geojson', ['MadhyaPradesh.geojson']],
+])
+const requiredRoadDatasets = new Set([
+  'export.geojson',
+  'Maharashtra export.geojson',
+  'Madhya Pradesh.geojson',
+  'A.geojson',
+  'B.geojson',
+  'C.geojson',
+  'D.geojson',
+  'E.geojson',
+  'F.geojson',
+])
 
 function datasetsStaticPlugin() {
   return {
@@ -51,11 +67,14 @@ function datasetsStaticPlugin() {
         if (!fs.statSync(src).isFile()) continue
         if (skipPatterns.some((pattern) => pattern.test(file))) continue
         const size = fs.statSync(src).size
-        if (size > maxDeployBytes) {
+        if (size > maxDeployBytes && !requiredRoadDatasets.has(file)) {
           console.warn(`[roadwatch-datasets] Skipped ${file} (${Math.round(size / 1024 / 1024)}MB) — host externally for full coverage`)
           continue
         }
         fs.copyFileSync(src, path.join(target, file))
+        for (const alias of roadDatasetAliases.get(file) ?? []) {
+          fs.copyFileSync(src, path.join(target, alias))
+        }
       }
     },
   }

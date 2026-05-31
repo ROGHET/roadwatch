@@ -165,7 +165,7 @@ export function getRoadContractSummary() {
   return {
     totalAwards: contractAwardRecords.length,
     roadRelatedAwards: roadContractAwards.length,
-    totalValueUsd: roadContractAwards.reduce((sum, row) => sum + row.awardValueUsd, 0),
+    totalValueUsd: roadContractAwards.reduce((sum, row) => sum + (row.awardValueUsd ?? 0), 0),
   }
 }
 

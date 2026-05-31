@@ -23,6 +23,7 @@ export type GeoRoadFeature = {
 export type RoadDatasetRegion = {
   id: string
   filename: string
+  aliases: string[]
   bbox: [number, number, number, number]
   minZoom: number
   label: string
@@ -33,6 +34,7 @@ export const ROAD_DATASET_REGIONS: RoadDatasetRegion[] = [
   {
     id: 'mumbai-export',
     filename: 'export.geojson',
+    aliases: ['Mumbai.geojson', 'export.geojson'],
     bbox: [18.5, 72.5, 19.5, 73.2],
     minZoom: MIN_ROAD_RENDER_ZOOM,
     label: 'Mumbai corridor',
@@ -41,6 +43,7 @@ export const ROAD_DATASET_REGIONS: RoadDatasetRegion[] = [
   {
     id: 'maharashtra',
     filename: 'Maharashtra export.geojson',
+    aliases: ['Maharashtra.geojson', 'Maharashtra export.geojson'],
     bbox: [15.5, 72.5, 22.5, 80.5],
     minZoom: MIN_ROAD_RENDER_ZOOM,
     label: 'Maharashtra',
@@ -49,6 +52,7 @@ export const ROAD_DATASET_REGIONS: RoadDatasetRegion[] = [
   {
     id: 'madhya-pradesh',
     filename: 'Madhya Pradesh.geojson',
+    aliases: ['MadhyaPradesh.geojson', 'Madhya Pradesh.geojson'],
     bbox: [21.0, 74.0, 26.9, 82.1],
     minZoom: MIN_ROAD_RENDER_ZOOM,
     label: 'Madhya Pradesh',
@@ -57,6 +61,7 @@ export const ROAD_DATASET_REGIONS: RoadDatasetRegion[] = [
   {
     id: 'zone-a',
     filename: 'A.geojson',
+    aliases: ['A.geojson'],
     bbox: [16.0, 70.0, 30.5, 80.5],
     minZoom: MIN_ROAD_RENDER_ZOOM,
     label: 'Zone A',
@@ -65,6 +70,7 @@ export const ROAD_DATASET_REGIONS: RoadDatasetRegion[] = [
   {
     id: 'zone-b',
     filename: 'B.geojson',
+    aliases: ['B.geojson'],
     bbox: [27.0, 74.0, 35.0, 80.5],
     minZoom: MIN_ROAD_RENDER_ZOOM,
     label: 'Zone B',
@@ -73,6 +79,7 @@ export const ROAD_DATASET_REGIONS: RoadDatasetRegion[] = [
   {
     id: 'zone-c',
     filename: 'C.geojson',
+    aliases: ['C.geojson'],
     bbox: [17.0, 77.0, 30.5, 90.0],
     minZoom: MIN_ROAD_RENDER_ZOOM,
     label: 'Zone C',
@@ -81,6 +88,7 @@ export const ROAD_DATASET_REGIONS: RoadDatasetRegion[] = [
   {
     id: 'zone-d',
     filename: 'D.geojson',
+    aliases: ['D.geojson'],
     bbox: [8.0, 74.0, 18.0, 80.5],
     minZoom: MIN_ROAD_RENDER_ZOOM,
     label: 'Zone D',
@@ -89,6 +97,7 @@ export const ROAD_DATASET_REGIONS: RoadDatasetRegion[] = [
   {
     id: 'zone-e',
     filename: 'E.geojson',
+    aliases: ['E.geojson'],
     bbox: [8.0, 74.5, 28.5, 96.0],
     minZoom: MIN_ROAD_RENDER_ZOOM,
     label: 'Zone E',
@@ -97,6 +106,7 @@ export const ROAD_DATASET_REGIONS: RoadDatasetRegion[] = [
   {
     id: 'zone-f',
     filename: 'F.geojson',
+    aliases: ['F.geojson'],
     bbox: [12.5, 76.5, 20.0, 85.0],
     minZoom: MIN_ROAD_RENDER_ZOOM,
     label: 'Zone F',
@@ -257,6 +267,26 @@ function notifyListeners() {
   }
 }
 
+async function fetchRegionCollection(region: RoadDatasetRegion): Promise<FeatureCollection> {
+  const filenames = Array.from(new Set([region.filename, ...region.aliases]))
+  let lastError: unknown
+
+  for (const filename of filenames) {
+    try {
+      const response = await fetch(datasetUrl(filename))
+      if (!response.ok) {
+        lastError = new Error(`Failed to load ${filename}`)
+        continue
+      }
+      return (await response.json()) as FeatureCollection
+    } catch (error) {
+      lastError = error
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error(`Failed to load ${region.filename}`)
+}
+
 async function loadRegion(region: RoadDatasetRegion): Promise<void> {
   if (loadedRegionIds.has(region.id)) return
   const existing = loadingPromises.get(region.id)
@@ -264,10 +294,8 @@ async function loadRegion(region: RoadDatasetRegion): Promise<void> {
 
   const promise = new Promise<void>((resolve) => {
     scheduleIdle(() => {
-      void fetch(datasetUrl(region.filename))
-        .then(async (response) => {
-          if (!response.ok) throw new Error(`Failed to load ${region.filename}`)
-          const collection = (await response.json()) as FeatureCollection
+      void fetchRegionCollection(region)
+        .then((collection) => {
           const renderFeatures: Feature<LineString | MultiLineString>[] = []
 
           for (let index = 0; index < collection.features.length; index += 1) {
@@ -283,8 +311,12 @@ async function loadRegion(region: RoadDatasetRegion): Promise<void> {
           loadedRegionIds.add(region.id)
           notifyListeners()
         })
-        .catch(() => {
-          // Dataset missing or unreachable — skip silently in production.
+        .catch((error) => {
+          console.warn('[RoadWatch roads] lazy dataset unavailable', {
+            id: region.id,
+            filenames: [region.filename, ...region.aliases],
+            error,
+          })
         })
         .finally(() => {
           loadingPromises.delete(region.id)
@@ -327,6 +359,14 @@ export function getLoadedGeoRoadFeaturesNearPoint(lat: number, lng: number): Geo
 
 export function getLoadedRegionIds(): string[] {
   return Array.from(loadedRegionIds)
+}
+
+export function getIndexedRoadFeatureCount(): number {
+  return featureById.size
+}
+
+export function getPickIndexCellCount(): number {
+  return pickFeatureIdsByCell.size
 }
 
 export function getVisibleRoadCollection(bounds: LatLngBounds, zoom: number): FeatureCollection {
@@ -385,10 +425,15 @@ export async function ensureRoadDatasetsNearPoint(
       !loadedRegionIds.has(region.id) &&
       region.minZoom <= zoom &&
       bboxIntersectsViewport(region.bbox, south, west, north, east),
-  )
+  ).sort((left, right) => {
+    const leftArea = (left.bbox[2] - left.bbox[0]) * (left.bbox[3] - left.bbox[1])
+    const rightArea = (right.bbox[2] - right.bbox[0]) * (right.bbox[3] - right.bbox[1])
+    return leftArea - rightArea
+  })
 
   for (const region of candidates) {
     await loadRegion(region)
+    if (getLoadedGeoRoadFeaturesNearPoint(lat, lng).length > 0) return
   }
 }
 

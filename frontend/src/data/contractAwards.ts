@@ -7,7 +7,7 @@ export type ContractAwardRecord = {
   contractor: string
   project: string
   projectId: string
-  awardValueUsd: number
+  awardValueUsd: number | null
   procurementMethod: string
   procurementCategory: string
   contractDescription: string
@@ -48,10 +48,10 @@ function parseCsv(text: string): string[][] {
   return rows
 }
 
-function parseNumber(value: string | undefined): number {
-  if (!value) return 0
+function parseOptionalNumber(value: string | undefined): number | null {
+  if (!value?.trim()) return null
   const parsed = Number(value.replace(/,/g, ''))
-  return Number.isFinite(parsed) ? parsed : 0
+  return Number.isFinite(parsed) ? parsed : null
 }
 
 function isRoadRelatedText(value: string): boolean {
@@ -95,7 +95,7 @@ export const contractAwardRecords: ContractAwardRecord[] = rows.slice(1).map((ro
     contractor: supplier,
     project,
     projectId: row[col.projectId] ?? '',
-    awardValueUsd: parseNumber(row[col.awardValue]),
+    awardValueUsd: parseOptionalNumber(row[col.awardValue]),
     procurementMethod: row[col.procurementMethod] ?? 'Unknown',
     procurementCategory: row[col.procurementCategory] ?? 'Unknown',
     contractDescription: description,
@@ -115,7 +115,7 @@ export function getTopContractorsByValue(limit = 10) {
   for (const row of contractAwardRecords) {
     const key = row.contractor
     const current = totals.get(key) ?? { contractor: key, value: 0, projects: 0 }
-    current.value += row.awardValueUsd
+    current.value += row.awardValueUsd ?? 0
     current.projects += 1
     totals.set(key, current)
   }
@@ -155,7 +155,7 @@ const localRoadContractorRecords: ContractAwardRecord[] = [
     contractor: 'KUWAR CONSTRUCTION',
     project: 'Mumbai municipal road maintenance mapping',
     projectId: 'MUMBAI-ROAD-MAPPING',
-    awardValueUsd: 0,
+    awardValueUsd: null,
     procurementMethod: 'Municipal road contractor mapping',
     procurementCategory: 'Works',
     contractDescription: 'Lal Bahadur Shastri Marg / Shastri Road corridor maintenance contractor mapping',
