@@ -1,4 +1,4 @@
-# roadwatch
+# CrashZero
 AI-powered road safety and transparency platform for accident risk analysis, complaint reporting, and infrastructure monitoring.
 
 # RoadWatch
@@ -17,25 +17,35 @@ RoadWatch is an AI-powered road safety and transparency platform developed for a
 ## Tech Stack
 
 ### Frontend
-
-* React
-* TypeScript
-* Vite
-* Tailwind CSS
-* React Router
+- React
+- TypeScript
+- Vite
+- Tailwind CSS
+- Leaflet
+- Zustand
 
 ### Backend
-
-* Python / FastAPI (planned)
+- Node.js
+- Express.js
+- TypeScript
 
 ### Database
+- PostgreSQL
+- Prisma ORM
 
-* PostgreSQL (planned)
+### AI
+- Google Gemini API
 
-### Mapping
+### GIS & Mapping
+- OpenStreetMap
+- GeoJSON
+- Overpass Turbo
+- Leaflet
 
-* OpenStreetMap
-* Leaflet (planned)
+### Deployment
+- Vercel
+- Render
+- GitHub
 
 ## Project Structure
 
